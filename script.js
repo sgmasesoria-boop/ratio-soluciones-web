@@ -30,14 +30,14 @@ document.getElementById('year').textContent = new Date().getFullYear();
 document.getElementById('contact-form')?.addEventListener('submit', (event) => {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
-  const subject = `Consulta web - ${data.get('tipo')}`;
+  const subject = 'Consulta particular desde la web';
   const body = [
     `Nombre: ${data.get('nombre')}`,
     `Contacto: ${data.get('contacto')}`,
-    `Tipo: ${data.get('tipo')}`,
     '',
-    'Necesidad:',
+    'Situación:',
     data.get('mensaje')
   ].join('\n');
   window.location.href = `mailto:sergio@ratiosoluciones.es?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 });
+
