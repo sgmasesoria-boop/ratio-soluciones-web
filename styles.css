@@ -135,9 +135,19 @@ h1 em { color: var(--lime); font-style: normal; }
 .direct-contact span { display: block; color: rgba(255,255,255,.48); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
 .direct-contact strong { font-size: 17px; }
 .contact-form { padding: 32px; border-radius: 18px; background: white; color: var(--ink); }
+.form-intro { display: flex; flex-direction: column; gap: 3px; margin-bottom: 22px; padding-bottom: 17px; border-bottom: 1px solid #e3e7e5; }
+.form-intro strong { font: 700 18px/1.3 "Manrope", sans-serif; }
+.form-intro span { color: var(--muted); font-size: 12px; }
 .contact-form label { display: block; margin-bottom: 17px; font-size: 12px; font-weight: 700; }
 .contact-form input, .contact-form textarea, .contact-form select { width: 100%; margin-top: 7px; padding: 13px 0; border: 0; border-bottom: 1px solid #ced5d2; outline: none; background: transparent; border-radius: 0; font: 14px "DM Sans", sans-serif; }
 .contact-form input:focus, .contact-form textarea:focus, .contact-form select:focus { border-color: #3b7564; }
+.guided-question { margin: -2px 0 18px; padding: 16px; border-radius: 12px; background: #f4f7f2; }
+.guided-question[hidden] { display: none; }
+.guided-question label { margin-bottom: 0; }
+.field-help { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.privacy-first { margin: 22px 0 18px; padding: 16px; border-left: 4px solid var(--mint); border-radius: 8px; background: #edf7f2; }
+.privacy-first strong { font: 700 14px/1.3 "Manrope", sans-serif; }
+.privacy-first p { margin: 6px 0 0; color: #4f625c; font-size: 11px; line-height: 1.5; }
 .checkbox { display: flex !important; align-items: flex-start; gap: 8px; font-weight: 400 !important; color: var(--muted); }
 .checkbox input { width: auto; margin-top: 4px; }
 .checkbox a { color: var(--ink); }
