@@ -52,9 +52,7 @@ export default {
       status: 200,
       headers: {
         'content-type': route.contentType,
-        'cache-control': route.contentType.startsWith('text/html')
-          ? 'public, max-age=300'
-          : 'public, max-age=86400',
+        'cache-control': 'no-store',
         'x-content-type-options': 'nosniff',
         'referrer-policy': 'strict-origin-when-cross-origin'
       }
@@ -65,3 +63,4 @@ export default {
 
 await writeFile('dist/server/index.js', worker, 'utf8');
 console.log(`Built ${files.length} static files and Cloudflare Worker entrypoint in dist/`);
+
