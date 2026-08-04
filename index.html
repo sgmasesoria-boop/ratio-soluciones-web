@@ -183,7 +183,7 @@
           <div class="trust-copy reveal">
             <p class="section-kicker">Por qué Ratio</p>
             <h2>Primero entender.<br>Después, resolver.</h2>
-            <p>No somos un listado de teléfonos ni te enviamos al primero que aparece. Comprendemos el problema, seleccionamos la ayuda adecuada y acompañamos el proceso.</p>
+          <p>No somos un listado de teléfonos ni te enviamos al primero que aparece. Comprendemos el problema, seleccionamos la ayuda adecuada y acompañamos el proceso.</p>
           </div>
           <div class="trust-points">
             <article class="reveal"><span>01</span><h3>Trato directo</h3><p>Hablas con una persona que entiende y valora tu caso.</p></article>
@@ -200,19 +200,60 @@
         <div class="contact-copy">
           <p class="section-kicker section-kicker-light">Hablemos</p>
           <h2>Cuéntanos qué<br>te preocupa.</h2>
-          <p>No necesitas saber cómo se llama el problema ni qué profesional buscar. Déjanos una breve descripción y te responderemos personalmente.</p>
+          <p>No necesitas saber cómo se llama el problema ni qué profesional buscar. Responde unas preguntas sencillas y continuaremos contigo por WhatsApp.</p>
           <div class="direct-contact">
-            <a href="tel:+34660918844"><span>Teléfono</span><strong>660 918 844</strong></a>
-            <a href="mailto:sergio@ratiosoluciones.es"><span>Correo</span><strong>sergio@ratiosoluciones.es</strong></a>
+            <a href="https://wa.me/34660918844?text=Hola%20Ratio%20Soluciones%2C%20necesito%20orientaci%C3%B3n" target="_blank" rel="noopener"><span>Único canal de contacto</span><strong>Hablar por WhatsApp</strong></a>
           </div>
         </div>
         <form class="contact-form" id="contact-form">
+          <div class="form-intro">
+            <strong>Empecemos por situar el problema</strong>
+            <span>Solo te pedimos lo necesario para orientarte.</span>
+          </div>
+          <label>¿En qué necesitas ayuda?
+            <select name="area" id="area" required>
+              <option value="">Selecciona una opción</option>
+              <option value="Dinero, deudas y bancos">Dinero, deudas y bancos</option>
+              <option value="Vivienda, desahucios y ocupación">Vivienda, desahucios y ocupación</option>
+              <option value="Seguros e indemnizaciones">Seguros e indemnizaciones</option>
+              <option value="Separaciones y familia">Separaciones y familia</option>
+              <option value="Reclamaciones y consumo">Reclamaciones y consumo</option>
+              <option value="Otro problema">Otro problema</option>
+            </select>
+          </label>
+          <div class="guided-question" id="guided-question" hidden>
+            <label id="guided-label" for="guided-detail">Una pregunta para orientarnos</label>
+            <textarea id="guided-detail" name="detalle" rows="3"></textarea>
+            <p class="field-help" id="guided-help"></p>
+          </div>
+          <label>¿Hay alguna fecha límite o urgencia?
+            <select name="urgencia" required>
+              <option value="">Selecciona una opción</option>
+              <option>No, que yo sepa</option>
+              <option>Sí, hay una fecha o aviso próximo</option>
+              <option>No estoy seguro</option>
+            </select>
+          </label>
+          <label>¿Qué necesitas en este momento?
+            <select name="objetivo" required>
+              <option value="">Selecciona una opción</option>
+              <option>Entender mis opciones</option>
+              <option>Negociar o llegar a un acuerdo</option>
+              <option>Presentar una reclamación</option>
+              <option>Encontrar al profesional adecuado</option>
+              <option>No lo sé todavía</option>
+            </select>
+          </label>
           <label>Nombre <input type="text" name="nombre" autocomplete="name" required placeholder="¿Cómo te llamas?"></label>
-          <label>Correo o teléfono <input type="text" name="contacto" required placeholder="¿Cómo podemos responderte?"></label>
-          <label>¿Qué te preocupa? <textarea name="mensaje" rows="6" required placeholder="Cuéntanos brevemente qué está pasando..."></textarea></label>
-          <label class="checkbox"><input type="checkbox" required><span>He leído y acepto la <a href="aviso-legal.html#privacidad">política de privacidad</a>.</span></label>
-          <button class="button button-accent" type="submit">Preparar consulta <span>→</span></button>
-          <p class="form-note" id="form-note">El formulario abrirá tu aplicación de correo. No almacenamos los datos en esta web.</p>
+          <label>Número de WhatsApp <input type="tel" name="whatsapp" autocomplete="tel" inputmode="tel" required placeholder="Tu número para responderte"></label>
+          <label>Cuéntanos solo lo esencial <textarea name="mensaje" rows="4" required placeholder="¿Qué está pasando y qué te gustaría conseguir?"></textarea></label>
+          <div class="privacy-first">
+            <strong>Tu privacidad empieza aquí</strong>
+            <p>No envíes todavía DNI, números de cuenta, datos médicos, contraseñas ni fotografías de documentos. Si necesitamos documentación, te indicaremos cómo compartirla de forma adecuada.</p>
+          </div>
+          <label class="checkbox"><input type="checkbox" required><span>He leído la <a href="aviso-legal.html#privacidad">política de privacidad</a> y autorizo que Ratio me responda por WhatsApp sobre esta consulta.</span></label>
+          <button class="button button-accent" type="submit">Continuar por WhatsApp <span>→</span></button>
+          <p class="form-note" id="form-note">Al continuar se abrirá WhatsApp con tus respuestas. Este formulario no las almacena en la web.</p>
         </form>
       </div>
     </section>
@@ -222,7 +263,7 @@
     <div class="shell footer-main">
       <a class="brand brand-footer" href="#inicio"><span class="brand-mark">R<span>/</span></span><span class="brand-name">Ratio <strong>Soluciones</strong></span></a>
       <p>Un solo contacto para entender tu problema, encontrar la ayuda adecuada y acompañarte en el proceso.</p>
-      <div class="footer-links"><a href="tel:+34660918844">660 918 844</a><a href="mailto:sergio@ratiosoluciones.es">sergio@ratiosoluciones.es</a></div>
+      <div class="footer-links"><a href="https://wa.me/34660918844?text=Hola%20Ratio%20Soluciones%2C%20necesito%20orientaci%C3%B3n" target="_blank" rel="noopener">Contactar por WhatsApp</a></div>
     </div>
     <div class="shell footer-bottom">
       <span>© <span id="year"></span> Ratio Soluciones</span>
