@@ -63,4 +63,3 @@ export default {
 
 await writeFile('dist/server/index.js', worker, 'utf8');
 console.log(`Built ${files.length} static files and Cloudflare Worker entrypoint in dist/`);
-

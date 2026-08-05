@@ -15,87 +15,161 @@ menu?.querySelectorAll('a').forEach((link) => {
   });
 });
 
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-      observer.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.12 });
+const revealElements = document.querySelectorAll('.reveal');
+if ('IntersectionObserver' in window) {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  revealElements.forEach((element) => observer.observe(element));
+} else {
+  revealElements.forEach((element) => element.classList.add('visible'));
+}
 
-document.querySelectorAll('.reveal').forEach((element) => observer.observe(element));
 document.getElementById('year').textContent = new Date().getFullYear();
 
-const areaSelect = document.getElementById('area');
-const guidedQuestion = document.getElementById('guided-question');
-const guidedLabel = document.getElementById('guided-label');
-const guidedDetail = document.getElementById('guided-detail');
-const guidedHelp = document.getElementById('guided-help');
+const audienceTabs = [...document.querySelectorAll('.audience-tab')];
+const audiencePanels = [...document.querySelectorAll('.audience-panel')];
 
-const areaQuestions = {
-  'Dinero, deudas y bancos': {
-    label: '¿Con quién tienes el problema?',
-    placeholder: 'Por ejemplo: banco, financiera, fondo buitre o empresa de recobro',
-    help: 'No incluyas números de cuenta, tarjetas ni claves.'
-  },
-  'Vivienda, desahucios y ocupación': {
-    label: '¿Qué está ocurriendo con la vivienda?',
-    placeholder: 'Por ejemplo: impago, aviso de desahucio, alquiler, hipoteca u ocupación',
-    help: 'Indica si existe una fecha próxima, pero no adjuntes documentos todavía.'
-  },
-  'Seguros e indemnizaciones': {
-    label: '¿Qué ocurrió y qué respondió la aseguradora?',
-    placeholder: 'Describe brevemente el siniestro, accidente o rechazo de la indemnización',
-    help: 'No incluyas datos médicos ni números completos de póliza.'
-  },
-  'Separaciones y familia': {
-    label: '¿Qué decisión o acuerdo necesitas abordar?',
-    placeholder: 'Por ejemplo: separación, custodia, convenio o mediación',
-    help: 'Evita nombres y datos personales de menores en este primer mensaje.'
-  },
-  'Reclamaciones y consumo': {
-    label: '¿Contra quién quieres reclamar y por qué?',
-    placeholder: 'Por ejemplo: compra, suministro, servicio, fraude o contrato incumplido',
-    help: 'No compartas facturas ni datos bancarios hasta que te indiquemos cómo hacerlo.'
-  },
-  'Otro problema': {
-    label: '¿Cómo explicarías el problema con tus propias palabras?',
-    placeholder: 'No necesitas conocer el nombre técnico; cuéntanos qué te preocupa',
-    help: 'Comparte solo la información imprescindible para una primera orientación.'
-  }
+function showAudience(audience) {
+  audienceTabs.forEach((tab) => {
+    const selected = tab.dataset.audience === audience;
+    tab.classList.toggle('active', selected);
+    tab.setAttribute('aria-selected', String(selected));
+  });
+
+  audiencePanels.forEach((panel) => {
+    const selected = panel.id === `panel-${audience}`;
+    panel.hidden = !selected;
+    panel.classList.toggle('active', selected);
+    if (selected) {
+      panel.querySelectorAll('.reveal').forEach((element) => element.classList.add('visible'));
+    }
+  });
+}
+
+audienceTabs.forEach((tab) => tab.addEventListener('click', () => showAudience(tab.dataset.audience)));
+document.querySelectorAll('[data-open-business]').forEach((link) => {
+  link.addEventListener('click', () => showAudience('negocio'));
+});
+
+const areas = {
+  personal: [
+    'Deudas y segunda oportunidad',
+    'Bancos, tarjetas y fraude',
+    'Vivienda, alquiler o hipoteca',
+    'Seguros e indemnizaciones',
+    'Separación y familia',
+    'Consumo y servicios',
+    'Otro problema personal'
+  ],
+  negocio: [
+    'Facturas pendientes e impagos',
+    'Clientes, proveedores y contratos',
+    'Deudas y financiación',
+    'Notificaciones, trámites o sanciones',
+    'Local, alquiler o propiedad',
+    'Seguros y responsabilidad',
+    'Otro problema del negocio'
+  ]
 };
 
-areaSelect?.addEventListener('change', () => {
-  const question = areaQuestions[areaSelect.value];
-  guidedQuestion.hidden = !question;
-  guidedDetail.required = Boolean(question);
+const form = document.getElementById('contact-form');
+const areaSelect = document.getElementById('area');
+const typeRadios = [...document.querySelectorAll('input[name="tipo"]')];
+const steps = [...document.querySelectorAll('.form-step')];
+const progressBars = [...document.querySelectorAll('.form-progress span')];
+let currentStep = 1;
 
-  if (question) {
-    guidedLabel.textContent = question.label;
-    guidedDetail.placeholder = question.placeholder;
-    guidedHelp.textContent = question.help;
-  } else {
-    guidedDetail.value = '';
-  }
+function populateAreas(type, selectedValue = '') {
+  areaSelect.innerHTML = '<option value="">Selecciona la situación más cercana</option>';
+  areas[type].forEach((area) => {
+    const option = document.createElement('option');
+    option.value = area;
+    option.textContent = area;
+    option.selected = area === selectedValue;
+    areaSelect.append(option);
+  });
+  areaSelect.disabled = false;
+}
+
+typeRadios.forEach((radio) => {
+  radio.addEventListener('change', () => populateAreas(radio.dataset.value));
 });
 
-document.getElementById('contact-form')?.addEventListener('submit', (event) => {
+function showStep(number) {
+  currentStep = number;
+  steps.forEach((step) => {
+    const active = Number(step.dataset.step) === number;
+    step.hidden = !active;
+    step.classList.toggle('active', active);
+  });
+  progressBars.forEach((bar, index) => bar.classList.toggle('active', index < number));
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function validateStep(stepNumber) {
+  const step = steps.find((item) => Number(item.dataset.step) === stepNumber);
+  const fields = [...step.querySelectorAll('input, select, textarea')];
+  for (const field of fields) {
+    if (!field.checkValidity()) {
+      field.reportValidity();
+      return false;
+    }
+  }
+  return true;
+}
+
+document.querySelectorAll('.form-next').forEach((button) => {
+  button.addEventListener('click', () => {
+    if (validateStep(currentStep)) showStep(Math.min(currentStep + 1, 3));
+  });
+});
+
+document.querySelectorAll('.form-back').forEach((button) => {
+  button.addEventListener('click', () => showStep(Math.max(currentStep - 1, 1)));
+});
+
+document.querySelectorAll('.problem-card').forEach((card) => {
+  card.addEventListener('click', () => {
+    const type = card.dataset.type;
+    const problem = card.dataset.problem;
+    const radio = typeRadios.find((item) => item.dataset.value === type);
+    if (radio) {
+      radio.checked = true;
+      populateAreas(type, problem);
+      showStep(1);
+    }
+  });
+});
+
+form?.addEventListener('submit', (event) => {
   event.preventDefault();
-  const data = new FormData(event.currentTarget);
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+
+  const data = new FormData(form);
   const message = [
-    'Hola Ratio Soluciones. He completado la consulta guiada:',
+    'Hola Ratio Soluciones. Quiero que estudiéis mi caso:',
     '',
     `Nombre: ${data.get('nombre')}`,
-    `Mi WhatsApp: ${data.get('whatsapp')}`,
-    `Área: ${data.get('area')}`,
-    `Información orientativa: ${data.get('detalle')}`,
-    `Urgencia: ${data.get('urgencia')}`,
-    `Qué necesito: ${data.get('objetivo')}`,
+    `Mi número: ${data.get('whatsapp')}`,
+    `Afecta a: ${data.get('tipo')}`,
+    `Necesito resolver: ${data.get('area')}`,
+    `Quién está al otro lado: ${data.get('contraparte')}`,
+    `Punto actual: ${data.get('situacion')}`,
+    `Existe un plazo: ${data.get('plazo')}`,
+    `Objetivo: ${data.get('objetivo')}`,
     '',
-    'Situación:',
+    'Resumen:',
     data.get('mensaje')
   ].join('\n');
+
   window.location.href = `https://wa.me/34660918844?text=${encodeURIComponent(message)}`;
 });
-
