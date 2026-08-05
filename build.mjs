@@ -2,7 +2,7 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 
 const textFiles = [
   'index.html', 'bancos.html', 'deudas.html', 'vivienda.html', 'seguros.html',
-  'familia.html', 'consumo.html', 'legal.html', 'aviso-legal.html', 'styles.css', 'script.js',
+  'familia.html', 'consumo.html', 'legal.html', 'aviso-legal.html', 'gracias.html', 'styles.css', 'script.js',
   'robots.txt', 'sitemap.xml', 'CNAME'
 ];
 
@@ -24,7 +24,7 @@ for (const file of textFiles.filter((name) => !['CNAME'].includes(name))) {
   routes[`/${file}`] = { body: await readFile(file, 'utf8'), contentType: contentTypes[extension] };
 }
 routes['/'] = routes['/index.html'];
-for (const page of ['bancos','deudas','vivienda','seguros','familia','consumo','legal','aviso-legal']) {
+for (const page of ['bancos','deudas','vivienda','seguros','familia','consumo','legal','aviso-legal','gracias']) {
   routes[`/${page}`] = routes[`/${page}.html`];
 }
 
@@ -35,12 +35,12 @@ export default { async fetch(request) {
   if (!route) return new Response('Página no encontrada', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
   const headers = {
     'content-type': route.contentType,
-    'cache-control': route.contentType.startsWith('text/html') ? 'no-cache' : 'public, max-age=3600',
+    'cache-control': route.contentType.startsWith('text/html') || route.contentType.startsWith('text/javascript') ? 'no-cache' : 'public, max-age=3600',
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'strict-origin-when-cross-origin',
     'x-frame-options': 'DENY',
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
-    'content-security-policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me"
+    'content-security-policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co"
   };
   return new Response(request.method === 'HEAD' ? null : route.body, { status: 200, headers });
 }};`;

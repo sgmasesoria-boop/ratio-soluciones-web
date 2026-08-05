@@ -64,15 +64,3 @@ document.querySelectorAll('.form-next').forEach((button) => button.addEventListe
 document.querySelectorAll('.form-back').forEach((button) => button.addEventListener('click', () => {
   showStep(Math.max(currentStep - 1, 1));
 }));
-
-form?.addEventListener('submit', (event) => {
-  event.preventDefault();
-  if (!form.checkValidity()) {
-    form.reportValidity();
-    return;
-  }
-  const data = new FormData(form);
-  const deadline = data.get('plazo') === 'Sí' ? ' En un documento aparece una posible fecha límite.' : '';
-  const message = `Hola, quiero que estudiéis un caso relacionado con: ${data.get('area')}.${deadline} Prefiero explicar los detalles por el canal privado que me indiquéis.`;
-  window.location.href = `https://wa.me/34660918844?text=${encodeURIComponent(message)}`;
-});
