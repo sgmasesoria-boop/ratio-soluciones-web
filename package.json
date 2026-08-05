@@ -1,7 +1,12 @@
 {
-  "name": "ratio-soluciones-web",
-  "version": "2.0.0",
+  "name": "ratio-client-platform",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": {"build": "node build.mjs"}
+  "scripts": {
+    "build": "node build.mjs",
+    "test:ui": "node qa.mjs",
+    "test:api": "node api-qa.mjs",
+    "test:production": "node production-qa.mjs"
+  }
 }

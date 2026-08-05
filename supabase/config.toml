@@ -1,0 +1,7 @@
+project_id = "ratio-soluciones-clientes"
+
+[functions.invite-client]
+verify_jwt = true
+
+[functions.update-case]
+verify_jwt = true
