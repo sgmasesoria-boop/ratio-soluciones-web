@@ -192,7 +192,268 @@ function renderAdmin() {
   if (activeSection === 'overview') {
     $('#main').innerHTML = `${pageHead('GestiÃ³n interna','Resumen operativo','Controla desde aquÃ­ cada consulta hasta convertirla en expediente.','<button class="secondary-button" id="new-task">Nueva tarea</button><button class="primary-button" id="new-lead">Registrar consulta <span>â†’</span></button>')}
       <div class="metric-grid"><div class="metric"><small>Consultas abiertas</small><strong>${openLeads}</strong><span>En seguimiento</span></div><div class="metric"><small>Tareas pendientes</small><strong>${pendingTasks}</strong><span>Agenda interna</span></div><div class="metric"><small>Expedientes activos</small><strong>${activeCases}</strong><span>Clientes contratados</span></div><div class="metric"><small>Presupuestado</small><strong>${formatMoney(pipelineAmount)}</strong><span>Sin incluir descartadas</span></div></div>
-      <div class="admin-grid"><section class="panel"><div class="panel-head"><h2>Consultas que requieren atenciÃ³n</h2><small>${openLeads} abiertas</small></div>${leadTable(state.leads.filter(item=>!['won','lost'].includes(item.status)).slice(0,6))}</section><section class="panel"><div class="panel-head"><h2>PrÃ³ximas actuaciones</h2><small>Uso interno</small></div>${taskList(state.tasks.filter(iÛßx¶‰žËkºwµçyÐ¹ÁÉ•Ù•¹Ñ•™…Õ±Ð ¤í½Á•¸ ¤íõô¤ì(€ô¤ì)ô)™Õ¹Ñ¥½¸¹½Ñ¥™¥…Ñ¥½¹1¥ÍÐ¡…±°õ™…±Í”¤ì(€½¹ÍÐ±¥ÍÐõ…±°ýÍÑ…Ñ”¹¹½Ñ¥™¥…Ñ¥½¹ÌéÍÑ…Ñ”¹¹½Ñ¥™¥…Ñ¥½¹Ì¹™¥±Ñ•È¡¸ôù¸¹ÕÍ•É%ôôõÕÉÉ•¹ÑUÍ•È ¤¹¥¤ì(€É•ÑÕÉ¸±¥ÍÐ¹±•¹Ñ ý±¥ÍÐ¹µ…À¡¸ôù€ñ…ÉÑ¥±”±…ÍÌô‰¹½Ñ¥”€‘í¸¹É•…üÉ•…œèœôˆøñ¤øð½¤øñ‘¥ØøñÍÑÉ½¹œø‘í•Í…Á•!Ñµ°¡¸¹Ñ¥Ñ±”¥ôð½ÍÑÉ½¹œøñÀø‘í•Í…Á•!Ñµ°¡¸¹‰½‘ä¥ôð½Àøð½‘¥ØøñÑ¥µ”ø‘í™½Éµ…Ñ…Ñ”¡¸¹…Ð¥ôð½Ñ¥µ”øð½…ÉÑ¥±”ù€¤¹©½¥¸ œœ¤èœñ‘¥Ø±…ÍÌô‰•µÁÑäˆù9¼¡…ä…Ù¥Í½Ì¸ð½‘¥Øøœì)ô)™Õ¹Ñ¥½¸…Õ‘¥ÑQ…‰±” ¤ì(€¥˜ …ÍÑ…Ñ”¹…Õ‘¥Ð¹±•¹Ñ ¥É•ÑÕÉ¸€œñ‘¥Ø±…ÍÌô‰•µÁÑäˆù1…Ì…¥½¹•ÌÉ•…±¥é…‘…Ì•¸•ÍÑ„ÁÉÕ•‰„…Á…É••Ë…¸…Å×´¸ð½‘¥Øøœì(€É•ÑÕÉ¸€ñÑ…‰±”±…ÍÌô‰…Í”µÑ…‰±”ˆøñÑ¡•…øñÑÈøñÑ ù5½µ•¹Ñ¼ð½Ñ øñÑ ù§Í¸ð½Ñ øñÑ ù=‰©•Ñ¼ð½Ñ øñÑ ùUÍÕ…É¥¼ð½Ñ øð½ÑÈøð½Ñ¡•…øñÑ‰½‘äø‘íl¸¸¹ÍÑ…Ñ”¹…Õ‘¥Ñt¹É•Ù•ÉÍ” ¤¹µ…À¡„ôù€ñÑÈøñÑø‘í™½Éµ…Ñ…Ñ”¡„¹…Ð¥ôð½ÑøñÑø‘í•Í…Á•!Ñµ°¡„¹…Ñ¥½¸¥ôð½ÑøñÑø‘í•Í…Á•!Ñµ°¡„¹½‰©•ÑQåÁ”¥ôƒ
-Ü€‘í•Í…Á•!Ñµ°¡MÑÉ¥¹œ¡„¹½‰©•Ñ%¤¹Í±¥” À°ÄÈ¤¥ôð½ÑøñÑø‘í•Í…Á•!Ñµ°¡„¹…Ñ½É%¥ôð½Ñøð½ÑÈù€¤¹©½¥¸ œœ¥ôð½Ñ‰½‘äøð½Ñ…‰±”ù€ì)ô()™Õ¹Ñ¥½¸‰¥¹‘ÉµÑ¥½¹Ì ¤ì(€€ œ¹•Üµ±•…œ¤ü¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ° ¤ôø œ±•…µ‘¥…±½œœ¤¹Í¡½Ý5½‘…° ¤¤ì(€€ œ¹•ÜµÑ…Í¬œ¤ü¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ±½Á•¹Q…Í­¥…±½œ¤ì(€€ m‘…Ñ„µ±•…µ¥‘tœ¤¹™½É… ¡¹½‘”ôùì(€€€½¹ÍÐ½Á•¸ô ¤ôù½Á•¹1•…‘¥…±½œ¡¹½‘”¹‘…Ñ…Í•Ð¹±•…‘%¤ì(€€€¹½‘”¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ±½Á•¸¤ì(€€€¹½‘”¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ­•å‘½Ý¸œ±•Ù•¹Ðôùí¥˜¡•Ù•¹Ð¹­•äôôô¹Ñ•Èññ•Ù•¹Ð¹­•äôôôœ€œ¥í•Ù•¹Ð¹ÁÉ•Ù•¹Ñ•™…Õ±Ð ¤í½Á•¸ ¤íõô¤ì(€ô¤ì(€€ m‘…Ñ„µÑ…Í¬µ¥‘tœ¤¹™½É… ¡‰ÕÑÑ½¸ôù‰ÕÑÑ½¸¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ° ¤ôùÑ½±•Q…Í¬¡‰ÕÑÑ½¸¹‘…Ñ…Í•Ð¹Ñ…Í­%¤¤¤ì)ô)™Õ¹Ñ¥½¸½Á•¹1•…‘¥…±½œ¡±•…‘%¤ì(€½¹ÍÐ±•…õÍÑ…Ñ”¹±•…‘Ì¹™¥¹¡¥Ñ•´ôù¥Ñ•´¹¥ôôõ±•…‘%¤ì¥˜ …±•…¥É•ÑÕÉ¸ì(€€ œ±•…µ‘•Ñ…¥°µ¥œ¤¹Ù…±Õ”õ±•…¹¥ì(€€ œ±•…µ‘•Ñ…¥°µÑ¥Ñ±”œ¤¹Ñ•áÑ½¹Ñ•¹Ðõ€‘í±•…¹É•™•É•¹•ôƒ
-Ü€‘í±•…¹¹…µ•õ€ì(€€ œ±•…µ‘•Ñ…¥°µ½¹Ñ…Ðœ¤¹¥¹¹•É!Q50õ€ñ‘¥ØøñÍµ…±°ù½¹Ñ…Ñ¼ð½Íµ…±°øñÍÑÉ½¹œø‘í•Í…Á•!Ñµ°¡±•…¹Á¡½¹”¥ôð½ÍÑÉ½¹œøñÍÁ…¸ø‘í•Í…Á•!Ñµ°¡±•…¹•µ…¥°¥ôð½ÍÁ…¸øð½‘¥Øøñ‘¥ØøñÍµ…±°ù½¹ÍÕ±Ñ„ð½Íµ…±°øñÍÑÉ½¹œø‘í•Í…Á•!Ñµ°¡±•…¹…Ñ•½Éä¥ôð½ÍÑÉ½¹œøñÍÁ…¸ø‘í•Í…Á•!Ñµ°¡±•…¹ÍÕµµ…Éä¥ôð½ÍÁ…¸øð½‘¥Øøñ‘¥ØøñÍµ…±°ùAÉ¥Ù…¥‘…ð½Íµ…±°øñÍÑÉ½¹œù½¹Í•¹Ñ¥µ¥•¹Ñ¼É•¥ÍÑÉ…‘¼ð½ÍÑÉ½¹œøñÍÁ…¸ø‘í•Í…Á•!Ñµ°¡™½Éµ…Ñ…Ñ”¡±•…¹½¹Í•¹ÑÐ¤¥ôð½ÍÁ…¸øð½‘¥Øù€ì(€€ œ±•…µ‘•Ñ…¥°µÍÑ…ÑÕÌœ¤¹Ù…±Õ”õ±•…¹ÍÑ…ÑÕÌì(€€ œ±•…µ‘•Ñ…¥°µ¹•áÐµ…Ñ¥½¸œ¤¹Ù…±Õ”õ±•…¹¹•áÑÑ¥½¹ñðœœì(€€ œ±•…µ‘•Ñ…¥°µ™½±±½ÜµÕÀœ¤¹Ù…±Õ”õMÑÉ¥¹œ¡±•…¹™½±±½ÝUÁñðœœ¤¹Í±¥” À°ÄÀ¤ì(€€ œ±•…µ‘•Ñ…¥°µ…µ½Õ¹Ðœ¤¹Ù…±Õ”õ±•…¹…µ½Õ¹Ññðœœì(€€ œ±•…µ‘•Ñ…¥°µ¹½Ñ”œ¤¹Ù…±Õ”ôœœì(€€ œ½¹Ù•ÉÐµ±•…œ¤¹‘¥Í…‰±•õ±•…¹ÍÑ…ÑÕÌôôôÝ½¸œì(€€ œ±•…µ‘•Ñ…¥°µ‘¥…±½œœ¤¹Í¡½Ý5½‘…° ¤ì)ô)™Õ¹Ñ¥½¸½Á•¹Q…Í­¥…±½œ ¤ì(€€ œÑ…Í¬µ±•…œ¤¹¥¹¹•É!Q50õÍÑ…Ñ”¹±•…‘Ì¹™¥±Ñ•È¡¥Ñ•´ôø…lÝ½¸œ°±½ÍÐt¹¥¹±Õ‘•Ì¡¥Ñ•´¹ÍÑ…ÑÕÌ¤¤¹µ…À¡¥Ñ•´ôù€ñ½ÁÑ¥½¸Ù…±Õ”ôˆ‘í•Í…Á•!Ñµ°¡¥Ñ•´¹¥¥ôˆø‘í•Í…Á•!Ñµ°¡¥Ñ•´¹É•™•É•¹”¬œƒ
-Ü€œ­¥Ñ•´¹¹…µ”¥ôð½½ÁÑ¥½¸ù€¤¹©½¥¸ œœ¤ì(€€ œÑ…Í¬µ‘…Ñ”œ¤¹Ù…±Õ”õ¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¤¹Í±¥” À°ÄÀ¤ì(€€ œÑ…Í¬µ‘¥…±½œœ¤¹Í¡½Ý5½‘…° ¤ì)ô)…Íå¹Œ™Õ¹Ñ¥½¸Ñ½±•Q…Í¬¡Ñ…Í­%¤ì(€½¹ÍÐÑ…Í¬õÍÑ…Ñ”¹Ñ…Í­Ì¹™¥¹¡¥Ñ•´ôù¥Ñ•´¹¥ôôõÑ…Í­%¤ì¥˜ …Ñ…Í¬¥É•ÑÕÉ¸ì(€Ñ…Í¬¹½µÁ±•Ñ•ô…Ñ…Í¬¹½µÁ±•Ñ•ì(€¥˜¡ÁÉ½‘ÕÑ¥½¹5½‘”˜™Á±…Ñ™½ÉµÁ¤¥ì(€€€ÑÉåí…Ý…¥ÐÁ±…Ñ™½ÉµÁ¤¹ÕÁ‘…Ñ” Éµ}Ñ…Í­Ìœ±¥õ•Ä¸‘í•¹½‘•UI%½µÁ½¹•¹Ð¡Ñ…Í¬¹¥¥õ€±í½µÁ±•Ñ•‘}…ÐéÑ…Í¬¹½µÁ±•Ñ•ý¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¤é¹Õ±±ô¤íô(€€€…Ñ¡íÑ…Í¬¹½µÁ±•Ñ•ô…Ñ…Í¬¹½µÁ±•Ñ•íÑ½…ÍÐ 9¼Í”¡„Á½‘¥‘¼…ÑÕ…±¥é…È±„Ñ…É•„¸œ¤íÉ•ÑÕÉ¸íô(€ô•±Í”ì±½œ¡Ñ…Í¬¹½µÁ±•Ñ•üÑ…Í­}½µÁ±•Ñ•œèÑ…Í­}É•½Á•¹•œ°Éµ}Ñ…Í¬œ±Ñ…Í¬¹¥¤íÍ…Ù•MÑ…Ñ” ¤ìô(€É•¹‘•ÉM¡•±° ¤ì)ô)™Õ¹Ñ¥½¸¹•áÑ1•…‘I•™•É•¹” ¤ì(€½¹ÍÐå•…Èõ¹•Ü…Ñ” ¤¹•ÑÕ±±e•…È ¤ì(€½¹ÍÐµ…á¥µÕ´õÍÑ…Ñ”¹±•…‘Ì¹É•‘Õ” ¡µ…à±¥Ñ•´¤ôù5…Ñ ¹µ…à¡µ…à±9Õµ‰•È¡MÑÉ¥¹œ¡¥Ñ•´¹É•™•É•¹•ñðœœ¤¹ÍÁ±¥Ð œ´œ¤¹Á½À ¤¥ñðÀ¤°À¤ì(€É•ÑÕÉ¸´‘íå•…Éô´‘íMÑÉ¥¹œ¡µ…á¥µÕ´¬Ä¤¹Á…‘MÑ…ÉÐ Ì°œÀœ¥õ€ì)ô()™Õ¹Ñ¥½¸½Á•¹UÁ‘…Ñ•¥…±½œ ¤ì(€½¹ÍÐŒõÕÉÉ•¹Ñ…Í” ¤ì(€€ œÕÁ‘…Ñ”µÍÑ…ÑÕÌœ¤¹Ù…±Õ”õŒ¹ÍÑ…ÑÕÍ½‘”ì(€€ œÕÁ‘…Ñ”µÑ¥Ñ±”œ¤¹Ù…±Õ”ôœœì(€€ œÕÁ‘…Ñ”µ‘•ÍÉ¥ÁÑ¥½¸œ¤¹Ù…±Õ”ôœœì(€€ œÕÁ‘…Ñ”µ¹•áÐµÍÑ•Àœ¤¹Ù…±Õ”õŒ¹±¥•¹Ñ9•áÑMÑ•Àñð€œœì(€€ œÁÉ½™•ÍÍ¥½¹…°µ¹…µ”œ¤¹Ù…±Õ”õŒ¹ÁÉ½™•ÍÍ¥½¹…±9…µ”ñð€œœì(€€ œÁÉ½™•ÍÍ¥½¹…°µÑ¥Ñ±”œ¤¹Ù…±Õ”õŒ¹ÁÉ½™•ÍÍ¥½¹…±Q¥Ñ±”ñð€œœì(€€ œÁÉ½™•ÍÍ¥½¹…°µÉ•¥ÍÑÉ…Ñ¥½¸œ¤¹Ù…±Õ”õŒ¹ÁÉ½™•ÍÍ¥½¹…±I•¥ÍÑÉ…Ñ¥½¸ñð€œœì(€€ œÁÉ½™•ÍÍ¥½¹…°µÉ•¥½¸œ¤¹Ù…±Õ”õŒ¹ÁÉ½™•ÍÍ¥½¹…±I•¥½¸ñð€œœì(€€ œÕÁ‘…Ñ”µ‘¥…±½œœ¤¹Í¡½Ý5½‘…° ¤ì)ô)™Õ¹Ñ¥½¸µ…É­9½Ñ¥™¥…Ñ¥½¹ÍI•… ¤ì(€½¹ÍÐÕ¹É•…õÍÑ…Ñ”¹¹½Ñ¥™¥…Ñ¥½¹Ì¹™¥±Ñ•È¡¸ôù¸¹ÕÍ•É%ôôõÕÉÉ•¹ÑUÍ•È ¤¹¥˜˜…¸¹É•…¤ì(€Õ¹É•…¹™½É… ¡¸ôù¸¹É•…õÑÉÕ”¤ì(€¥˜¡ÁÉ½‘ÕÑ¥½¹5½‘”˜™Á±…Ñ™½ÉµÁ¤¥Õ¹É•…¹™½É… ¡¸ôùÁ±…Ñ™½ÉµÁ¤¹ÕÁ‘…Ñ” ¹½Ñ¥™¥…Ñ¥½¹Ìœ±¥õ•Ä¸‘í•¹½‘•UI%½µÁ½¹•¹Ð¡¸¹¥¥õ€±íÉ•…‘}…Ðé¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¥ô¤¹…Ñ   ¤ôùíô¤¤ì(€•±Í”Í…Ù•MÑ…Ñ” ¤ì)ô)™Õ¹Ñ¥½¸Ñ½…ÍÐ¡µ•ÍÍ…”¤ì(€½¹ÍÐ¹½‘”ô œÑ½…ÍÐœ¤í¹½‘”¹Ñ•áÑ½¹Ñ•¹Ðõµ•ÍÍ…”í¹½‘”¹¡¥‘‘•¸õ™…±Í”í±•…ÉQ¥µ•½ÕÐ¡Ñ½…ÍÐ¹Ñ¥µ•È¤íÑ½…ÍÐ¹Ñ¥µ•ÈõÍ•ÑQ¥µ•½ÕÐ  ¤ôù¹½‘”¹¡¥‘‘•¸õÑÉÕ”°ÌÈÀÀ¤ì)ô(( m‘…Ñ„µ‘•µ¼µÉ½±•tœ¤¹™½É… ¡‰ÕÑÑ½¸ôù‰ÕÑÑ½¸¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ° ¤ôù•¹Ñ•È¡‰ÕÑÑ½¸¹‘…Ñ…Í•Ð¹‘•µ½I½±”¤¤¤ì( œ±½¥¸µ™½É´œ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ÍÕ‰µ¥Ðœ±…Íå¹Œ•Ù•¹Ðôùì(€•Ù•¹Ð¹ÁÉ•Ù•¹Ñ•™…Õ±Ð ¤ì(€¥˜ …ÁÉ½‘ÕÑ¥½¹5½‘”¥í•¹Ñ•È ±¥•¹Ðœ¤íÉ•ÑÕÉ¸íô(€½¹ÍÐ‰ÕÑÑ½¸õ•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•Èí‰ÕÑÑ½¸¹‘¥Í…‰±•õÑÉÕ”ì(€ÑÉåí½¹ÍÐ‘…Ñ„õ¹•Ü½Éµ…Ñ„¡•Ù•¹Ð¹ÕÉÉ•¹ÑQ…É•Ð¤í…Ý…¥ÐÁ±…Ñ™½ÉµÁ¤¹Í¥¹%¸¡‘…Ñ„¹•Ð •µ…¥°œ¤±‘…Ñ„¹•Ð Á…ÍÍÝ½Éœ¤¤í…Ý…¥Ð•¹Ñ•ÉAÉ½‘ÕÑ¥½¸ ¤íô(€…Ñ ¡•ÉÉ½È¥íÑ½…ÍÐ¡•ÉÉ½Èü¹ÍÑ…ÑÕÌôôôÐÀÀü½ÉÉ•¼¼½¹ÑÉ…Í—Å„¥¹½ÉÉ•Ñ½Ì¸œè9¼Í”¡„Á½‘¥‘¼¥¹¥¥…ÈÍ•Í§Í¸‘”™½Éµ„Í•ÕÉ„¸œ¤íô(€™¥¹…±±åí‰ÕÑÑ½¸¹‘¥Í…‰±•õ™…±Í”íô)ô¤ì( œ±½½ÕÐœ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ±±½½ÕÐ¤ì( œÉ•½Ù•Èµ…•ÍÌœ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ±…Íå¹Œ ¤ôùì(€½¹ÍÐ•µ…¥°ô œ±½¥¸µ™½É´¥¹ÁÕÑm¹…µ”ô‰•µ…¥°‰tœ¤¹Ù…±Õ”¹ÑÉ¥´ ¤ì(€¥˜ …ÁÉ½‘ÕÑ¥½¹5½‘”¥íÑ½…ÍÐ ¸ÁÉ½‘Õ§Í¸É•¥‰¥Ë…ÌÕ¸•¹±…”Í•ÕÉ¼Á…É„É•ÕÁ•É…È•°…•Í¼¸œ¤íÉ•ÑÕÉ¸íô(€¥˜ …•µ…¥°¥íÑ½…ÍÐ ÍÉ¥‰”ÁÉ¥µ•É¼ÑÔ½ÉÉ•¼•±•ÑËÍ¹¥¼¸œ¤íÉ•ÑÕÉ¸íô(€ÑÉåí…Ý…¥ÐÁ±…Ñ™½ÉµÁ¤¹É•ÅÕ•ÍÑA…ÍÍÝ½É‘I•Í•Ð¡•µ…¥°±€‘í±½…Ñ¥½¸¹½É¥¥¹ô½É•ÍÑ…‰±••É€¤íÑ½…ÍÐ M¤•°½ÉÉ•¼•ÍÓ„É•¥ÍÑÉ…‘¼°É•¥‰¥Ë…ÌÕ¸•¹±…”‘”É•ÕÁ•É…§Í¸¸œ¤íô(€…Ñ¡íÑ½…ÍÐ 9¼Í”¡„Á½‘¥‘¼Í½±¥¥Ñ…È±„É•ÕÁ•É…§Í¸¸%¹Ó¥¹Ñ…±¼‘”¹Õ•Ù¼¸œ¤íô)ô¤ì( œµ½‰¥±”µµ•¹Ôœ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ° ¤ôø œ¹Í¥‘•‰…Èœ¤¹±…ÍÍ1¥ÍÐ¹Ñ½±” ½Á•¸œ¤¤ì( œÕÁ‘…Ñ”µ™½É´œ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ÍÕ‰µ¥Ðœ±…Íå¹Œ•Ù•¹Ðôùì(€•Ù•¹Ð¹ÁÉ•Ù•¹Ñ•™…Õ±Ð ¤í¥˜¡•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•Èü¹Ù…±Õ”ôôô…¹•°œ¥ì œÕÁ‘…Ñ”µ‘¥…±½œœ¤¹±½Í” ¤íÉ•ÑÕÉ¸íô(€½¹ÍÐÁ…å±½…õì(€€€…Í•%éÕÉÉ•¹Ñ…Í” ¤¹¥±ÍÑ…ÑÕÌè œÕÁ‘…Ñ”µÍÑ…ÑÕÌœ¤¹Ù…±Õ”±Ñ¥Ñ±”è œÕÁ‘…Ñ”µÑ¥Ñ±”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±‘•ÍÉ¥ÁÑ¥½¸è œÕÁ‘…Ñ”µ‘•ÍÉ¥ÁÑ¥½¸œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤°(€€€±¥•¹Ñ9•áÑMÑ•Àè œÕÁ‘…Ñ”µ¹•áÐµÍÑ•Àœ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±ÁÉ½™•ÍÍ¥½¹…±9…µ”è œÁÉ½™•ÍÍ¥½¹…°µ¹…µ”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±ÁÉ½™•ÍÍ¥½¹…±Q¥Ñ±”è œÁÉ½™•ÍÍ¥½¹…°µÑ¥Ñ±”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤°(€€€ÁÉ½™•ÍÍ¥½¹…±I•¥ÍÑÉ…Ñ¥½¸è œÁÉ½™•ÍÍ¥½¹…°µÉ•¥ÍÑÉ…Ñ¥½¸œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±ÁÉ½™•ÍÍ¥½¹…±I•¥½¸è œÁÉ½™•ÍÍ¥½¹…°µÉ•¥½¸œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤(€ôì(€¥˜ …Á…å±½…¹Ñ¥Ñ±•ñð…Á…å±½…¹‘•ÍÉ¥ÁÑ¥½¸¥É•ÑÕÉ¸ì(€½¹ÍÐÍÕ‰µ¥ÑÑ•Èõ•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•ÈíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õÑÉÕ”ì(€ÑÉåì(€€€¥˜¡ÁÉ½‘ÕÑ¥½¹5½‘”˜™Á±…Ñ™½ÉµÁ¤¥í…Ý…¥ÐÁ±…Ñ™½ÉµÁ¤¹¥¹Ù½­” ÕÁ‘…Ñ”µ…Í”œ±Á…å±½…¤í…Ý…¥Ð•¹Ñ•ÉAÉ½‘ÕÑ¥½¸ ¤íô(€€€•±Í•ì(€€€€€½¹ÍÐŒõÕÉÉ•¹Ñ…Í” ¤í=‰©•Ð¹…ÍÍ¥¸¡Œ±íÍÑ…ÑÕÍ½‘”éÁ…å±½…¹ÍÑ…ÑÕÌ±ÍÑ…ÑÕÌéÍÑ…ÑÕÍ1…‰•±ÍmÁ…å±½…¹ÍÑ…ÑÕÍt±ÍÑ…”éÍÑ…ÑÕÍMÑ…•ÍmÁ…å±½…¹ÍÑ…ÑÕÍt±±¥•¹Ñ9•áÑMÑ•ÀéÁ…å±½…¹±¥•¹Ñ9•áÑMÑ•À±ÁÉ½™•ÍÍ¥½¹…±9…µ”éÁ…å±½…¹ÁÉ½™•ÍÍ¥½¹…±9…µ”±ÁÉ½™•ÍÍ¥½¹…±Q¥Ñ±”éÁ…å±½…¹ÁÉ½™•ÍÍ¥½¹…±Q¥Ñ±”±ÁÉ½™•ÍÍ¥½¹…±I•¥ÍÑÉ…Ñ¥½¸éÁ…å±½…¹ÁÉ½™•ÍÍ¥½¹…±I•¥ÍÑÉ…Ñ¥½¸±ÁÉ½™•ÍÍ¥½¹…±I•¥½¸éÁ…å±½…¹ÁÉ½™•ÍÍ¥½¹…±I•¥½¹ô¤ì(€€€€€½¹ÍÐ…Ðõ¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¤íÍÑ…Ñ”¹•Ù•¹ÑÌ¹™½É… ¡¥Ñ•´ôù¥Ñ•´¹ÕÉÉ•¹Ðõ™…±Í”¤íÍÑ…Ñ”¹•Ù•¹ÑÌ¹ÁÕÍ ¡í¥éÉåÁÑ¼¹É…¹‘½µUU% ¤±…Í•%éŒ¹¥±­¥¹éÁ…å±½…¹ÍÑ…ÑÕÌ±Ñ¥Ñ±”éÁ…å±½…¹Ñ¥Ñ±”±‘•ÍÉ¥ÁÑ¥½¸éÁ…å±½…¹‘•ÍÉ¥ÁÑ¥½¸±…Ð±ÕÉÉ•¹ÐéÑÉÕ•ô¤ì(€€€€€ÍÑ…Ñ”¹¹½Ñ¥™¥…Ñ¥½¹Ì¹ÁÕÍ ¡í¥éÉåÁÑ¼¹É…¹‘½µUU% ¤±ÕÍ•É%éÍÑ…Ñ”¹ÕÍ•ÉÌ¹±¥•¹Ð¹¥±…Í•%éŒ¹¥±Ñ¥Ñ±”è9Õ•Ù¼…Ù…¹”•¸ÑÔ•áÁ•‘¥•¹Ñ”œ±‰½‘äéÁ…å±½…¹Ñ¥Ñ±”±…Ð±É•…é™…±Í•ô¤ì(€€€€€±½œ …Í•}ÕÁ‘…Ñ•œ°…Í”œ±Œ¹¥±íÍÑ…ÑÕÌéÁ…å±½…¹ÍÑ…ÑÕÍô¤íÍ…Ù•MÑ…Ñ” ¤íÉ•¹‘•ÉM¡•±° ¤ì(€€€ô(€€€•Ù•¹Ð¹ÕÉÉ•¹ÑQ…É•Ð¹É•Í•Ð ¤ì œÕÁ‘…Ñ”µ‘¥…±½œœ¤¹±½Í” ¤íÑ½…ÍÐ Ù…¹”Õ…É‘…‘¼ä…Ù¥Í¼É•¥ÍÑÉ…‘¼¸œ¤ì(€õ…Ñ¡íÑ½…ÍÐ 9¼Í”¡„Á½‘¥‘¼Õ…É‘…È•°…Ù…¹”¸œ¤íô(€™¥¹…±±åíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õ™…±Í”íô)ô¤ì( œ¥¹Ù¥Ñ”µ™½É´œ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ÍÕ‰µ¥Ðœ±…Íå¹Œ•Ù•¹Ðôùì(€•Ù•¹Ð¹ÁÉ•Ù•¹Ñ•™…Õ±Ð ¤í¥˜¡•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•Èü¹Ù…±Õ”ôôô…¹•°œ¥ì œ¥¹Ù¥Ñ”µ‘¥…±½œœ¤¹±½Í” ¤íÉ•ÑÕÉ¸íô(€½¹ÍÐÁ…å±½…õí•µ…¥°è œ¥¹Ù¥Ñ”µ•µ…¥°œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±‘¥ÍÁ±…å9…µ”è œ¥¹Ù¥Ñ”µ¹…µ”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±Ñ¥Ñ±”è œ¥¹Ù¥Ñ”µÑ¥Ñ±”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±…Ñ•½Éäè œ¥¹Ù¥Ñ”µ…Ñ•½Éäœ¤¹Ù…±Õ•ôì(€¥˜ …ÁÉ½‘ÕÑ¥½¹5½‘•ñð…Á±…Ñ™½ÉµÁ¤¥íÑ½…ÍÐ °…±Ñ„É•…°Í”¡…‰¥±¥Ñ…Ë„…°½¹•Ñ…È•°Í•ÉÙ¥‘½È•ÕÉ½Á•¼¸œ¤íÉ•ÑÕÉ¸íô(€½¹ÍÐÍÕ‰µ¥ÑÑ•Èõ•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•ÈíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õÑÉÕ”ì(€ÑÉåí½¹ÍÐÉ•…Ñ•õ…Ý…¥ÐÁ±…Ñ™½ÉµÁ¤¹¥¹Ù½­” ¥¹Ù¥Ñ”µ±¥•¹Ðœ±Á…å±½…¤í…Ý…¥Ð•¹Ñ•ÉAÉ½‘ÕÑ¥½¸ ¤í…Ñ¥Ù•…Í•%õÉ•…Ñ•¹…Í•%í…Ñ¥Ù•M•Ñ¥½¸ô…Í•ÌœíÉ•¹‘•ÉM¡•±° ¤í•Ù•¹Ð¹ÕÉÉ•¹ÑQ…É•Ð¹É•Í•Ð ¤ì œ¥¹Ù¥Ñ”µ‘¥…±½œœ¤¹±½Í” ¤íÑ½…ÍÐ áÁ•‘¥•¹Ñ”É•…‘¼”¥¹Ù¥Ñ…§Í¸•¹Ù¥…‘„¸œ¤íô(€…Ñ¡íÑ½…ÍÐ 9¼Í”¡„Á½‘¥‘¼½µÁ±•Ñ…È•°…±Ñ„¸I•Ù¥Í„•°½ÉÉ•¼äÙÕ•±Ù”„¥¹Ñ•¹Ñ…É±¼¸œ¤íô(€™¥¹…±±åíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õ™…±Í”íô)ô¤ì( œ±•…µ™½É´œ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ÍÕ‰µ¥Ðœ±…Íå¹Œ•Ù•¹Ðôùì(€•Ù•¹Ð¹ÁÉ•Ù•¹Ñ•™…Õ±Ð ¤í¥˜¡•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•Èü¹Ù…±Õ”ôôô…¹•°œ¥ì œ±•…µ‘¥…±½œœ¤¹±½Í” ¤íÉ•ÑÕÉ¸íô(€½¹ÍÐÁ…å±½…õì(€€€™Õ±±9…µ”è œ±•…µ¹…µ”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±Á¡½¹”è œ±•…µÁ¡½¹”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±•µ…¥°è œ±•…µ•µ…¥°œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤¹Ñ½1½Ý•É…Í” ¤±ÁÉ½Ù¥¹”è œ±•…µÁÉ½Ù¥¹”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤°(€€€…Ñ•½Éäè œ±•…µ…Ñ•½Éäœ¤¹Ù…±Õ”±Í½ÕÉ”è œ±•…µÍ½ÕÉ”œ¤¹Ù…±Õ”±ÍÕµµ…Éäè œ±•…µÍÕµµ…Éäœ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±½¹Í•¹Ðé	½½±•…¸  œ±•…µ½¹Í•¹Ðœ¤¹¡•­•¤(€ôì(€½¹ÍÐÍÕ‰µ¥ÑÑ•Èõ•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•ÈíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õÑÉÕ”ì(€ÑÉåì(€€€¥˜¡ÁÉ½‘ÕÑ¥½¹5½‘”˜™Á±…Ñ™½ÉµÁ¤¥í…Ý…¥ÐÁ±…Ñ™½ÉµÁ¤¹¥¹Ù½­” µ…¹…”µÉ´œ±í…Ñ¥½¸èÉ•…Ñ•}±•…œ°¸¸¹Á…å±½…‘ô¤í…Ý…¥Ð•¹Ñ•ÉAÉ½‘ÕÑ¥½¸ ¤íô(€€€•±Í•ì(€€€€€½¹ÍÐ…Ðõ¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¤í½¹ÍÐ¥õÉåÁÑ¼¹É…¹‘½µUU% ¤ì(€€€€€ÍÑ…Ñ”¹±•…‘Ì¹Õ¹Í¡¥™Ð¡í¥±É•™•É•¹”é¹•áÑ1•…‘I•™•É•¹” ¤±¹…µ”éÁ…å±½…¹™Õ±±9…µ”±Á¡½¹”éÁ…å±½…¹Á¡½¹”±•µ…¥°éÁ…å±½…¹•µ…¥°±ÁÉ½Ù¥¹”éÁ…å±½…¹ÁÉ½Ù¥¹”±…Ñ•½ÉäéÁ…å±½…¹…Ñ•½Éä±Í½ÕÉ”éÁ…å±½…¹Í½ÕÉ”±ÍÕµµ…ÉäéÁ…å±½…¹ÍÕµµ…Éä±ÍÑ…ÑÕÌè¹•Üœ±¹•áÑÑ¥½¸èI•…±¥é…ÈÁÉ¥µ•È½¹Ñ…Ñ¼œ±™½±±½ÝUÀèœœ±…µ½Õ¹ÐèÀ±½¹Í•¹ÑÐé…Ð±É•…Ñ•‘Ðé…Ð±ÕÁ‘…Ñ•‘Ðé…Ð±¹½Ñ•Ìémuô¤ì(€€€€€±½œ ±•…‘}É•…Ñ•œ°Éµ}±•…œ±¥±íÍ½ÕÉ”éÁ…å±½…¹Í½ÕÉ•ô¤íÍ…Ù•MÑ…Ñ” ¤ì(€€€ô(€€€•Ù•¹Ð¹ÕÉÉ•¹ÑQ…É•Ð¹É•Í•Ð ¤ì œ±•…µ‘¥…±½œœ¤¹±½Í” ¤í…Ñ¥Ù•M•Ñ¥½¸ô±•…‘ÌœíÉ•¹‘•ÉM¡•±° ¤íÑ½…ÍÐ ½¹ÍÕ±Ñ„É•¥ÍÑÉ…‘„½ÉÉ•Ñ…µ•¹Ñ”¸œ¤ì(€õ…Ñ¡íÑ½…ÍÐ 9¼Í”¡„Á½‘¥‘¼É•¥ÍÑÉ…È±„½¹ÍÕ±Ñ„¸œ¤íô(€™¥¹…±±åíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õ™…±Í”íô)ô¤ì( œ±•…µ‘•Ñ…¥°µ™½É´œ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ÍÕ‰µ¥Ðœ±…Íå¹Œ•Ù•¹Ðôùì(€•Ù•¹Ð¹ÁÉ•Ù•¹Ñ•™…Õ±Ð ¤í¥˜¡•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•Èü¹Ù…±Õ”ôôô…¹•°œ¥ì œ±•…µ‘•Ñ…¥°µ‘¥…±½œœ¤¹±½Í” ¤íÉ•ÑÕÉ¸íô(€½¹ÍÐ±•…õÍÑ…Ñ”¹±•…‘Ì¹™¥¹¡¥Ñ•´ôù¥Ñ•´¹¥ôôô œ±•…µ‘•Ñ…¥°µ¥œ¤¹Ù…±Õ”¤í¥˜ …±•…¥É•ÑÕÉ¸ì(€½¹ÍÐ¡…¹•ÌõíÍÑ…ÑÕÌè œ±•…µ‘•Ñ…¥°µÍÑ…ÑÕÌœ¤¹Ù…±Õ”±¹•áÑÑ¥½¸è œ±•…µ‘•Ñ…¥°µ¹•áÐµ…Ñ¥½¸œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±™½±±½ÝUÀè œ±•…µ‘•Ñ…¥°µ™½±±½ÜµÕÀœ¤¹Ù…±Õ”±…µ½Õ¹Ðé9Õµ‰•È  œ±•…µ‘•Ñ…¥°µ…µ½Õ¹Ðœ¤¹Ù…±Õ•ñðÀ¤±¹½Ñ”è œ±•…µ‘•Ñ…¥°µ¹½Ñ”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¥ôì(€½¹ÍÐÍÕ‰µ¥ÑÑ•Èõ•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•ÈíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õÑÉÕ”ì(€ÑÉåì(€€€¥˜¡ÁÉ½‘ÕÑ¥½¹5½‘”˜™Á±…Ñ™½ÉµÁ¤¥í…Ý…¥ÐÁ±…Ñ™½ÉµÁ¤¹¥¹Ù½­” µ…¹…”µÉ´œ±í…Ñ¥½¸èÕÁ‘…Ñ•}±•…œ±±•…‘%é±•…¹¥°¸¸¹¡…¹•Íô¤í…Ý…¥Ð•¹Ñ•ÉAÉ½‘ÕÑ¥½¸ ¤íô(€€€•±Í•ì(€€€€€=‰©•Ð¹…ÍÍ¥¸¡±•…±íÍÑ…ÑÕÌé¡…¹•Ì¹ÍÑ…ÑÕÌ±¹•áÑÑ¥½¸é¡…¹•Ì¹¹•áÑÑ¥½¸±™½±±½ÝUÀé¡…¹•Ì¹™½±±½ÝUÀ±…µ½Õ¹Ðé¡…¹•Ì¹…µ½Õ¹Ð±ÕÁ‘…Ñ•‘Ðé¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¥ô¤ì(€€€€€¥˜¡¡…¹•Ì¹¹½Ñ”¥±•…¹¹½Ñ•Ì¹ÁÕÍ ¡í¥éÉåÁÑ¼¹É…¹‘½µUU% ¤±‰½‘äé¡…¹•Ì¹¹½Ñ”±…Ðé¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¥ô¤ì(€€€€€±½œ ±•…‘}ÕÁ‘…Ñ•œ°Éµ}±•…œ±±•…¹¥±íÍÑ…ÑÕÌé¡…¹•Ì¹ÍÑ…ÑÕÍô¤íÍ…Ù•MÑ…Ñ” ¤ì(€€€ô(€€€€ œ±•…µ‘•Ñ…¥°µ‘¥…±½œœ¤¹±½Í” ¤íÉ•¹‘•ÉM¡•±° ¤íÑ½…ÍÐ ½¹ÍÕ±Ñ„…ÑÕ…±¥é…‘„¸œ¤ì(€õ…Ñ¡íÑ½…ÍÐ 9¼Í”¡„Á½‘¥‘¼…ÑÕ…±¥é…È±„½¹ÍÕ±Ñ„¸œ¤íô(€™¥¹…±±åíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õ™…±Í”íô)ô¤ì( œ½¹Ù•ÉÐµ±•…œ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ±…Íå¹Œ ¤ôùì(€½¹ÍÐ±•…õÍÑ…Ñ”¹±•…‘Ì¹™¥¹¡¥Ñ•´ôù¥Ñ•´¹¥ôôô œ±•…µ‘•Ñ…¥°µ¥œ¤¹Ù…±Õ”¤í¥˜ …±•…¥É•ÑÕÉ¸ì(€½¹ÍÐ‰ÕÑÑ½¸ô œ½¹Ù•ÉÐµ±•…œ¤í‰ÕÑÑ½¸¹‘¥Í…‰±•õÑÉÕ”ì(€ÑÉåì(€€€¥˜¡ÁÉ½‘ÕÑ¥½¹5½‘”˜™Á±…Ñ™½ÉµÁ¤¥í…Ý…¥ÐÁ±…Ñ™½ÉµÁ¤¹¥¹Ù½­” µ…¹…”µÉ´œ±í…Ñ¥½¸è½¹Ù•ÉÑ}±•…œ±±•…‘%é±•…¹¥‘ô¤í…Ý…¥Ð•¹Ñ•ÉAÉ½‘ÕÑ¥½¸ ¤íô(€€€•±Í•ì(€€€€€½¹ÍÐ…Í•%õÉåÁÑ¼¹É…¹‘½µUU% ¤ì(€€€€€½¹ÍÐ±¥•¹Ñ%õ±•…µ±¥•¹Ð´‘í±•…¹¥‘õ€ì(€€€€€ÍÑ…Ñ”¹…Í•Ì¹Õ¹Í¡¥™Ð¡í¥é…Í•%±É•™•É•¹”éIL´‘í¹•Ü…Ñ” ¤¹•ÑÕ±±e•…È ¥ô´‘íMÑÉ¥¹œ¡ÍÑ…Ñ”¹…Í•Ì¹±•¹Ñ ¬Ä¤¹Á…‘MÑ…ÉÐ Ð°œÀœ¥õ€±±¥•¹Ñ%±±¥•¹Ðé±•…¹¹…µ”±Ñ¥Ñ±”é±•…¹ÍÕµµ…Éä¹Í±¥” À°ÄÀÀ¤±…Ñ•½Éäé±•…¹…Ñ•½Éä±ÍÑ…ÑÕÍ½‘”è½Á•¸œ±ÍÑ…ÑÕÌè‰¥•ÉÑ¼œ±ÍÑ…”èÀ±½Á•¹•‘Ðé¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¤±±¥•¹Ñ9•áÑMÑ•Àèœœ±ÁÉ½™•ÍÍ¥½¹…±9…µ”èœœ±ÁÉ½™•ÍÍ¥½¹…±Q¥Ñ±”èœœ±ÁÉ½™•ÍÍ¥½¹…±I•¥ÍÑÉ…Ñ¥½¸èœœ±ÁÉ½™•ÍÍ¥½¹…±I•¥½¸é±•…¹ÁÉ½Ù¥¹•ô¤ì(€€€€€ÍÑ…Ñ”¹•Ù•¹ÑÌ¹ÁÕÍ ¡í¥éÉåÁÑ¼¹É…¹‘½µUU% ¤±…Í•%±­¥¹è½Á•¸œ±Ñ¥Ñ±”èáÁ•‘¥•¹Ñ”…‰¥•ÉÑ¼œ±‘•ÍÉ¥ÁÑ¥½¸è1„½¹ÍÕ±Ñ„¡„Í¥‘¼…•ÁÑ…‘„ä½¹Ù•ÉÑ¥‘„•¸•áÁ•‘¥•¹Ñ”¸œ±…Ðé¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¤±ÕÉÉ•¹ÐéÑÉÕ•ô¤ì(€€€€€±•…¹ÍÑ…ÑÕÌôÝ½¸œí±•…¹ÕÁ‘…Ñ•‘Ðõ¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¤í…Ñ¥Ù•…Í•%õ…Í•%ì(€€€€€±½œ ±•…‘}½¹Ù•ÉÑ•œ°Éµ}±•…œ±±•…¹¥±í…Í•%‘ô¤íÍ…Ù•MÑ…Ñ” ¤ì(€€€ô(€€€€ œ±•…µ‘•Ñ…¥°µ‘¥…±½œœ¤¹±½Í” ¤í…Ñ¥Ù•M•Ñ¥½¸ô…Í•ÌœíÉ•¹‘•ÉM¡•±° ¤íÑ½…ÍÐ ½¹ÍÕ±Ñ„½¹Ù•ÉÑ¥‘„•¸•áÁ•‘¥•¹Ñ”¸œ¤ì(€õ…Ñ¡íÑ½…ÍÐ 9¼Í”¡„Á½‘¥‘¼½¹Ù•ÉÑ¥È±„½¹ÍÕ±Ñ„¸œ¤íô(€™¥¹…±±åí‰ÕÑÑ½¸¹‘¥Í…‰±•õ™…±Í”íô)ô¤ì( œÑ…Í¬µ™½É´œ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ÍÕ‰µ¥Ðœ±…Íå¹Œ•Ù•¹Ðôùì(€•Ù•¹Ð¹ÁÉ•Ù•¹Ñ•™…Õ±Ð ¤í¥˜¡•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•Èü¹Ù…±Õ”ôôô…¹•°œ¥ì œÑ…Í¬µ‘¥…±½œœ¤¹±½Í” ¤íÉ•ÑÕÉ¸íô(€½¹ÍÐÁ…å±½…õíÑ¥Ñ±”è œÑ…Í¬µÑ¥Ñ±”œ¤¹Ù…±Õ”¹ÑÉ¥´ ¤±‘Õ•…Ñ”è œÑ…Í¬µ‘…Ñ”œ¤¹Ù…±Õ”±ÁÉ¥½É¥Ñäè œÑ…Í¬µÁÉ¥½É¥Ñäœ¤¹Ù…±Õ”±±•…‘%è œÑ…Í¬µ±•…œ¤¹Ù…±Õ•ôì(€½¹ÍÐÍÕ‰µ¥ÑÑ•Èõ•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•ÈíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õÑÉÕ”ì(€ÑÉåì(€€€¥˜¡ÁÉ½‘ÕÑ¥½¹5½‘”˜™Á±…Ñ™½ÉµÁ¤¥í…Ý…¥ÐÁ±…Ñ™½ÉµÁ¤¹¥¹Ù½­” µ…¹…”µÉ´œ±í…Ñ¥½¸èÉ•…Ñ•}Ñ…Í¬œ°¸¸¹Á…å±½…‘ô¤í…Ý…¥Ð•¹Ñ•ÉAÉ½‘ÕÑ¥½¸ ¤íô(€€€•±Í•í½¹ÍÐ¥õÉåÁÑ¼¹É…¹‘½µUU% ¤íÍÑ…Ñ”¹Ñ…Í­Ì¹ÁÕÍ ¡í¥°¸¸¹Á…å±½…±½µÁ±•Ñ•é™…±Í”±É•…Ñ•‘Ðé¹•Ü…Ñ” ¤¹Ñ½%M=MÑÉ¥¹œ ¥ô¤í±½œ Ñ…Í­}É•…Ñ•œ°Éµ}Ñ…Í¬œ±¥¤íÍ…Ù•MÑ…Ñ” ¤íô(€€€•Ù•¹Ð¹ÕÉÉ•¹ÑQ…É•Ð¹É•Í•Ð ¤ì œÑ…Í¬µ‘¥…±½œœ¤¹±½Í” ¤í…Ñ¥Ù•M•Ñ¥½¸ôÑ…Í­ÌœíÉ•¹‘•ÉM¡•±° ¤íÑ½…ÍÐ Q…É•„É•¥ÍÑÉ…‘„¸œ¤ì(€õ…Ñ¡íÑ½…ÍÐ 9¼Í”¡„Á½‘¥‘¼É•¥ÍÑÉ…È±„Ñ…É•„¸œ¤íô(€™¥¹…±±åíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õ™…±Í”íô)ô¤ì( œÁ…ÍÍÝ½Éµ™½É´œ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ÍÕ‰µ¥Ðœ±…Íå¹Œ•Ù•¹Ðôùì(€•Ù•¹Ð¹ÁÉ•Ù•¹Ñ•™…Õ±Ð ¤í½¹ÍÐÁ…ÍÍÝ½Éô œ¹•ÜµÁ…ÍÍÝ½Éœ¤¹Ù…±Õ”±½¹™¥Éµ…Ñ¥½¸ô œ½¹™¥É´µÁ…ÍÍÝ½Éœ¤¹Ù…±Õ”ì(€¥˜¡Á…ÍÍÝ½É„ôõ½¹™¥Éµ…Ñ¥½¸¥íÑ½…ÍÐ 1…Ì½¹ÑÉ…Í—Å…Ì¹¼½¥¹¥‘•¸¸œ¤íÉ•ÑÕÉ¸íô(€½¹ÍÐÍÕ‰µ¥ÑÑ•Èõ•Ù•¹Ð¹ÍÕ‰µ¥ÑÑ•ÈíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õÑÉÕ”ì(€ÑÉåí…Ý…¥ÐÁ±…Ñ™½ÉµÁ¤¹ÕÁ‘…Ñ•A…ÍÍÝ½É¡Á…ÍÍÝ½É¤í•Ù•¹Ð¹ÕÉÉ•¹ÑQ…É•Ð¹É•Í•Ð ¤ì œÁ…ÍÍÝ½Éµ‘¥…±½œœ¤¹±½Í” ¤í…Ý…¥Ð•¹Ñ•ÉAÉ½‘ÕÑ¥½¸ ¤íÑ½…ÍÐ •Í¼½¹™¥Éµ…‘¼½ÉÉ•Ñ…µ•¹Ñ”¸œ¤íô(€…Ñ ¡•ÉÉ½È¥íÑ½…ÍÐ¡•ÉÉ½Èü¹½‘”ôôô]-}AMM]=Iœü1„½¹ÑÉ…Í—Å„‘•‰”Ñ•¹•È…°µ•¹½Ì€ÄÈ…É…Ñ•É•Ì¸œè9¼Í”¡„Á½‘¥‘¼½¹™¥Éµ…È•°…•Í¼¸œ¤íô(€™¥¹…±±åíÍÕ‰µ¥ÑÑ•È¹‘¥Í…‰±•õ™…±Í”íô)ô¤ì( œ¹½Ñ¥™¥…Ñ¥½¸µ‰ÕÑÑ½¸œ¤¹…‘‘Ù•¹Ñ1¥ÍÑ•¹•È ±¥¬œ° ¤ôùí…Ñ¥Ù•M•Ñ¥½¸ô¹½Ñ¥™¥…Ñ¥½¹ÌœíÉ•¹‘•ÉM¡•±° ¤íô¤ì()¥˜¡ÁÉ½‘ÕÑ¥½¹5½‘”¥ì(€€ œ¹Ñ•ÍÐµ‰…¹¹•Èœ¤¹¡¥‘‘•¸õÑÉÕ”ì œ¹‘•µ¼µ…•ÍÌœ¤¹¡¥‘‘•¸ô…ÉÕ¹Ñ¥µ•½¹™¥œ¹…±±½Ý•µ½•ÍÌì(€¥˜¡Á±…Ñ™½ÉµÁ¤¥í½¹ÍÐ…±±‰…­QåÁ”õÁ±…Ñ™½ÉµÁ¤¹½¹ÍÕµ•UÉ±M•ÍÍ¥½¸¡±½…Ñ¥½¸¹¡É•˜¤í¥˜¡…±±‰…­QåÁ”ôôôÉ•½Ù•Éäññ…±±‰…­QåÁ”ôôô¥¹Ù¥Ñ”œ¤ œÁ…ÍÍÝ½Éµ‘¥…±½œœ¤¹Í¡½Ý5½‘…° ¤í•±Í”•¹Ñ•ÉAÉ½‘ÕÑ¥½¸ ¤¹…Ñ   ¤ôùíô¤íô)õ•±Í”¥˜¡ÍÑ…Ñ”¹…Ñ¥Ù•I½±”¥•¹Ñ•È¡ÍÑ…Ñ”¹…Ñ¥Ù•I½±”¤ì(
+      <div class="admin-grid"><section class="panel"><div class="panel-head"><h2>Consultas que requieren atenciÃ³n</h2><small>${openLeads} abiertas</small></div>${leadTable(state.leads.filter(item=>!['won','lost'].includes(item.status)).slice(0,6))}</section><section class="panel"><div class="panel-head"><h2>PrÃ³ximas actuaciones</h2><small>Uso interno</small></div>${taskList(state.tasks.filter(item=>!item.completed).slice(0,6))}</section></div>`;
+    bindCrmActions();
+  } else if (activeSection === 'leads') {
+    $('#main').innerHTML = `${pageHead('CRM','Consultas y oportunidades','Cada contacto conserva su origen, consentimiento, estado y prÃ³xima actuaciÃ³n.','<button class="primary-button" id="new-lead">Registrar consulta <span>â†’</span></button>')}<section class="panel"><div class="pipeline-board">${leadPipeline()}</div></section>`;
+    bindCrmActions();
+  } else if (activeSection === 'tasks') {
+    $('#main').innerHTML = `${pageHead('Agenda interna','PrÃ³ximas actuaciones','Las fechas son recordatorios internos y nunca se muestran como promesas al cliente.','<button class="primary-button" id="new-task">Nueva tarea <span>â†’</span></button>')}<section class="panel">${taskList(state.tasks)}</section>`;
+    bindCrmActions();
+  } else if (activeSection === 'cases') {
+    if (!c) {
+      $('#main').innerHTML = `${pageHead('Expedientes','TodavÃ­a no hay expedientes','Convierte una consulta contratada en expediente para crear el acceso privado.')}<section class="panel"><div class="empty">No hay expedientes disponibles.</div></section>`;
+    } else {
+      $('#main').innerHTML = `${pageHead('Expedientes',c.reference+' Â· '+c.client,c.title,'<button class="primary-button" id="new-update">Registrar avance â†’</button>')}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>CronologÃ­a</h2><span class="status-pill">${escapeHtml(c.status)}</span></div>${timeline(true)}</section><aside>${nextStepCard(c)}${professionalCard(c)}</aside></div>`;
+      $('#new-update').addEventListener('click',openUpdateDialog);
+    }
+  } else if (activeSection === 'finance') {
+    const won = state.leads.filter(item=>item.status==='won');
+    $('#main').innerHTML = `${pageHead('Control econÃ³mico','Contrataciones e importes','Resumen interno para controlar lo presupuestado. La facturaciÃ³n definitiva se conectarÃ¡ en una fase posterior.')}<div class="metric-grid"><div class="metric"><small>Contrataciones</small><strong>${won.length}</strong><span>Consultas ganadas</span></div><div class="metric"><small>Importe contratado</small><strong>${formatMoney(won.reduce((t,i)=>t+Number(i.amount||0),0))}</strong><span>Importe presupuestado</span></div><div class="metric"><small>Propuestas abiertas</small><strong>${state.leads.filter(i=>['viable','proposal','contract'].includes(i.status)).length}</strong><span>Pendientes de decisiÃ³n</span></div><div class="metric"><small>Liquidaciones</small><strong>â€”</strong><span>Fase posterior</span></div></div><section class="panel">${leadTable(state.leads.filter(i=>i.amount>0))}</section>`;
+    bindCrmActions();
+  } else if (activeSection === 'notifications') {
+    $('#main').innerHTML = `${pageHead('Avisos','Registro de notificaciones','Cada aviso queda vinculado a un expediente y a un avance concreto.')}<section class="panel"><div class="notification-list">${notificationList(true)}</div></section>`;
+  } else {
+    $('#main').innerHTML = `${pageHead('AuditorÃ­a','Registro de actividad','Altas, accesos y avances se conservan en un registro no editable por usuarios ordinarios.')}<section class="panel">${auditTable()}</section>`;
+  }
+}
+
+function formatMoney(value) { return new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(value||0)); }
+function leadTable(list=state.leads) {
+  if (!list.length) return '<div class="empty">No hay consultas en este estado.</div>';
+  return `<table class="case-table"><thead><tr><th>Referencia</th><th>Contacto</th><th>Ãrea</th><th>Estado</th><th>Seguimiento</th></tr></thead><tbody>${list.map(item=>`<tr tabindex="0" data-lead-id="${escapeHtml(item.id)}"><td class="case-ref">${escapeHtml(item.reference)}</td><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.category)}</td><td><span class="lead-status status-${escapeHtml(item.status)}">${escapeHtml(leadStatusLabels[item.status]||item.status)}</span></td><td>${escapeHtml(item.followUp?formatShortDate(item.followUp):'Sin fecha')}</td></tr>`).join('')}</tbody></table>`;
+}
+function leadPipeline() {
+  const groups=[['new','Nuevas'],['review','En estudio'],['waiting','Falta informaciÃ³n'],['viable','Viables'],['proposal','Propuesta'],['contract','Contrato'],['won','Contratadas'],['lost','Cerradas']];
+  return groups.map(([status,label])=>{const list=state.leads.filter(item=>item.status===status);return `<section class="pipeline-column"><header><strong>${label}</strong><span>${list.length}</span></header>${list.map(item=>`<button type="button" class="lead-card" data-lead-id="${escapeHtml(item.id)}"><small>${escapeHtml(item.reference)} Â· ${escapeHtml(item.province||'Sin provincia')}</small><strong>${escapeHtml(item.name)}</strong><p>${escapeHtml(item.category)}</p><em>${escapeHtml(item.nextAction||'Sin prÃ³xima actuaciÃ³n')}</em></button>`).join('')||'<p class="pipeline-empty">Sin consultas</p>'}</section>`;}).join('');
+}
+function taskList(list=state.tasks) {
+  if (!list.length) return '<div class="empty">No hay tareas pendientes.</div>';
+  return `<div class="task-list">${[...list].sort((a,b)=>String(a.dueDate).localeCompare(String(b.dueDate))).map(task=>{const lead=state.leads.find(item=>item.id===task.leadId);return `<article class="task-row ${task.completed?'completed':''}"><button type="button" class="task-check" data-task-id="${escapeHtml(task.id)}" aria-label="${task.completed?'Reabrir':'Completar'} tarea">${task.completed?'âœ“':''}</button><div><strong>${escapeHtml(task.title)}</strong><p>${escapeHtml(lead?lead.name+' Â· '+lead.reference:'Sin consulta asociada')}</p></div><time class="${task.priority==='high'?'priority-high':''}">${escapeHtml(formatShortDate(task.dueDate))}</time></article>`;}).join('')}</div>`;
+}
+function formatShortDate(value) { if(!value)return ''; return new Intl.DateTimeFormat('es-ES',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(`${String(value).slice(0,10)}T12:00:00`)); }
+
+function progress(stage) {
+  const labels=['Abierto','Estudio','Gestiones','Respuesta','ResoluciÃ³n','Cerrado'];
+  return `<div class="progress-track">${labels.map((label,i)=>`<div class="progress-step ${i<stage?'done':i===stage?'active':''}"><i>${i<stage?'âœ“':i+1}</i><span>${label}</span></div>`).join('')}</div>`;
+}
+function timeline(full=false) {
+  const events=state.events.filter(e=>e.caseId===currentCase().id).sort((a,b)=>new Date(a.at)-new Date(b.at));
+  return `<div class="timeline">${events.map((e,i)=>`<article class="event ${e.current?'current':''}"><span class="event-mark">${e.done?'âœ“':String(i+1).padStart(2,'0')}</span><div class="event-body"><small>${formatDate(e.at)} Â· ${e.done?'Registrado':e.current?'Estado actual':'Avance'}</small><strong>${escapeHtml(e.title)}</strong><p>${escapeHtml(e.description)}</p></div></article>`).join('')}${full?'<article class="event"><span class="event-mark">â€”</span><div class="event-body"><small>Siguiente avance</small><strong>Se aÃ±adirÃ¡ cuando ocurra</strong><p>No mostramos fechas previstas que todavÃ­a no pueden confirmarse.</p></div></article>':''}</div>`;
+}
+function nextStepCard(c) {
+  const hasAction=Boolean(c.clientNextStep);
+  return `<section class="panel next-step-card"><div class="panel-head"><h2>${hasAction?'QuÃ© necesitamos de ti':'Tu siguiente paso'}</h2><small>${hasAction?'AcciÃ³n indicada':'Sin tareas'}</small></div><p>${escapeHtml(hasAction?c.clientNextStep:'No tienes que hacer nada ahora. Te avisaremos cuando exista una novedad.')}</p></section>`;
+}
+function professionalCard(c) {
+  const assigned=Boolean(c.professionalName);
+  return `<section class="panel professional-card"><div class="panel-head"><h2>Profesional asignado</h2><small>${assigned?'Identificado':'Pendiente'}</small></div>${assigned?`<div class="professional-profile"><span>${escapeHtml(initials(c.professionalName))}</span><div><strong>${escapeHtml(c.professionalName)}</strong><p>${escapeHtml(c.professionalTitle || 'Profesional responsable')}</p><small>${escapeHtml([c.professionalRegistration,c.professionalRegion].filter(Boolean).join(' Â· '))}</small></div></div>`:'<p class="panel-copy">Te informaremos de su identidad y acreditaciÃ³n cuando se asigne la intervenciÃ³n.</p>'}</section>`;
+}
+function caseTable() {
+  return `<table class="case-table"><thead><tr><th>Referencia</th><th>Cliente</th><th>Ãrea</th><th>Estado</th></tr></thead><tbody>${state.cases.map(c=>`<tr tabindex="0" data-case-id="${escapeHtml(c.id)}"><td class="case-ref">${escapeHtml(c.reference)}</td><td>${escapeHtml(c.client)}</td><td>${escapeHtml(c.category)}</td><td><span class="status-pill">${escapeHtml(c.status)}</span></td></tr>`).join('')}</tbody></table>`;
+}
+function bindCaseRows() {
+  $$('[data-case-id]').forEach(row => {
+    const open=()=>{activeCaseId=row.dataset.caseId;activeSection='cases';renderShell();};
+    row.addEventListener('click',open);
+    row.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}});
+  });
+}
+function notificationList(all=false) {
+  const list=all?state.notifications:state.notifications.filter(n=>n.userId===currentUser().id);
+  return list.length?list.map(n=>`<article class="notice ${n.read?'read':''}"><i></i><div><strong>${escapeHtml(n.title)}</strong><p>${escapeHtml(n.body)}</p></div><time>${formatDate(n.at)}</time></article>`).join(''):'<div class="empty">No hay avisos.</div>';
+}
+function auditTable() {
+  if(!state.audit.length)return '<div class="empty">Las acciones realizadas en esta prueba aparecerÃ¡n aquÃ­.</div>';
+  return `<table class="case-table"><thead><tr><th>Momento</th><th>AcciÃ³n</th><th>Objeto</th><th>Usuario</th></tr></thead><tbody>${[...state.audit].reverse().map(a=>`<tr><td>${formatDate(a.at)}</td><td>${escapeHtml(a.action)}</td><td>${escapeHtml(a.objectType)} Â· ${escapeHtml(String(a.objectId).slice(0,12))}</td><td>${escapeHtml(a.actorId)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function bindCrmActions() {
+  $('#new-lead')?.addEventListener('click',()=>$('#lead-dialog').showModal());
+  $('#new-task')?.addEventListener('click',openTaskDialog);
+  $$('[data-lead-id]').forEach(node=>{
+    const open=()=>openLeadDialog(node.dataset.leadId);
+    node.addEventListener('click',open);
+    node.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}});
+  });
+  $$('[data-task-id]').forEach(button=>button.addEventListener('click',()=>toggleTask(button.dataset.taskId)));
+}
+function openLeadDialog(leadId) {
+  const lead=state.leads.find(item=>item.id===leadId); if(!lead)return;
+  $('#lead-detail-id').value=lead.id;
+  $('#lead-detail-title').textContent=`${lead.reference} Â· ${lead.name}`;
+  $('#lead-detail-contact').innerHTML=`<div><small>Contacto</small><strong>${escapeHtml(lead.phone)}</strong><span>${escapeHtml(lead.email)}</span></div><div><small>Consulta</small><strong>${escapeHtml(lead.category)}</strong><span>${escapeHtml(lead.summary)}</span></div><div><small>Privacidad</small><strong>Consentimiento registrado</strong><span>${escapeHtml(formatDate(lead.consentAt))}</span></div>`;
+  $('#lead-detail-status').value=lead.status;
+  $('#lead-detail-next-action').value=lead.nextAction||'';
+  $('#lead-detail-follow-up').value=String(lead.followUp||'').slice(0,10);
+  $('#lead-detail-amount').value=lead.amount||'';
+  $('#lead-detail-note').value='';
+  $('#convert-lead').disabled=lead.status==='won';
+  $('#lead-detail-dialog').showModal();
+}
+function openTaskDialog() {
+  $('#task-lead').innerHTML=state.leads.filter(item=>!['won','lost'].includes(item.status)).map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.reference+' Â· '+item.name)}</option>`).join('');
+  $('#task-date').value=new Date().toISOString().slice(0,10);
+  $('#task-dialog').showModal();
+}
+async function toggleTask(taskId) {
+  const task=state.tasks.find(item=>item.id===taskId); if(!task)return;
+  task.completed=!task.completed;
+  if(productionMode&&platformApi){
+    try{await platformApi.update('crm_tasks',`id=eq.${encodeURIComponent(task.id)}`,{completed_at:task.completed?new Date().toISOString():null});}
+    catch{task.completed=!task.completed;toast('No se ha podido actualizar la tarea.');return;}
+  } else { log(task.completed?'task_completed':'task_reopened','crm_task',task.id);saveState(); }
+  renderShell();
+}
+function nextLeadReference() {
+  const year=new Date().getFullYear();
+  const maximum=state.leads.reduce((max,item)=>Math.max(max,Number(String(item.reference||'').split('-').pop())||0),0);
+  return `C-${year}-${String(maximum+1).padStart(3,'0')}`;
+}
+
+function openUpdateDialog() {
+  const c=currentCase();
+  $('#update-status').value=c.statusCode;
+  $('#update-title').value='';
+  $('#update-description').value='';
+  $('#update-next-step').value=c.clientNextStep || '';
+  $('#professional-name').value=c.professionalName || '';
+  $('#professional-title').value=c.professionalTitle || '';
+  $('#professional-registration').value=c.professionalRegistration || '';
+  $('#professional-region').value=c.professionalRegion || '';
+  $('#update-dialog').showModal();
+}
+function markNotificationsRead() {
+  const unread=state.notifications.filter(n=>n.userId===currentUser().id&&!n.read);
+  unread.forEach(n=>n.read=true);
+  if(productionMode&&platformApi)unread.forEach(n=>platformApi.update('notifications',`id=eq.${encodeURIComponent(n.id)}`,{read_at:new Date().toISOString()}).catch(()=>{}));
+  else saveState();
+}
+function toast(message) {
+  const node=$('#toast');node.textContent=message;node.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.hidden=true,3200);
+}
+
+$$('[data-demo-role]').forEach(button=>button.addEventListener('click',()=>enter(button.dataset.demoRole)));
+$('#login-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!productionMode){enter('client');return;}
+  const button=event.submitter;button.disabled=true;
+  try{const data=new FormData(event.currentTarget);await platformApi.signIn(data.get('email'),data.get('password'));await enterProduction();}
+  catch(error){toast(error?.status===400?'Correo o contraseÃ±a incorrectos.':'No se ha podido iniciar sesiÃ³n de forma segura.');}
+  finally{button.disabled=false;}
+});
+$('#logout').addEventListener('click',logout);
+$('#recover-access').addEventListener('click',async()=>{
+  const email=$('#login-form input[name="email"]').value.trim();
+  if(!productionMode){toast('En producciÃ³n recibirÃ¡s un enlace seguro para recuperar el acceso.');return;}
+  if(!email){toast('Escribe primero tu correo electrÃ³nico.');return;}
+  try{await platformApi.requestPasswordReset(email,`${location.origin}/restablecer`);toast('Si el correo estÃ¡ registrado, recibirÃ¡s un enlace de recuperaciÃ³n.');}
+  catch{toast('No se ha podido solicitar la recuperaciÃ³n. IntÃ©ntalo de nuevo.');}
+});
+$('#mobile-menu').addEventListener('click',()=>$('.sidebar').classList.toggle('open'));
+$('#update-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#update-dialog').close();return;}
+  const payload={
+    caseId:currentCase().id,status:$('#update-status').value,title:$('#update-title').value.trim(),description:$('#update-description').value.trim(),
+    clientNextStep:$('#update-next-step').value.trim(),professionalName:$('#professional-name').value.trim(),professionalTitle:$('#professional-title').value.trim(),
+    professionalRegistration:$('#professional-registration').value.trim(),professionalRegion:$('#professional-region').value.trim()
+  };
+  if(!payload.title||!payload.description)return;
+  const submitter=event.submitter;submitter.disabled=true;
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('update-case',payload);await enterProduction();}
+    else{
+      const c=currentCase();Object.assign(c,{statusCode:payload.status,status:statusLabels[payload.status],stage:statusStages[payload.status],clientNextStep:payload.clientNextStep,professionalName:payload.professionalName,professionalTitle:payload.professionalTitle,professionalRegistration:payload.professionalRegistration,professionalRegion:payload.professionalRegion});
+      const at=new Date().toISOString();state.events.forEach(item=>item.current=false);state.events.push({id:crypto.randomUUID(),caseId:c.id,kind:payload.status,title:payload.title,description:payload.description,at,current:true});
+      state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId:c.id,title:'Nuevo avance en tu expediente',body:payload.title,at,read:false});
+      log('case_updated','case',c.id,{status:payload.status});saveState();renderShell();
+    }
+    event.currentTarget.reset();$('#update-dialog').close();toast('Avance guardado y aviso registrado.');
+  }catch{toast('No se ha podido guardar el avance.');}
+  finally{submitter.disabled=false;}
+});
+$('#invite-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#invite-dialog').close();return;}
+  const payload={email:$('#invite-email').value.trim(),displayName:$('#invite-name').value.trim(),title:$('#invite-title').value.trim(),category:$('#invite-category').value};
+  if(!productionMode||!platformApi){toast('El alta real se habilitarÃ¡ al conectar el servidor europeo.');return;}
+  const submitter=event.submitter;submitter.disabled=true;
+  try{const created=await platformApi.invoke('invite-client',payload);await enterProduction();activeCaseId=created.caseId;activeSection='cases';renderShell();event.currentTarget.reset();$('#invite-dialog').close();toast('Expediente creado e invitaciÃ³n enviada.');}
+  catch{toast('No se ha podido completar el alta. Revisa el correo y vuelve a intentarlo.');}
+  finally{submitter.disabled=false;}
+});
+$('#lead-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#lead-dialog').close();return;}
+  const payload={
+    fullName:$('#lead-name').value.trim(),phone:$('#lead-phone').value.trim(),email:$('#lead-email').value.trim().toLowerCase(),province:$('#lead-province').value.trim(),
+    category:$('#lead-category').value,source:$('#lead-source').value,summary:$('#lead-summary').value.trim(),consent:Boolean($('#lead-consent').checked)
+  };
+  const submitter=event.submitter;submitter.disabled=true;
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',{action:'create_lead',...payload});await enterProduction();}
+    else{
+      const at=new Date().toISOString();const id=crypto.randomUUID();
+      state.leads.unshift({id,reference:nextLeadReference(),name:payload.fullName,phone:payload.phone,email:payload.email,province:payload.province,category:payload.category,source:payload.source,summary:payload.summary,status:'new',nextAction:'Realizar primer contacto',followUp:'',amount:0,consentAt:at,createdAt:at,updatedAt:at,notes:[]});
+      log('lead_created','crm_lead',id,{source:payload.source});saveState();
+    }
+    event.currentTarget.reset();$('#lead-dialog').close();activeSection='leads';renderShell();toast('Consulta registrada correctamente.');
+  }catch{toast('No se ha podido registrar la consulta.');}
+  finally{submitter.disabled=false;}
+});
+$('#lead-detail-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#lead-detail-dialog').close();return;}
+  const lead=state.leads.find(item=>item.id===$('#lead-detail-id').value);if(!lead)return;
+  const changes={status:$('#lead-detail-status').value,nextAction:$('#lead-detail-next-action').value.trim(),followUp:$('#lead-detail-follow-up').value,amount:Number($('#lead-detail-amount').value||0),note:$('#lead-detail-note').value.trim()};
+  const submitter=event.submitter;submitter.disabled=true;
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',{action:'update_lead',leadId:lead.id,...changes});await enterProduction();}
+    else{
+      Object.assign(lead,{status:changes.status,nextAction:changes.nextAction,followUp:changes.followUp,amount:changes.amount,updatedAt:new Date().toISOString()});
+      if(changes.note)lead.notes.push({id:crypto.randomUUID(),body:changes.note,at:new Date().toISOString()});
+      log('lead_updated','crm_lead',lead.id,{status:changes.status});saveState();
+    }
+    $('#lead-detail-dialog').close();renderShell();toast('Consulta actualizada.');
+  }catch{toast('No se ha podido actualizar la consulta.');}
+  finally{submitter.disabled=false;}
+});
+$('#convert-lead').addEventListener('click',async()=>{
+  const lead=state.leads.find(item=>item.id===$('#lead-detail-id').value);if(!lead)return;
+  const button=$('#convert-lead');button.disabled=true;
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',{action:'convert_lead',leadId:lead.id});await enterProduction();}
+    else{
+      const caseId=crypto.randomUUID();
+      const clientId=`lead-client-${lead.id}`;
+      state.cases.unshift({id:caseId,reference:`RS-${new Date().getFullYear()}-${String(state.cases.length+1).padStart(4,'0')}`,clientId,client:lead.name,title:lead.summary.slice(0,100),category:lead.category,statusCode:'open',status:'Abierto',stage:0,openedAt:new Date().toISOString(),clientNextStep:'',professionalName:'',professionalTitle:'',professionalRegistration:'',professionalRegion:lead.province});
+      state.events.push({id:crypto.randomUUID(),caseId,kind:'open',title:'Expediente abierto',description:'La consulta ha sido aceptada y convertida en expediente.',at:new Date().toISOString(),current:true});
+      lead.status='won';lead.updatedAt=new Date().toISOString();activeCaseId=caseId;
+      log('lead_converted','crm_lead',lead.id,{caseId});saveState();
+    }
+    $('#lead-detail-dialog').close();activeSection='cases';renderShell();toast('Consulta convertida en expediente.');
+  }catch{toast('No se ha podido convertir la consulta.');}
+  finally{button.disabled=false;}
+});
+$('#task-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#task-dialog').close();return;}
+  const payload={title:$('#task-title').value.trim(),dueDate:$('#task-date').value,priority:$('#task-priority').value,leadId:$('#task-lead').value};
+  const submitter=event.submitter;submitter.disabled=true;
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',{action:'create_task',...payload});await enterProduction();}
+    else{const id=crypto.randomUUID();state.tasks.push({id,...payload,completed:false,createdAt:new Date().toISOString()});log('task_created','crm_task',id);saveState();}
+    event.currentTarget.reset();$('#task-dialog').close();activeSection='tasks';renderShell();toast('Tarea registrada.');
+  }catch{toast('No se ha podido registrar la tarea.');}
+  finally{submitter.disabled=false;}
+});
+$('#password-form').addEventListener('submit',async event=>{
+  event.preventDefault();const password=$('#new-password').value,confirmation=$('#confirm-password').value;
+  if(password!==confirmation){toast('Las contraseÃ±as no coinciden.');return;}
+  const submitter=event.submitter;submitter.disabled=true;
+  try{await platformApi.updatePassword(password);event.currentTarget.reset();$('#password-dialog').close();await enterProduction();toast('Acceso confirmado correctamente.');}
+  catch(error){toast(error?.code==='WEAK_PASSWORD'?'La contraseÃ±a debe tener al menos 12 caracteres.':'No se ha podido confirmar el acceso.');}
+  finally{submitter.disabled=false;}
+});
+$('#notification-button').addEventListener('click',()=>{activeSection='notifications';renderShell();});
+
+if(productionMode){
+  $('.test-banner').hidden=true;$('.demo-access').hidden=!runtimeConfig.allowDemoAccess;
+  if(platformApi){const callbackType=platformApi.consumeUrlSession(location.href);if(callbackType==='recovery'||callbackType==='invite')$('#password-dialog').showModal();else enterProduction().catch(()=>{});}
+}else if(state.activeRole)enter(state.activeRole);
