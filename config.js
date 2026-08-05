@@ -3,5 +3,6 @@ window.RATIO_CONFIG = Object.freeze({
   mode: 'demo',
   supabaseUrl: '',
   supabaseAnonKey: '',
-  allowDemoAccess: true
+  allowDemoAccess: true,
+  appMode: 'combined'
 });

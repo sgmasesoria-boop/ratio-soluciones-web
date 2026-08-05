@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
+    "build:crm": "node build.mjs crm",
+    "build:portal": "node build.mjs portal",
     "test:ui": "node qa.mjs",
+    "test:modes": "node qa-modes.mjs",
     "test:api": "node api-qa.mjs",
     "test:production": "node production-qa.mjs"
   }

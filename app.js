@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'ratio-platform-crm-v1';
 const runtimeConfig = window.RATIO_CONFIG || { mode: 'demo', allowDemoAccess: true };
 const productionMode = runtimeConfig.mode === 'production';
+const applicationMode = ['crm','portal'].includes(runtimeConfig.appMode) ? runtimeConfig.appMode : 'combined';
 let platformApi = null;
 if (productionMode) {
   try { platformApi = new window.RatioPlatformApi(runtimeConfig); }
@@ -107,6 +108,7 @@ function mapProductionWorkspace(workspace, authUser) {
 }
 
 function enter(role) {
+  if ((applicationMode === 'crm' && role !== 'admin') || (applicationMode === 'portal' && role !== 'client')) return;
   state.activeRole = role;
   saveState();
   $('#login-view').hidden = true;
@@ -120,6 +122,10 @@ async function enterProduction() {
   const user = await platformApi.currentUser();
   if (!user) return false;
   state = mapProductionWorkspace(await platformApi.loadWorkspace(user.id), user);
+  if ((applicationMode === 'crm' && state.activeRole !== 'admin') || (applicationMode === 'portal' && state.activeRole !== 'client')) {
+    await platformApi.signOut();
+    throw new Error('ROLE_NOT_ALLOWED');
+  }
   activeCaseId = state.cases[0]?.id || null;
   $('#login-view').hidden = true;
   $('#app').hidden = false;
@@ -333,10 +339,28 @@ function toast(message) {
   const node=$('#toast');node.textContent=message;node.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.hidden=true,3200);
 }
 
+function configureApplicationMode() {
+  const clientButton=$('[data-demo-role="client"]'),adminButton=$('[data-demo-role="admin"]');
+  if(applicationMode==='crm'){
+    clientButton.hidden=true;adminButton.hidden=false;
+    $('.login-card>.kicker').textContent='Gestión interna';
+    $('#login-title').textContent='Accede al CRM';
+    $('.login-lead').textContent='Gestiona consultas, tareas, contrataciones y expedientes desde un espacio privado de Ratio Soluciones.';
+    $('.demo-access p').textContent='Entorno interno de prueba con datos ficticios';
+    $('.test-banner').textContent='CRM DE PRUEBA · DATOS FICTICIOS · SIN DOCUMENTACIÓN';
+    document.title='CRM privado | Ratio Soluciones';
+  }else if(applicationMode==='portal'){
+    adminButton.hidden=true;clientButton.hidden=false;
+    $('.demo-access p').textContent='Portal de cliente de prueba con datos ficticios';
+    $('.test-banner').textContent='PORTAL DE CLIENTE · DATOS FICTICIOS · SIN DOCUMENTACIÓN';
+    document.title='Portal de clientes | Ratio Soluciones';
+  }
+}
+configureApplicationMode();
 $$('[data-demo-role]').forEach(button=>button.addEventListener('click',()=>enter(button.dataset.demoRole)));
 $('#login-form').addEventListener('submit',async event=>{
   event.preventDefault();
-  if(!productionMode){enter('client');return;}
+  if(!productionMode){enter(applicationMode==='crm'?'admin':'client');return;}
   const button=event.submitter;button.disabled=true;
   try{const data=new FormData(event.currentTarget);await platformApi.signIn(data.get('email'),data.get('password'));await enterProduction();}
   catch(error){toast(error?.status===400?'Correo o contraseña incorrectos.':'No se ha podido iniciar sesión de forma segura.');}
