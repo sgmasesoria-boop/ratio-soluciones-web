@@ -13,6 +13,14 @@ menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () 
   document.body.classList.remove('menu-open');
 }));
 
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !menu?.classList.contains('open')) return;
+  menu.classList.remove('open');
+  menuButton?.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('menu-open');
+  menuButton?.focus();
+});
+
 const revealElements = document.querySelectorAll('.reveal');
 if ('IntersectionObserver' in window) {
   const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
@@ -31,6 +39,7 @@ if (year) year.textContent = new Date().getFullYear();
 
 const form = document.getElementById('contact-form');
 const steps = [...document.querySelectorAll('.form-step')];
+const progress = document.querySelector('.form-progress');
 const progressBars = [...document.querySelectorAll('.form-progress span')];
 let currentStep = 1;
 
@@ -42,6 +51,7 @@ function showStep(number) {
     step.classList.toggle('active', active);
   });
   progressBars.forEach((bar, index) => bar.classList.toggle('active', index < number));
+  progress?.setAttribute('aria-valuenow', String(number));
   form?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
@@ -66,13 +76,13 @@ document.querySelectorAll('.form-back').forEach((button) => button.addEventListe
 }));
 
 form?.addEventListener('submit', (event) => {
-  event.preventDefault();
-  if (!form.checkValidity()) {
-    form.reportValidity();
+  if (!validateStep(3)) {
+    event.preventDefault();
     return;
   }
-  const data = new FormData(form);
-  const deadline = data.get('plazo') === 'Sí' ? ' En un documento aparece una posible fecha límite.' : '';
-  const message = `Hola, quiero que estudiéis un caso relacionado con: ${data.get('area')}.${deadline} Prefiero explicar los detalles por el canal privado que me indiquéis.`;
-  window.location.href = `https://wa.me/34660918844?text=${encodeURIComponent(message)}`;
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'Enviando consulta…';
+  }
 });

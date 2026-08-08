@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://www.ratiosoluciones.es/</loc><priority>1.0</priority></url>
-  <url><loc>https://www.ratiosoluciones.es/deudas.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.ratiosoluciones.es/bancos.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.ratiosoluciones.es/vivienda.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.ratiosoluciones.es/seguros.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.ratiosoluciones.es/familia.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.ratiosoluciones.es/consumo.html</loc><priority>0.8</priority></url>
-  <url><loc>https://www.ratiosoluciones.es/legal.html</loc><priority>0.3</priority></url>
+  <url><loc>https://www.ratiosoluciones.es/</loc><lastmod>2026-08-07</lastmod><priority>1.0</priority></url>
+  <url><loc>https://www.ratiosoluciones.es/deudas.html</loc><lastmod>2026-08-07</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.ratiosoluciones.es/bancos.html</loc><lastmod>2026-08-07</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.ratiosoluciones.es/vivienda.html</loc><lastmod>2026-08-07</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.ratiosoluciones.es/seguros.html</loc><lastmod>2026-08-07</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.ratiosoluciones.es/familia.html</loc><lastmod>2026-08-07</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.ratiosoluciones.es/consumo.html</loc><lastmod>2026-08-07</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.ratiosoluciones.es/legal.html</loc><lastmod>2026-08-07</lastmod><priority>0.3</priority></url>
 </urlset>
