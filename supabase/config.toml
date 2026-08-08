@@ -1,7 +1,33 @@
 project_id = "ratio-soluciones-clientes"
 
+[auth]
+site_url = "https://ratio-portal-pruebas.sgmasesoria.chatgpt.site"
+additional_redirect_urls = [
+  "https://ratio-crm-privado.sgmasesoria.chatgpt.site/**",
+  "https://ratio-portal-pruebas.sgmasesoria.chatgpt.site/**",
+  "https://crm.ratiosoluciones.es/**",
+  "https://clientes.ratiosoluciones.es/**"
+]
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+enable_confirmations = true
+double_confirm_changes = true
+secure_password_change = false
+max_frequency = "1m0s"
+otp_length = 8
+
 [functions.invite-client]
-verify_jwt = true
+verify_jwt = false
 
 [functions.update-case]
-verify_jwt = true
+verify_jwt = false
+
+[functions.manage-crm]
+verify_jwt = false
+
+[functions.public-intake]
+verify_jwt = false

@@ -10,6 +10,10 @@
     "test:ui": "node qa.mjs",
     "test:modes": "node qa-modes.mjs",
     "test:api": "node api-qa.mjs",
-    "test:production": "node production-qa.mjs"
+    "test:invite": "node invite-qa.mjs",
+    "test:update": "node update-qa.mjs",
+    "test:production": "node production-qa.mjs",
+    "test:security": "node security-qa.mjs",
+    "test:mfa": "node mfa-qa.mjs"
   }
 }

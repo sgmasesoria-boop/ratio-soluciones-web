@@ -20,13 +20,18 @@ for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile',wi
   await page.locator('#new-lead').click();
   await page.locator('#lead-name').fill('Cliente de Prueba');
   await page.locator('#lead-phone').fill('600123123');
-  await page.locator('#lead-email').fill('prueba@example.es');
+  await page.locator('#lead-email').fill('cliente.prueba@example.es');
   await page.locator('#lead-summary').fill('Consulta segura creada durante la prueba automática.');
-  await page.locator('#lead-consent').check();
+  await page.locator('#lead-privacy-notice').check();
   await page.locator('#lead-form button[value="default"]').click();
   const leadCreated=await page.getByText('Cliente de Prueba',{exact:true}).isVisible();
   await page.screenshot({path:`preview-crm-${viewport.name}.png`,fullPage:true});
   await page.evaluate(()=>document.querySelector('[data-section="cases"]').click());
+  const caseCount=await page.locator('[data-case-id]').count();
+  await page.locator('[data-case-id="case_02"]').click();
+  const secondCaseVisible=await page.getByText('RS-2051 · Ana Romero',{exact:true}).isVisible();
+  await page.locator('#back-to-cases').click();
+  await page.locator('[data-case-id="case_01"]').click();
   await page.locator('#new-update').click();
   await page.locator('#update-status').selectOption('response');
   await page.locator('#update-title').fill('<img src=x onerror="window.__ratioXss=1">');
@@ -39,9 +44,9 @@ for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile',wi
   const xssSafe=await page.evaluate(()=>window.__ratioXss===undefined);
   const maliciousMarkupCreated=await page.locator('#main img, #main svg').count();
   const escapedTextVisible=await page.getByText('<img src=x onerror="window.__ratioXss=1">',{exact:true}).count();
-  results.push({viewport:viewport.name,professionalVisible,noDocumentControls,crmVisible,leadCreated,overflow,xssSafe,maliciousMarkupCreated,escapedTextVisible:Boolean(escapedTextVisible),errors});
+  results.push({viewport:viewport.name,professionalVisible,noDocumentControls,crmVisible,leadCreated,caseCount,secondCaseVisible,overflow,xssSafe,maliciousMarkupCreated,escapedTextVisible:Boolean(escapedTextVisible),errors});
   await context.close();
 }
 console.log(JSON.stringify(results,null,2));
 await browser.close();
-if(results.some(item=>!item.professionalVisible||!item.noDocumentControls||!item.crmVisible||!item.leadCreated||item.overflow||!item.xssSafe||item.maliciousMarkupCreated||!item.escapedTextVisible||item.errors.length))process.exitCode=1;
+if(results.some(item=>!item.professionalVisible||!item.noDocumentControls||!item.crmVisible||!item.leadCreated||item.caseCount<3||!item.secondCaseVisible||item.overflow||!item.xssSafe||item.maliciousMarkupCreated||!item.escapedTextVisible||item.errors.length))process.exitCode=1;

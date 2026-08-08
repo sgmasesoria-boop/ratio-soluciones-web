@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 
 const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
 const page=await browser.newPage({viewport:{width:1280,height:900}});const errors=[],calls=[];page.on('pageerror',error=>errors.push(error.message));
-await page.route('**/config.js',route=>route.fulfill({contentType:'text/javascript',body:"window.RATIO_CONFIG={mode:'production',supabaseUrl:'https://ratio-test.supabase.co',supabaseAnonKey:'public-anon-key',allowDemoAccess:false};"}));
+await page.route('**/config.js',route=>route.fulfill({contentType:'text/javascript',body:"window.RATIO_CONFIG={mode:'production',supabaseUrl:'https://ratio-test.supabase.co',supabaseAnonKey:'public-anon-key',allowDemoAccess:false,appMode:'portal'};"}));
 await page.route('https://ratio-test.supabase.co/**',async route=>{
   const url=route.request().url();calls.push(url);const fulfill=value=>route.fulfill({contentType:'application/json',body:JSON.stringify(value)});
   if(url.includes('/auth/v1/token?grant_type=password'))return fulfill({access_token:'token',refresh_token:'refresh',expires_in:3600,user:{id:'user-1',email:'cliente@example.es'}});

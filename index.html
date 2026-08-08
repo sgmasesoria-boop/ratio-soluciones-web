@@ -26,7 +26,7 @@
       <div class="security-note"><span>✓</span><p><strong>Seguimiento claro, sin fechas automáticas.</strong> Verás las actuaciones realizadas y lo que necesitamos de ti en cada momento.</p></div>
       <div class="demo-access" aria-label="Accesos de prueba"><p>Entorno de prueba con datos ficticios</p><button type="button" data-demo-role="client">Ver como cliente</button><button type="button" data-demo-role="admin">Ver como gestor</button></div>
     </div>
-    <footer><span>Privacidad</span><span>Ayuda de acceso</span><span>© Ratio Soluciones</span></footer>
+    <footer><a href="https://www.ratiosoluciones.es/legal.html#privacidad" rel="noopener noreferrer">Privacidad</a><a href="mailto:clientes@ratiosoluciones.es">Ayuda de acceso</a><span>© Ratio Soluciones</span></footer>
   </section>
 
   <div class="app" id="app" hidden>
@@ -34,7 +34,7 @@
       <a class="app-brand" href="#"><span class="brand-mark">R<span>/</span></span><span>Ratio <b>Soluciones</b></span></a>
       <div class="workspace-label"><small id="workspace-kicker">Espacio privado</small><strong id="workspace-name">Mi expediente</strong></div>
       <nav id="app-nav" aria-label="Navegación de la plataforma"></nav>
-      <div class="sidebar-help"><small>¿Necesitas ayuda con el acceso?</small><button type="button">Contactar con soporte</button></div>
+      <div class="sidebar-help"><small>¿Necesitas ayuda con el acceso?</small><a href="mailto:clientes@ratiosoluciones.es">Contactar con soporte</a></div>
       <button class="logout" id="logout" type="button">Cerrar sesión <span>↗</span></button>
     </aside>
 
@@ -87,14 +87,14 @@
       <p class="upload-warning">Registra únicamente la información necesaria para estudiar el asunto. No incluyas documentos ni datos especialmente sensibles.</p>
       <div class="form-grid">
         <label>Nombre y apellidos<input id="lead-name" autocomplete="name" required maxlength="120"></label>
-        <label>Teléfono<input id="lead-phone" type="tel" autocomplete="tel" required maxlength="30"></label>
-        <label>Correo electrónico<input id="lead-email" type="email" autocomplete="email" required maxlength="254"></label>
+        <label>Teléfono<input id="lead-phone" type="tel" autocomplete="tel" maxlength="30" required></label>
+        <label>Correo electrónico<input id="lead-email" type="email" autocomplete="email" maxlength="254" required></label>
         <label>Provincia<input id="lead-province" maxlength="80" placeholder="Ej. Granada"></label>
         <label>Área<select id="lead-category"><option>Banca y financiación</option><option>Deudas y negociación</option><option>Vivienda</option><option>Familia</option><option>Seguros e indemnizaciones</option><option>Consumo</option><option>Otro asunto</option></select></label>
         <label>Origen<select id="lead-source"><option>Formulario web</option><option>Recomendación</option><option>Teléfono</option><option>Profesional colaborador</option><option>Otro</option></select></label>
       </div>
       <label>Resumen de la consulta<textarea id="lead-summary" rows="3" required maxlength="800" placeholder="Describe brevemente el problema y la actuación solicitada"></textarea></label>
-      <label class="confirm-reading"><input id="lead-consent" type="checkbox" required><span>La persona ha aceptado el tratamiento de sus datos para atender la consulta.</span></label>
+      <label class="confirm-reading"><input id="lead-privacy-notice" type="checkbox" required><span>La persona ha recibido o leído la información de privacidad aplicable a la consulta.</span></label>
       <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Guardar consulta <span>→</span></button></div>
     </form>
   </dialog>
@@ -105,6 +105,8 @@
       <input id="lead-detail-id" type="hidden">
       <div id="lead-detail-contact" class="contact-summary"></div>
       <div class="form-grid">
+        <label>Teléfono<input id="lead-detail-phone" type="tel" autocomplete="tel" maxlength="30" required></label>
+        <label>Correo electrónico<input id="lead-detail-email" type="email" autocomplete="email" maxlength="254" required></label>
         <label>Estado<select id="lead-detail-status"><option value="new">Nueva</option><option value="review">En estudio</option><option value="waiting">Falta información</option><option value="viable">Viable</option><option value="proposal">Propuesta enviada</option><option value="contract">Contrato pendiente</option><option value="won">Contratada</option><option value="lost">No viable / cerrada</option></select></label>
         <label>Próxima actuación<input id="lead-detail-next-action" maxlength="180" placeholder="Ej. Llamar para ampliar información"></label>
         <label>Fecha interna de seguimiento<input id="lead-detail-follow-up" type="date"></label>
@@ -125,14 +127,29 @@
     </form>
   </dialog>
 
-  <dialog id="password-dialog" class="modal" aria-labelledby="password-dialog-title">
+  <dialog id="password-dialog" class="modal onboarding-modal" aria-labelledby="password-dialog-title" aria-describedby="password-dialog-description">
     <form method="dialog" id="password-form">
-      <div class="modal-head"><div><p class="kicker">Acceso privado</p><h2 id="password-dialog-title">Establece tu contraseña</h2></div></div>
-      <p class="upload-warning">Utiliza una contraseña exclusiva para esta plataforma. Nunca te pediremos que nos la comuniques.</p>
-      <label>Nueva contraseña<input id="new-password" type="password" autocomplete="new-password" minlength="12" required></label>
+      <div class="activation-step" aria-hidden="true"><span>✓</span><strong>Invitación aceptada</strong><i></i><span>2</span><strong>Crear contraseña</strong></div>
+      <div class="modal-head"><div><p class="kicker">Último paso obligatorio</p><h2 id="password-dialog-title">Crea tu contraseña para entrar</h2></div></div>
+      <p class="activation-lead" id="password-dialog-description">Tu invitación ya está confirmada. Para activar definitivamente el acceso y consultar tu expediente, elige ahora una contraseña.</p>
+      <label>Nueva contraseña<input id="new-password" type="password" autocomplete="new-password" minlength="12" required aria-describedby="password-requirement"></label>
       <label>Repite la contraseña<input id="confirm-password" type="password" autocomplete="new-password" minlength="12" required></label>
-      <div class="privacy-preview"><small>Requisito mínimo</small><p>Al menos 12 caracteres. Recomendamos combinar varias palabras que no utilices en ningún otro servicio.</p></div>
-      <div class="modal-actions"><button class="primary-button" value="default">Guardar y acceder <span>→</span></button></div>
+      <div class="privacy-preview" id="password-requirement"><small>Contraseña segura</small><p>Utiliza al menos 12 caracteres y una contraseña que no uses en ningún otro servicio. Ratio nunca te pedirá que nos la comuniques.</p></div>
+      <div class="modal-actions"><button class="primary-button activation-button" value="default">Crear contraseña y entrar <span>→</span></button></div>
+    </form>
+  </dialog>
+
+  <dialog id="mfa-dialog" class="modal mfa-modal" aria-labelledby="mfa-dialog-title" aria-describedby="mfa-dialog-description">
+    <form method="dialog" id="mfa-form">
+      <div class="modal-head"><div><p class="kicker">VerificaciÃ³n en dos pasos</p><h2 id="mfa-dialog-title">Confirma tu identidad</h2></div></div>
+      <p class="activation-lead" id="mfa-dialog-description">El acceso interno exige un segundo factor.</p>
+      <section id="mfa-enrollment" class="mfa-enrollment" hidden>
+        <img id="mfa-qr" alt="CÃ³digo QR para configurar la app de autenticaciÃ³n">
+        <div><strong>Escanea el QR</strong><p>Usa Google Authenticator, Microsoft Authenticator, 1Password u otra app TOTP.</p><small>Clave manual</small><code id="mfa-secret"></code></div>
+      </section>
+      <label>CÃ³digo temporal<input id="mfa-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,8}" minlength="6" maxlength="8" required></label>
+      <div class="privacy-preview"><small>ProtecciÃ³n obligatoria</small><p>El CRM no se abrirÃ¡ hasta que Supabase confirme una sesiÃ³n con nivel AAL2.</p></div>
+      <div class="modal-actions"><button class="secondary-button" id="mfa-logout" type="button">Cerrar sesiÃ³n</button><button class="primary-button" value="default">Verificar y entrar <span>â†’</span></button></div>
     </form>
   </dialog>
 

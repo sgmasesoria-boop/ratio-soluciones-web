@@ -20,23 +20,46 @@ const seed = {
     client: { id:'usr_client_01', name:'Carlos Martín', initials:'CM', role:'Cliente' },
     admin: { id:'usr_admin_01', name:'Sergio Guerrero', initials:'SG', role:'Gestor' }
   },
-  cases: [{
-    id:'case_01', reference:'RS-2048', clientId:'usr_client_01', client:'Carlos Martín',
-    title:'Revisión de financiación', category:'Banca y financiación', statusCode:'action',
-    status:'Gestiones en curso', stage:2, openedAt:iso(4320),
-    clientNextStep:'No tienes que hacer nada ahora. Te avisaremos cuando exista una novedad o necesitemos una decisión.',
-    professionalName:'Laura Fernández Ruiz', professionalTitle:'Letrada responsable',
-    professionalRegistration:'ICAGR n.º 0000 · dato ficticio', professionalRegion:'Andalucía'
-  }],
+  cases: [
+    {
+      id:'case_01', reference:'RS-2048', clientId:'usr_client_01', client:'Carlos Martín',
+      title:'Revisión de financiación', category:'Banca y financiación', statusCode:'action',
+      status:'Gestiones en curso', stage:2, openedAt:iso(4320),
+      clientNextStep:'No tienes que hacer nada ahora. Te avisaremos cuando exista una novedad o necesitemos una decisión.',
+      professionalName:'Laura Fernández Ruiz', professionalTitle:'Letrada responsable',
+      professionalRegistration:'ICAGR n.º 0000 · dato ficticio', professionalRegion:'Andalucía'
+    },
+    {
+      id:'case_02', reference:'RS-2051', clientId:'usr_client_02', client:'Ana Romero',
+      title:'Incidencia en comunidad de propietarios', category:'Vivienda', statusCode:'study',
+      status:'En estudio', stage:1, openedAt:iso(7200),
+      clientNextStep:'Estamos comprobando la información inicial. Te avisaremos si necesitamos alguna aclaración.',
+      professionalName:'Miguel Torres Sánchez', professionalTitle:'Profesional responsable',
+      professionalRegistration:'Dato profesional ficticio', professionalRegion:'Madrid'
+    },
+    {
+      id:'case_03', reference:'RS-2056', clientId:'usr_client_03', client:'Lucía Navarro',
+      title:'Reclamación de indemnización', category:'Seguros e indemnizaciones', statusCode:'response',
+      status:'Respuesta recibida', stage:3, openedAt:iso(10080),
+      clientNextStep:'Hemos recibido una respuesta. La estamos valorando antes de explicarte las opciones.',
+      professionalName:'Elena Ruiz Moreno', professionalTitle:'Profesional responsable',
+      professionalRegistration:'Dato profesional ficticio', professionalRegion:'Andalucía'
+    }
+  ],
   events: [
     { id:'evt_01', caseId:'case_01', kind:'open', title:'Expediente abierto', description:'Tu acceso privado ha quedado confirmado.', at:iso(4320), done:true },
     { id:'evt_02', caseId:'case_01', kind:'study', title:'Información inicial revisada', description:'Hemos situado el problema y definido las primeras comprobaciones.', at:iso(2880), done:true },
-    { id:'evt_03', caseId:'case_01', kind:'action', title:'Gestión en curso', description:'Estamos revisando las condiciones de la financiación.', at:iso(180), current:true }
+    { id:'evt_03', caseId:'case_01', kind:'action', title:'Gestión en curso', description:'Estamos revisando las condiciones de la financiación.', at:iso(180), current:true },
+    { id:'evt_04', caseId:'case_02', kind:'open', title:'Expediente abierto', description:'La consulta ha sido aceptada y registrada.', at:iso(7200), done:true },
+    { id:'evt_05', caseId:'case_02', kind:'study', title:'Información en estudio', description:'Estamos analizando los antecedentes de la comunidad.', at:iso(420), current:true },
+    { id:'evt_06', caseId:'case_03', kind:'open', title:'Expediente abierto', description:'La reclamación ha quedado registrada.', at:iso(10080), done:true },
+    { id:'evt_07', caseId:'case_03', kind:'action', title:'Reclamación presentada', description:'La solicitud de indemnización fue comunicada a la entidad.', at:iso(5760), done:true },
+    { id:'evt_08', caseId:'case_03', kind:'response', title:'Respuesta recibida', description:'Estamos revisando la contestación antes de comunicar las opciones.', at:iso(90), current:true }
   ],
   notifications: [{ id:'not_01', userId:'usr_client_01', caseId:'case_01', title:'Nuevo avance en tu expediente', body:'La revisión de la financiación está en curso.', at:iso(180), read:false }],
   leads: [
-    { id:'lead_01', reference:'C-2026-001', name:'María López', phone:'600 000 001', email:'maria@example.es', province:'Granada', category:'Banca y financiación', source:'Formulario web', summary:'Consulta sobre una tarjeta revolving cuya deuda no disminuye.', status:'review', nextAction:'Revisar contrato y movimientos indicados durante la llamada', followUp:new Date(now.getTime()+86400000).toISOString().slice(0,10), amount:650, consentAt:iso(1440), createdAt:iso(1440), updatedAt:iso(120), notes:[{id:'note_01',body:'Contacto inicial realizado. Pendiente de comprobación de viabilidad.',at:iso(120)}] },
-    { id:'lead_02', reference:'C-2026-002', name:'Antonio Ruiz', phone:'600 000 002', email:'antonio@example.es', province:'Madrid', category:'Vivienda', source:'Recomendación', summary:'Necesita orientación ante un conflicto en su comunidad de propietarios.', status:'new', nextAction:'Realizar primer contacto', followUp:new Date(now.getTime()+172800000).toISOString().slice(0,10), amount:0, consentAt:iso(240), createdAt:iso(240), updatedAt:iso(240), notes:[] }
+    { id:'lead_01', reference:'C-2026-001', name:'María López', phone:'600 000 001', email:'maria@example.es', province:'Granada', category:'Banca y financiación', source:'Formulario web', summary:'Consulta sobre una tarjeta revolving cuya deuda no disminuye.', status:'review', nextAction:'Revisar contrato y movimientos indicados durante la llamada', followUp:new Date(now.getTime()+86400000).toISOString().slice(0,10), amount:650, privacyNoticeAt:iso(1440), legalBasis:'precontractual_request', createdAt:iso(1440), updatedAt:iso(120), notes:[{id:'note_01',body:'Contacto inicial realizado. Pendiente de comprobación de viabilidad.',at:iso(120)}] },
+    { id:'lead_02', reference:'C-2026-002', name:'Antonio Ruiz', phone:'600 000 002', email:'antonio@example.es', province:'Madrid', category:'Vivienda', source:'Recomendación', summary:'Necesita orientación ante un conflicto en su comunidad de propietarios.', status:'new', nextAction:'Realizar primer contacto', followUp:new Date(now.getTime()+172800000).toISOString().slice(0,10), amount:0, privacyNoticeAt:iso(240), legalBasis:'precontractual_request', createdAt:iso(240), updatedAt:iso(240), notes:[] }
   ],
   tasks: [
     { id:'task_01', leadId:'lead_01', title:'Comprobar viabilidad de la consulta bancaria', dueDate:new Date(now.getTime()+86400000).toISOString().slice(0,10), priority:'high', completed:false, createdAt:iso(120) },
@@ -48,6 +71,8 @@ const seed = {
 let state = loadState();
 let activeSection = 'overview';
 let activeCaseId = state.cases[0]?.id || null;
+let mfaFactorId = '';
+let mfaEnrollment = false;
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -59,11 +84,19 @@ function loadState() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!stored) return structuredClone(seed);
-    return { ...structuredClone(seed), ...stored, leads:stored.leads || [], tasks:stored.tasks || [], audit:stored.audit || [] };
+    const leads=(stored.leads||[]).map(lead=>({...lead,privacyNoticeAt:lead.privacyNoticeAt||lead.consentAt||lead.createdAt,legalBasis:lead.legalBasis||'precontractual_request'}));
+    const storedCases=stored.cases || [];
+    const storedEvents=stored.events || [];
+    const newDemoCases=seed.cases.filter(item=>!storedCases.some(saved=>saved.id===item.id));
+    const newDemoEvents=seed.events.filter(item=>!storedEvents.some(saved=>saved.id===item.id));
+    return { ...structuredClone(seed), ...stored, cases:[...storedCases,...structuredClone(newDemoCases)], events:[...storedEvents,...structuredClone(newDemoEvents)], leads, tasks:stored.tasks || [], audit:stored.audit || [] };
   }
   catch { return structuredClone(seed); }
 }
 function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function setBrowserRoute(path) {
+  if (/^https?:$/.test(location.protocol) && location.pathname !== path) history.replaceState({}, '', path);
+}
 function currentUser() { return state.users[state.activeRole]; }
 function currentCase() { return state.cases.find(item => item.id === activeCaseId) || state.cases[0]; }
 function log(action, objectType, objectId, metadata = {}) {
@@ -71,7 +104,8 @@ function log(action, objectType, objectId, metadata = {}) {
 }
 
 function mapProductionWorkspace(workspace, authUser) {
-  const profile = workspace.profile || { id:authUser.id, display_name:authUser.email, internal_role:'client' };
+  const profile = workspace.profile;
+  if (!profile?.active) throw new Error('PROFILE_NOT_ACTIVE');
   const activeRole = profile.internal_role === 'client' ? 'client' : 'admin';
   const cases = workspace.cases.map(item => ({
     id:item.id, reference:item.reference, clientId:item.client_id,
@@ -99,7 +133,7 @@ function mapProductionWorkspace(workspace, authUser) {
       id:item.id, reference:item.reference, name:item.full_name, phone:item.phone, email:item.email,
       province:item.province || '', category:item.category, source:item.source, summary:item.summary,
       status:item.status, nextAction:item.next_action || '', followUp:item.follow_up_on || '',
-      amount:Number(item.quoted_amount || 0), consentAt:item.consent_at, createdAt:item.created_at,
+      amount:Number(item.quoted_amount || 0), privacyNoticeAt:item.privacy_notice_at, legalBasis:item.legal_basis, createdAt:item.created_at,
       updatedAt:item.updated_at, notes:[]
     })),
     tasks:(workspace.tasks || []).map(item => ({ id:item.id, leadId:item.lead_id, title:item.title, dueDate:item.due_on, priority:item.priority, completed:Boolean(item.completed_at), createdAt:item.created_at })),
@@ -115,23 +149,63 @@ function enter(role) {
   $('#app').hidden = false;
   activeSection = 'overview';
   activeCaseId = state.cases[0]?.id || null;
+  setBrowserRoute('/app');
   renderShell();
 }
 async function enterProduction() {
   if (!platformApi) throw new Error('La conexión segura todavía no está configurada.');
   const user = await platformApi.currentUser();
   if (!user) return false;
-  state = mapProductionWorkspace(await platformApi.loadWorkspace(user.id), user);
-  if ((applicationMode === 'crm' && state.activeRole !== 'admin') || (applicationMode === 'portal' && state.activeRole !== 'client')) {
+  const profile = await platformApi.loadProfile(user.id);
+  if (!profile?.active) {
+    await platformApi.signOut();
+    throw new Error('PROFILE_NOT_ACTIVE');
+  }
+  const role = profile.internal_role === 'client' ? 'client' : 'admin';
+  if ((applicationMode === 'crm' && role !== 'admin') || (applicationMode === 'portal' && role !== 'client')) {
     await platformApi.signOut();
     throw new Error('ROLE_NOT_ALLOWED');
   }
+  if (role === 'admin' && platformApi.assuranceLevel() !== 'aal2') {
+    await openInternalMfa(user);
+    return false;
+  }
+  const workspace = await platformApi.loadWorkspace(user.id);
+  workspace.profile = profile;
+  state = mapProductionWorkspace(workspace, user);
   activeCaseId = state.cases[0]?.id || null;
   $('#login-view').hidden = true;
   $('#app').hidden = false;
   activeSection = 'overview';
+  setBrowserRoute('/app');
   renderShell();
   return true;
+}
+
+async function openInternalMfa(user) {
+  $('#app').hidden = true;
+  $('#login-view').hidden = false;
+  const factors = Array.isArray(user?.factors) ? user.factors.filter(item => item.factor_type === 'totp') : [];
+  const verified = factors.find(item => item.status === 'verified');
+  mfaEnrollment = !verified;
+  $('#mfa-enrollment').hidden = !mfaEnrollment;
+  $('#mfa-dialog-title').textContent = mfaEnrollment ? 'Protege tu cuenta con una app de autenticaciÃ³n' : 'Introduce tu segundo factor';
+  $('#mfa-dialog-description').textContent = mfaEnrollment
+    ? 'El acceso al CRM exige un segundo factor. Escanea el cÃ³digo y confirma uno de los cÃ³digos temporales.'
+    : 'Abre tu app de autenticaciÃ³n e introduce el cÃ³digo temporal para continuar.';
+  if (verified) {
+    mfaFactorId = verified.id;
+  } else {
+    for (const stale of factors.filter(item => item.status !== 'verified')) {
+      try { await platformApi.unenrollFactor(stale.id); } catch { /* Se crearÃ¡ un factor nuevo igualmente. */ }
+    }
+    const enrolled = await platformApi.enrollTotp('CRM Ratio Soluciones');
+    mfaFactorId = enrolled.id;
+    $('#mfa-qr').src = enrolled.totp?.qr_code || '';
+    $('#mfa-secret').textContent = enrolled.totp?.secret || '';
+  }
+  if (!$('#mfa-dialog').open) $('#mfa-dialog').showModal();
+  requestAnimationFrame(() => $('#mfa-code').focus());
 }
 async function logout() {
   if (productionMode && platformApi) await platformApi.signOut();
@@ -139,6 +213,8 @@ async function logout() {
   if (!productionMode) saveState();
   $('#app').hidden = true;
   $('#login-view').hidden = false;
+  if ($('#mfa-dialog')?.open) $('#mfa-dialog').close();
+  setBrowserRoute('/');
   $('.sidebar').classList.remove('open');
 }
 
@@ -159,7 +235,12 @@ function renderShell() {
     ? [['overview','Resumen'],['leads','Consultas'],['tasks','Agenda'],['cases','Expedientes'],['finance','Control económico'],['notifications','Avisos'],['audit','Registro de actividad']]
     : [['overview','Resumen'],['timeline','Cronología'],['notifications','Avisos'],['security','Acceso y seguridad']];
   $('#app-nav').innerHTML = items.map(([id,label]) => `<button type="button" data-section="${id}" class="${activeSection===id?'active':''}">${label}</button>`).join('');
-  $$('[data-section]').forEach(button => button.addEventListener('click', () => { activeSection=button.dataset.section; renderShell(); $('.sidebar').classList.remove('open'); }));
+  $$('[data-section]').forEach(button => button.addEventListener('click', () => {
+    activeSection=button.dataset.section;
+    if (isAdmin && activeSection === 'cases') activeCaseId=null;
+    renderShell();
+    $('.sidebar').classList.remove('open');
+  }));
   renderMain();
 }
 
@@ -185,12 +266,12 @@ function renderClient() {
     markNotificationsRead();
     $('#main').innerHTML = `${pageHead('Avisos','Novedades de tu caso','Los avisos te indican cuándo existe un avance o necesitamos una decisión.')}<section class="panel"><div class="notification-list">${notificationList()}</div></section>`;
   } else {
-    $('#main').innerHTML = `${pageHead('Seguridad','Tu acceso','Controla tu sesión y protege el acceso al expediente.')}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Doble factor de autenticación</h2><span class="status-pill">Recomendado</span></div><p class="panel-copy">Añade un segundo código además de tu contraseña. Será obligatorio para usuarios internos.</p><button class="primary-button" type="button">Configurar doble factor →</button></section><section class="panel"><div class="panel-head"><h2>Privacidad del portal</h2></div><p class="panel-copy">Este espacio muestra estados, avances y responsables. No permite adjuntar ni almacenar documentos.</p></section></div>`;
+    $('#main').innerHTML = `${pageHead('Seguridad','Tu acceso','Controla tu sesión y protege el acceso al expediente.')}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Doble factor de autenticación</h2><span class="status-pill">Obligatorio para el equipo</span></div><p class="panel-copy">Las cuentas internas no podrán utilizarse con clientes reales hasta que el doble factor esté activado y verificado en el proveedor de identidad.</p></section><section class="panel"><div class="panel-head"><h2>Privacidad del portal</h2></div><p class="panel-copy">Este espacio muestra estados, avances y responsables. No permite adjuntar ni almacenar documentos.</p></section></div>`;
   }
 }
 
 function renderAdmin() {
-  const c = currentCase();
+  const c = state.cases.find(item => item.id === activeCaseId) || null;
   const activeCases = state.cases.filter(item => !['closed','archived'].includes(item.statusCode)).length;
   const openLeads = state.leads.filter(item => !['won','lost'].includes(item.status)).length;
   const pendingTasks = state.tasks.filter(item => !item.completed).length;
@@ -207,10 +288,14 @@ function renderAdmin() {
     $('#main').innerHTML = `${pageHead('Agenda interna','Próximas actuaciones','Las fechas son recordatorios internos y nunca se muestran como promesas al cliente.','<button class="primary-button" id="new-task">Nueva tarea <span>→</span></button>')}<section class="panel">${taskList(state.tasks)}</section>`;
     bindCrmActions();
   } else if (activeSection === 'cases') {
-    if (!c) {
+    if (!state.cases.length) {
       $('#main').innerHTML = `${pageHead('Expedientes','Todavía no hay expedientes','Convierte una consulta contratada en expediente para crear el acceso privado.')}<section class="panel"><div class="empty">No hay expedientes disponibles.</div></section>`;
+    } else if (!c) {
+      $('#main').innerHTML = `${pageHead('Expedientes','Todos los expedientes',`${state.cases.length} expedientes disponibles. Selecciona uno para consultar su estado, cronología y profesional asignado.`)}<section class="panel"><div class="panel-head"><h2>Listado de expedientes</h2><small>${state.cases.length} en total</small></div>${caseTable()}</section>`;
+      bindCaseRows();
     } else {
-      $('#main').innerHTML = `${pageHead('Expedientes',c.reference+' · '+c.client,c.title,'<button class="primary-button" id="new-update">Registrar avance →</button>')}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Cronología</h2><span class="status-pill">${escapeHtml(c.status)}</span></div>${timeline(true)}</section><aside>${nextStepCard(c)}${professionalCard(c)}</aside></div>`;
+      $('#main').innerHTML = `${pageHead('Expedientes',c.reference+' · '+c.client,c.title,'<button class="secondary-button" id="back-to-cases">← Todos los expedientes</button><button class="primary-button" id="new-update">Registrar avance →</button>')}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Cronología</h2><span class="status-pill">${escapeHtml(c.status)}</span></div>${timeline(true)}</section><aside>${nextStepCard(c)}${professionalCard(c)}</aside></div>`;
+      $('#back-to-cases').addEventListener('click',()=>{activeCaseId=null;renderShell();});
       $('#new-update').addEventListener('click',openUpdateDialog);
     }
   } else if (activeSection === 'finance') {
@@ -288,7 +373,9 @@ function openLeadDialog(leadId) {
   const lead=state.leads.find(item=>item.id===leadId); if(!lead)return;
   $('#lead-detail-id').value=lead.id;
   $('#lead-detail-title').textContent=`${lead.reference} · ${lead.name}`;
-  $('#lead-detail-contact').innerHTML=`<div><small>Contacto</small><strong>${escapeHtml(lead.phone)}</strong><span>${escapeHtml(lead.email)}</span></div><div><small>Consulta</small><strong>${escapeHtml(lead.category)}</strong><span>${escapeHtml(lead.summary)}</span></div><div><small>Privacidad</small><strong>Consentimiento registrado</strong><span>${escapeHtml(formatDate(lead.consentAt))}</span></div>`;
+  $('#lead-detail-contact').innerHTML=`<div><small>Contacto</small><strong>${escapeHtml(lead.phone||'Sin teléfono')}</strong><span>${escapeHtml(lead.email||'Sin correo')}</span></div><div><small>Consulta</small><strong>${escapeHtml(lead.category)}</strong><span>${escapeHtml(lead.summary)}</span></div><div><small>Privacidad</small><strong>Información entregada</strong><span>${escapeHtml(formatDate(lead.privacyNoticeAt))}</span></div>`;
+  $('#lead-detail-phone').value=lead.phone||'';
+  $('#lead-detail-email').value=lead.email||'';
   $('#lead-detail-status').value=lead.status;
   $('#lead-detail-next-action').value=lead.nextAction||'';
   $('#lead-detail-follow-up').value=String(lead.followUp||'').slice(0,10);
@@ -383,25 +470,34 @@ $('#update-form').addEventListener('submit',async event=>{
     professionalRegistration:$('#professional-registration').value.trim(),professionalRegion:$('#professional-region').value.trim()
   };
   if(!payload.title||!payload.description)return;
-  const submitter=event.submitter;submitter.disabled=true;
+  const submitter=event.submitter;const originalLabel=submitter.innerHTML;submitter.disabled=true;submitter.textContent='Guardando avance…';
   try{
-    if(productionMode&&platformApi){await platformApi.invoke('update-case',payload);await enterProduction();}
+    if(productionMode&&platformApi){
+      await platformApi.invoke('update-case',payload);
+      await enterProduction();
+      activeCaseId=payload.caseId;
+      activeSection='cases';
+      renderShell();
+    }
     else{
       const c=currentCase();Object.assign(c,{statusCode:payload.status,status:statusLabels[payload.status],stage:statusStages[payload.status],clientNextStep:payload.clientNextStep,professionalName:payload.professionalName,professionalTitle:payload.professionalTitle,professionalRegistration:payload.professionalRegistration,professionalRegion:payload.professionalRegion});
       const at=new Date().toISOString();state.events.forEach(item=>item.current=false);state.events.push({id:crypto.randomUUID(),caseId:c.id,kind:payload.status,title:payload.title,description:payload.description,at,current:true});
       state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId:c.id,title:'Nuevo avance en tu expediente',body:payload.title,at,read:false});
       log('case_updated','case',c.id,{status:payload.status});saveState();renderShell();
     }
-    event.currentTarget.reset();$('#update-dialog').close();toast('Avance guardado y aviso registrado.');
-  }catch{toast('No se ha podido guardar el avance.');}
-  finally{submitter.disabled=false;}
+    $('#update-form').reset();$('#update-dialog').close();toast('Avance guardado y aviso registrado.');
+  }catch(error){
+    const messages={UNAUTHENTICATED:'Tu sesión ha caducado. Vuelve a iniciar sesión.',FORBIDDEN:'Tu usuario no tiene permiso para modificar expedientes.',INVALID_FIELDS:'Revisa el estado, el título y la descripción.'};
+    toast(messages[error?.code]||`No se ha podido guardar el avance${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
+  }
+  finally{submitter.disabled=false;submitter.innerHTML=originalLabel;}
 });
 $('#invite-form').addEventListener('submit',async event=>{
   event.preventDefault();if(event.submitter?.value==='cancel'){$('#invite-dialog').close();return;}
   const payload={email:$('#invite-email').value.trim(),displayName:$('#invite-name').value.trim(),title:$('#invite-title').value.trim(),category:$('#invite-category').value};
   if(!productionMode||!platformApi){toast('El alta real se habilitará al conectar el servidor europeo.');return;}
   const submitter=event.submitter;submitter.disabled=true;
-  try{const created=await platformApi.invoke('invite-client',payload);await enterProduction();activeCaseId=created.caseId;activeSection='cases';renderShell();event.currentTarget.reset();$('#invite-dialog').close();toast('Expediente creado e invitación enviada.');}
+  try{const created=await platformApi.invoke('invite-client',payload);await enterProduction();activeCaseId=created.caseId;activeSection='cases';renderShell();$('#invite-form').reset();$('#invite-dialog').close();toast('Expediente creado e invitación enviada.');}
   catch{toast('No se ha podido completar el alta. Revisa el correo y vuelve a intentarlo.');}
   finally{submitter.disabled=false;}
 });
@@ -409,29 +505,31 @@ $('#lead-form').addEventListener('submit',async event=>{
   event.preventDefault();if(event.submitter?.value==='cancel'){$('#lead-dialog').close();return;}
   const payload={
     fullName:$('#lead-name').value.trim(),phone:$('#lead-phone').value.trim(),email:$('#lead-email').value.trim().toLowerCase(),province:$('#lead-province').value.trim(),
-    category:$('#lead-category').value,source:$('#lead-source').value,summary:$('#lead-summary').value.trim(),consent:Boolean($('#lead-consent').checked)
+    category:$('#lead-category').value,source:$('#lead-source').value,summary:$('#lead-summary').value.trim(),privacyNoticeAcknowledged:Boolean($('#lead-privacy-notice').checked)
   };
+  if(!payload.phone||!payload.email){toast('Indica el teléfono y el correo electrónico.');return;}
   const submitter=event.submitter;submitter.disabled=true;
   try{
     if(productionMode&&platformApi){await platformApi.invoke('manage-crm',{action:'create_lead',...payload});await enterProduction();}
     else{
       const at=new Date().toISOString();const id=crypto.randomUUID();
-      state.leads.unshift({id,reference:nextLeadReference(),name:payload.fullName,phone:payload.phone,email:payload.email,province:payload.province,category:payload.category,source:payload.source,summary:payload.summary,status:'new',nextAction:'Realizar primer contacto',followUp:'',amount:0,consentAt:at,createdAt:at,updatedAt:at,notes:[]});
+      state.leads.unshift({id,reference:nextLeadReference(),name:payload.fullName,phone:payload.phone,email:payload.email,province:payload.province,category:payload.category,source:payload.source,summary:payload.summary,status:'new',nextAction:'Realizar primer contacto',followUp:'',amount:0,privacyNoticeAt:at,legalBasis:'precontractual_request',createdAt:at,updatedAt:at,notes:[]});
       log('lead_created','crm_lead',id,{source:payload.source});saveState();
     }
-    event.currentTarget.reset();$('#lead-dialog').close();activeSection='leads';renderShell();toast('Consulta registrada correctamente.');
+    $('#lead-form').reset();$('#lead-dialog').close();activeSection='leads';renderShell();toast('Consulta registrada correctamente.');
   }catch{toast('No se ha podido registrar la consulta.');}
   finally{submitter.disabled=false;}
 });
 $('#lead-detail-form').addEventListener('submit',async event=>{
   event.preventDefault();if(event.submitter?.value==='cancel'){$('#lead-detail-dialog').close();return;}
   const lead=state.leads.find(item=>item.id===$('#lead-detail-id').value);if(!lead)return;
-  const changes={status:$('#lead-detail-status').value,nextAction:$('#lead-detail-next-action').value.trim(),followUp:$('#lead-detail-follow-up').value,amount:Number($('#lead-detail-amount').value||0),note:$('#lead-detail-note').value.trim()};
+  const changes={phone:$('#lead-detail-phone').value.trim(),email:$('#lead-detail-email').value.trim().toLowerCase(),status:$('#lead-detail-status').value,nextAction:$('#lead-detail-next-action').value.trim(),followUp:$('#lead-detail-follow-up').value,amount:Number($('#lead-detail-amount').value||0),note:$('#lead-detail-note').value.trim()};
+  if(!changes.phone||!changes.email){toast('La consulta debe conservar el teléfono y el correo electrónico.');return;}
   const submitter=event.submitter;submitter.disabled=true;
   try{
     if(productionMode&&platformApi){await platformApi.invoke('manage-crm',{action:'update_lead',leadId:lead.id,...changes});await enterProduction();}
     else{
-      Object.assign(lead,{status:changes.status,nextAction:changes.nextAction,followUp:changes.followUp,amount:changes.amount,updatedAt:new Date().toISOString()});
+      Object.assign(lead,{phone:changes.phone,email:changes.email,status:changes.status,nextAction:changes.nextAction,followUp:changes.followUp,amount:changes.amount,updatedAt:new Date().toISOString()});
       if(changes.note)lead.notes.push({id:crypto.randomUUID(),body:changes.note,at:new Date().toISOString()});
       log('lead_updated','crm_lead',lead.id,{status:changes.status});saveState();
     }
@@ -453,7 +551,7 @@ $('#convert-lead').addEventListener('click',async()=>{
       log('lead_converted','crm_lead',lead.id,{caseId});saveState();
     }
     $('#lead-detail-dialog').close();activeSection='cases';renderShell();toast('Consulta convertida en expediente.');
-  }catch{toast('No se ha podido convertir la consulta.');}
+  }catch(error){toast(error?.code==='EMAIL_REQUIRED_FOR_PORTAL'?'Añade un correo electrónico antes de crear el acceso del cliente.':'No se ha podido convertir la consulta.');}
   finally{button.disabled=false;}
 });
 $('#task-form').addEventListener('submit',async event=>{
@@ -463,7 +561,7 @@ $('#task-form').addEventListener('submit',async event=>{
   try{
     if(productionMode&&platformApi){await platformApi.invoke('manage-crm',{action:'create_task',...payload});await enterProduction();}
     else{const id=crypto.randomUUID();state.tasks.push({id,...payload,completed:false,createdAt:new Date().toISOString()});log('task_created','crm_task',id);saveState();}
-    event.currentTarget.reset();$('#task-dialog').close();activeSection='tasks';renderShell();toast('Tarea registrada.');
+    $('#task-form').reset();$('#task-dialog').close();activeSection='tasks';renderShell();toast('Tarea registrada.');
   }catch{toast('No se ha podido registrar la tarea.');}
   finally{submitter.disabled=false;}
 });
@@ -471,13 +569,36 @@ $('#password-form').addEventListener('submit',async event=>{
   event.preventDefault();const password=$('#new-password').value,confirmation=$('#confirm-password').value;
   if(password!==confirmation){toast('Las contraseñas no coinciden.');return;}
   const submitter=event.submitter;submitter.disabled=true;
-  try{await platformApi.updatePassword(password);event.currentTarget.reset();$('#password-dialog').close();await enterProduction();toast('Acceso confirmado correctamente.');}
+  try{await platformApi.updatePassword(password);$('#password-form').reset();$('#password-dialog').close();await enterProduction();toast('Acceso confirmado correctamente.');}
   catch(error){toast(error?.code==='WEAK_PASSWORD'?'La contraseña debe tener al menos 12 caracteres.':'No se ha podido confirmar el acceso.');}
   finally{submitter.disabled=false;}
 });
+$('#password-dialog').addEventListener('cancel',event=>event.preventDefault());
+$('#mfa-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const code=$('#mfa-code').value.trim();
+  const submitter=event.submitter;submitter.disabled=true;
+  try{
+    const challenge=await platformApi.challengeMfa(mfaFactorId);
+    await platformApi.verifyMfa(mfaFactorId,challenge.id,code);
+    $('#mfa-form').reset();$('#mfa-dialog').close();
+    await enterProduction();
+    toast(mfaEnrollment?'Segundo factor activado correctamente.':'Identidad confirmada correctamente.');
+  }catch(error){
+    toast(error?.code==='INVALID_MFA_CODE'?'Introduce un cÃ³digo vÃ¡lido de tu app de autenticaciÃ³n.':'No se ha podido verificar el segundo factor.');
+  }finally{submitter.disabled=false;}
+});
+$('#mfa-logout').addEventListener('click',logout);
+$('#mfa-dialog').addEventListener('cancel',event=>event.preventDefault());
 $('#notification-button').addEventListener('click',()=>{activeSection='notifications';renderShell();});
 
 if(productionMode){
   $('.test-banner').hidden=true;$('.demo-access').hidden=!runtimeConfig.allowDemoAccess;
-  if(platformApi){const callbackType=platformApi.consumeUrlSession(location.href);if(callbackType==='recovery'||callbackType==='invite')$('#password-dialog').showModal();else enterProduction().catch(()=>{});}
+  if(platformApi){
+    const callbackType=platformApi.consumeUrlSession(location.href);
+    if(platformApi.requiresPasswordSetup(callbackType)){
+      $('#password-dialog').showModal();
+      requestAnimationFrame(()=>$('#new-password').focus());
+    }else enterProduction().catch(()=>{});
+  }
 }else if(state.activeRole)enter(state.activeRole);

@@ -15,8 +15,19 @@ export async function requireUser(request:Request){
   return data.user;
 }
 
+function assuranceLevel(request:Request){
+  try{
+    const token=request.headers.get('authorization')?.replace(/^Bearer\s+/i,'')||'';
+    const encoded=token.split('.')[1];
+    if(!encoded)return 'aal1';
+    const normalized=encoded.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(encoded.length/4)*4,'=');
+    return JSON.parse(atob(normalized))?.aal||'aal1';
+  }catch{return 'aal1';}
+}
+
 export async function requireAdmin(request:Request){
   const user=await requireUser(request);
+  if(assuranceLevel(request)!=='aal2')throw new Error('MFA_REQUIRED');
   const {data}=await serviceClient.from('profiles').select('internal_role,active').eq('id',user.id).single();
   if(!data?.active||data.internal_role!=='admin') throw new Error('FORBIDDEN');
   return user;

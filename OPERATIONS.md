@@ -8,6 +8,8 @@
 4. Confirma el correo y establece su contraseña.
 5. El expediente aparece inicialmente como `Abierto`.
 
+Si la consulta inicial llegó únicamente con teléfono, el gestor solicitará y registrará el correo antes de convertirla en expediente, porque la invitación al portal exige confirmar una dirección de correo.
+
 ## Asignación profesional
 
 1. Ratio confirma el profesional que intervendrá.
@@ -41,3 +43,4 @@ El gestor marca el expediente como cerrado y registra el último avance. La cuen
 - Trimestral: permisos, dependencias y prueba de recuperación de base de datos.
 - Antes de cada alta profesional: habilitación, contrato y mínimo privilegio.
 - Antes del lanzamiento: análisis de riesgos y revisión legal.
+- Antes del lanzamiento: pruebas RLS con una cuenta cliente, una profesional y una administradora; ninguna cuenta debe poder consultar o modificar datos fuera de su función.

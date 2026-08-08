@@ -1,0 +1,44 @@
+import {chromium} from 'file:///C:/Users/PC/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
+import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
+
+const factorId='11111111-1111-4111-8111-111111111111';
+const challengeId='22222222-2222-4222-8222-222222222222';
+const jwt=payload=>`header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;
+let mfaVerified=false;
+const calls=[];
+const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
+const page=await browser.newPage({viewport:{width:1280,height:900}});
+const errors=[];page.on('pageerror',error=>errors.push(error.message));
+
+await page.route('**/config.js',route=>route.fulfill({contentType:'text/javascript',body:"window.RATIO_CONFIG={mode:'production',supabaseUrl:'https://ratio-test.supabase.co',supabaseAnonKey:'public-key',allowDemoAccess:false,appMode:'crm'};"}));
+await page.route('https://ratio-test.supabase.co/**',async route=>{
+  const request=route.request(),url=request.url();calls.push(url);
+  const fulfill=value=>route.fulfill({contentType:'application/json',body:JSON.stringify(value)});
+  if(url.includes('/auth/v1/token?grant_type=password'))return fulfill({access_token:jwt({aal:'aal1'}),refresh_token:'refresh',expires_in:3600,user:{id:'admin-1',email:'admin@example.es'}});
+  if(url.endsWith('/auth/v1/user'))return fulfill({id:'admin-1',email:'admin@example.es',factors:mfaVerified?[{id:factorId,factor_type:'totp',status:'verified'}]:[]});
+  if(url.endsWith('/auth/v1/factors'))return fulfill({id:factorId,type:'totp',totp:{qr_code:'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22/%3E',secret:'TESTSECRET'}});
+  if(url.endsWith(`/auth/v1/factors/${factorId}/challenge`))return fulfill({id:challengeId});
+  if(url.endsWith(`/auth/v1/factors/${factorId}/verify`)){mfaVerified=true;return fulfill({access_token:jwt({aal:'aal2'}),refresh_token:'mfa-refresh',expires_in:3600});}
+  if(url.includes('/rest/v1/profiles?'))return fulfill([{id:'admin-1',display_name:'Gestor Prueba',internal_role:'admin',active:true}]);
+  if(url.includes('/rest/v1/cases?')||url.includes('/rest/v1/case_events?')||url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_leads?')||url.includes('/rest/v1/crm_tasks?'))return fulfill([]);
+  return route.fulfill({status:404,contentType:'application/json',body:'{"error":"NOT_FOUND"}'});
+});
+
+await page.goto(pathToFileURL(resolve('index.html')).href);
+await page.locator('input[name="email"]').fill('admin@example.es');
+await page.locator('input[name="password"]').fill('password-segura');
+await page.locator('#login-form button[type="submit"]').click();
+await page.locator('#mfa-dialog').waitFor({state:'visible'});
+const enrollmentVisible=await page.locator('#mfa-enrollment').isVisible();
+await page.locator('#mfa-code').fill('123456');
+await page.locator('#mfa-form .primary-button').click();
+await page.locator('#app').waitFor({state:'visible'});
+
+const result={
+  passed:enrollmentVisible&&mfaVerified&&calls.some(url=>url.endsWith('/challenge'))&&calls.some(url=>url.endsWith('/verify'))&&!errors.length,
+  enrollmentVisible,mfaVerified,errors
+};
+console.log(JSON.stringify(result,null,2));
+await browser.close();
+if(!result.passed)process.exitCode=1;

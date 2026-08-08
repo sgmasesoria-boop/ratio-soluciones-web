@@ -17,7 +17,7 @@ La zona interna incorpora un CRM operativo para registrar cada consulta, control
 - Registro de auditoría para las operaciones administrativas.
 - Permisos por expediente mediante RLS.
 - Embudo de consultas desde la entrada hasta la contratación o cierre.
-- Registro de origen, consentimiento, provincia, categoría y próxima actuación.
+- Registro de origen, información de privacidad entregada, base jurídica, provincia, categoría y próxima actuación.
 - Agenda interna de tareas, importes presupuestados y control económico inicial.
 - Conversión controlada de una consulta en expediente e invitación al cliente.
 
@@ -31,7 +31,8 @@ La zona interna incorpora un CRM operativo para registrar cada consulta, control
 
 ## Arquitectura prevista
 
-- `clientes.ratiosoluciones.es`: aplicación privada.
+- `clientes.ratiosoluciones.es`: portal privado del cliente.
+- `crm.ratiosoluciones.es`: aplicación interna separada.
 - Supabase Auth: invitación, confirmación, recuperación y sesiones.
 - PostgreSQL: consultas, tareas, perfiles, expedientes, miembros, avances, avisos y auditoría.
 - Edge Functions: alta controlada y actualización atómica del expediente.
@@ -44,6 +45,7 @@ npm run build
 npm run test:ui
 npm run test:api
 npm run test:production
+npm run test:security
 ```
 
 El modo de demostración utiliza únicamente datos ficticios guardados en `localStorage`.
@@ -53,7 +55,7 @@ El modo de demostración utiliza únicamente datos ficticios guardados en `local
 1. Crear un proyecto Supabase en región europea.
 2. Aplicar las migraciones en orden.
 3. Crear el primer perfil administrador de forma controlada.
-4. Configurar SMTP, dominio y URL de redirección.
+4. Configurar SMTP, dominios, URL de redirección y `ALLOWED_WEB_ORIGINS`.
 5. Desplegar `invite-client`, `update-case` y `manage-crm`.
 6. Activar MFA para administradores.
 7. Ejecutar las pruebas con cuentas ficticias reales.

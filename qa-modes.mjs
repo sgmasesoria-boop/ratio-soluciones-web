@@ -6,7 +6,7 @@ import {resolve} from 'node:path';
 const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
 const results=[];
 for(const mode of ['portal','crm']){
-  execFileSync(process.execPath,['build.mjs',mode],{stdio:'inherit'});
+  execFileSync(process.execPath,['build.mjs',mode,'','demo'],{stdio:'inherit'});
   for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile',width:390,height:844}]){
     const context=await browser.newContext({viewport});
     const page=await context.newPage();
