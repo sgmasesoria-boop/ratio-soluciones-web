@@ -52,5 +52,5 @@ if(!calls.some(call=>call.url.endsWith('/auth/v1/token?grant_type=refresh_token'
 if(callbackType!=='invite'||replacedUrl!=='/')failures.push('No se limpió el enlace de invitación');
 if(!inviteRequiresPassword)failures.push('La invitación no obliga a crear una contraseña');
 if(!setupCompleted)failures.push('El alta sigue bloqueada después de crear la contraseña');
-if(!mfaVerified)failures.push('La verificaciÃ³n MFA no elevÃ³ la sesiÃ³n a AAL2');
+if(!mfaVerified)failures.push('La verificación MFA no elevó la sesión a AAL2');
 console.log(JSON.stringify({passed:failures.length===0,requests:calls.length,failures},null,2));if(failures.length)process.exitCode=1;

@@ -1,4 +1,4 @@
--- Exige una sesiÃ³n AAL2 para cualquier acceso interno. Los clientes mantienen
+-- Exige una sesión AAL2 para cualquier acceso interno. Los clientes mantienen
 -- acceso AAL1 exclusivamente a sus propios expedientes y avisos.
 
 create or replace function private.is_admin(uid uuid default auth.uid())

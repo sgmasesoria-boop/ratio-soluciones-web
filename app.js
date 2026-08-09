@@ -189,23 +189,38 @@ async function openInternalMfa(user) {
   const verified = factors.find(item => item.status === 'verified');
   mfaEnrollment = !verified;
   $('#mfa-enrollment').hidden = !mfaEnrollment;
-  $('#mfa-dialog-title').textContent = mfaEnrollment ? 'Protege tu cuenta con una app de autenticaciÃ³n' : 'Introduce tu segundo factor';
+  $('#mfa-dialog-title').textContent = mfaEnrollment ? 'Protege tu cuenta con una app de autenticación' : 'Introduce tu segundo factor';
   $('#mfa-dialog-description').textContent = mfaEnrollment
-    ? 'El acceso al CRM exige un segundo factor. Escanea el cÃ³digo y confirma uno de los cÃ³digos temporales.'
-    : 'Abre tu app de autenticaciÃ³n e introduce el cÃ³digo temporal para continuar.';
+    ? 'El acceso al CRM exige un segundo factor. Escanea el código y confirma uno de los códigos temporales.'
+    : 'Abre tu app de autenticación e introduce el código temporal para continuar.';
   if (verified) {
     mfaFactorId = verified.id;
   } else {
     for (const stale of factors.filter(item => item.status !== 'verified')) {
-      try { await platformApi.unenrollFactor(stale.id); } catch { /* Se crearÃ¡ un factor nuevo igualmente. */ }
+      try { await platformApi.unenrollFactor(stale.id); } catch { /* Se creará un factor nuevo igualmente. */ }
     }
     const enrolled = await platformApi.enrollTotp('CRM Ratio Soluciones');
     mfaFactorId = enrolled.id;
-    $('#mfa-qr').src = enrolled.totp?.qr_code || '';
+    const qr = $('#mfa-qr');
+    const fallback = $('#mfa-qr-fallback');
+    const source = mfaQrSource(enrolled.totp?.qr_code);
+    qr.hidden = !source;
+    fallback.hidden = Boolean(source);
+    qr.onload = () => { qr.hidden = false; fallback.hidden = true; };
+    qr.onerror = () => { qr.hidden = true; fallback.hidden = false; };
+    if (source) qr.src = source;
+    else qr.removeAttribute('src');
     $('#mfa-secret').textContent = enrolled.totp?.secret || '';
   }
   if (!$('#mfa-dialog').open) $('#mfa-dialog').showModal();
   requestAnimationFrame(() => $('#mfa-code').focus());
+}
+
+function mfaQrSource(value) {
+  const qr = String(value || '').trim();
+  if (qr.startsWith('data:image/')) return qr;
+  if (qr.startsWith('<svg')) return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(qr)}`;
+  return '';
 }
 async function logout() {
   if (productionMode && platformApi) await platformApi.signOut();
@@ -585,7 +600,7 @@ $('#mfa-form').addEventListener('submit',async event=>{
     await enterProduction();
     toast(mfaEnrollment?'Segundo factor activado correctamente.':'Identidad confirmada correctamente.');
   }catch(error){
-    toast(error?.code==='INVALID_MFA_CODE'?'Introduce un cÃ³digo vÃ¡lido de tu app de autenticaciÃ³n.':'No se ha podido verificar el segundo factor.');
+    toast(error?.code==='INVALID_MFA_CODE'?'Introduce un código válido de tu app de autenticación.':'No se ha podido verificar el segundo factor.');
   }finally{submitter.disabled=false;}
 });
 $('#mfa-logout').addEventListener('click',logout);

@@ -6,6 +6,7 @@ const auth=await readFile('supabase/functions/_shared/auth.ts','utf8');
 const crm=await readFile('supabase/functions/manage-crm/index.ts','utf8');
 const config=await readFile('supabase/config.toml','utf8');
 const api=await readFile('platform-api.js','utf8');
+const app=await readFile('app.js','utf8');
 const build=await readFile('build.mjs','utf8');
 const authHardening=await readFile('supabase/migrations/007_auth_and_data_api_hardening.sql','utf8');
 const mfaMigration=await readFile('supabase/migrations/20260808232753_require_internal_mfa.sql','utf8');
@@ -29,14 +30,16 @@ for(const functionName of ['invite-client','update-case','manage-crm']){
 }
 if(!auth.includes('await requireUser(request)')||!auth.includes("data.internal_role!=='admin'"))failures.push('Las funciones privadas no validan internamente la sesión y el rol administrador.');
 if(!api.includes("this.appMode !== 'portal'"))failures.push('El portal sigue consultando tablas internas del CRM.');
-if(!build.includes("['/app','/restablecer']"))failures.push('Las rutas autenticada y de recuperaciÃ³n no llegan a la aplicaciÃ³n.');
+if(!build.includes("['/app','/restablecer']"))failures.push('Las rutas autenticada y de recuperación no llegan a la aplicación.');
 if(!authHardening.includes('revoke all privileges on all tables in schema public from anon, authenticated'))failures.push('La Data API conserva privilegios amplios por defecto.');
-if(!authHardening.includes('grant update (read_at) on public.notifications to authenticated'))failures.push('El usuario autenticado no puede marcar sus avisos como leÃ­dos.');
-if(!authHardening.includes('revoke execute on function public.rls_auto_enable() from public, anon, authenticated'))failures.push('La funciÃ³n de activaciÃ³n RLS sigue expuesta por RPC.');
+if(!authHardening.includes('grant update (read_at) on public.notifications to authenticated'))failures.push('El usuario autenticado no puede marcar sus avisos como leídos.');
+if(!authHardening.includes('revoke execute on function public.rls_auto_enable() from public, anon, authenticated'))failures.push('La función de activación RLS sigue expuesta por RPC.');
 
-if(!auth.includes("assuranceLevel(request)!=='aal2'")||!http.includes("message==='MFA_REQUIRED'"))failures.push('Las funciones internas no exigen una sesiÃ³n MFA AAL2.');
+if(!auth.includes("assuranceLevel(request)!=='aal2'")||!http.includes("message==='MFA_REQUIRED'"))failures.push('Las funciones internas no exigen una sesión MFA AAL2.');
 if(!mfaMigration.includes("auth.jwt()->>'aal','aal1')='aal2'"))failures.push('RLS no exige AAL2 para el personal interno.');
-if(!html.includes('id="mfa-dialog"')||!api.includes('async enrollTotp')||!api.includes('async verifyMfa'))failures.push('El CRM no incluye el flujo completo de alta y verificaciÃ³n MFA.');
+if(!html.includes('id="mfa-dialog"')||!api.includes('async enrollTotp')||!api.includes('async verifyMfa'))failures.push('El CRM no incluye el flujo completo de alta y verificación MFA.');
+if(/[ÃÂ]|â†/.test(html)||/[ÃÂ]|â†/.test(app))failures.push('La interfaz MFA contiene texto con codificación incorrecta.');
+if(!app.includes("startsWith('<svg')")||!app.includes('data:image/svg+xml;charset=utf-8'))failures.push('El QR SVG de Supabase no se convierte en una URL de imagen válida.');
 const result={passed:failures.length===0,failures};
 console.log(JSON.stringify(result,null,2));
 if(failures.length)process.exitCode=1;
