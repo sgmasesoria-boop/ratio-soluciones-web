@@ -1,7 +1,11 @@
 const STORAGE_KEY = 'ratio-platform-crm-v1';
 const runtimeConfig = window.RATIO_CONFIG || { mode: 'demo', allowDemoAccess: true };
 const productionMode = runtimeConfig.mode === 'production';
-const applicationMode = ['crm','portal'].includes(runtimeConfig.appMode) ? runtimeConfig.appMode : 'combined';
+const applicationHostname = String(window.location?.hostname || '').toLowerCase();
+const hostnameMode = /^(ratio-crm-privado\.|crm\.)/.test(applicationHostname)
+  ? 'crm'
+  : /^(ratio-portal-pruebas\.|clientes\.)/.test(applicationHostname) ? 'portal' : '';
+const applicationMode = hostnameMode || (['crm','portal'].includes(runtimeConfig.appMode) ? runtimeConfig.appMode : 'combined');
 let platformApi = null;
 if (productionMode) {
   try { platformApi = new window.RatioPlatformApi(runtimeConfig); }
@@ -302,7 +306,7 @@ function renderClient() {
     markNotificationsRead();
     $('#main').innerHTML = `${pageHead('Avisos','Novedades de tu caso','Los avisos te indican cuándo existe un avance o necesitamos una decisión.')}<section class="panel"><div class="notification-list">${notificationList()}</div></section>`;
   } else {
-    $('#main').innerHTML = `${pageHead('Seguridad','Tu acceso','Controla tu sesión y protege el acceso al expediente.')}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Doble factor de autenticación</h2><span class="status-pill">Obligatorio para el equipo</span></div><p class="panel-copy">Las cuentas internas no podrán utilizarse con clientes reales hasta que el doble factor esté activado y verificado en el proveedor de identidad.</p></section><section class="panel"><d…2807 tokens truncated…td><td>${escapeHtml(c.category)}</td><td><span class="status-pill">${escapeHtml(c.status)}</span></td></tr>`).join('')}</tbody></table>`;
+    $('#main').innerHTML = `${pageHead('Seguridad','Tu acceso','Controla tu sesión y protege el acceso al expediente.')}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Doble factor de autenticación</h2>…2875 tokens truncated…td><td>${escapeHtml(c.category)}</td><td><span class="status-pill">${escapeHtml(c.status)}</span></td></tr>`).join('')}</tbody></table>`;
 }
 function bindCaseRows() {
   $$('[data-case-id]').forEach(row => {
