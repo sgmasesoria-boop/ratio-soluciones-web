@@ -17,7 +17,7 @@ await page.route('https://ratio-test.supabase.co/**',async route=>{
   const fulfill=value=>route.fulfill({contentType:'application/json',body:JSON.stringify(value)});
   if(url.includes('/auth/v1/token?grant_type=password'))return fulfill({access_token:jwt({aal:'aal1'}),refresh_token:'refresh',expires_in:3600,user:{id:'admin-1',email:'admin@example.es'}});
   if(url.endsWith('/auth/v1/user'))return fulfill({id:'admin-1',email:'admin@example.es',factors:mfaVerified?[{id:factorId,factor_type:'totp',status:'verified'}]:[]});
-  if(url.endsWith('/auth/v1/factors'))return fulfill({id:factorId,type:'totp',totp:{qr_code:'<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="white"/><rect x="8" y="8" width="48" height="48" fill="black"/></svg>',secret:'TESTSECRET'}});
+  if(url.endsWith('/auth/v1/factors'))return fulfill({id:factorId,type:'totp',totp:{qr_code:'data:image/svg+xml;utf-8,<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#fff"/><rect x="8" y="8" width="48" height="48" fill="#000"/></svg>',secret:'TESTSECRET',uri:'otpauth://totp/Ratio:admin@example.es?secret=TESTSECRET&issuer=Ratio'}});
   if(url.endsWith(`/auth/v1/factors/${factorId}/challenge`))return fulfill({id:challengeId});
   if(url.endsWith(`/auth/v1/factors/${factorId}/verify`)){mfaVerified=true;return fulfill({access_token:jwt({aal:'aal2'}),refresh_token:'mfa-refresh',expires_in:3600});}
   if(url.includes('/rest/v1/profiles?'))return fulfill([{id:'admin-1',display_name:'Gestor Prueba',internal_role:'admin',active:true}]);
@@ -33,14 +33,21 @@ await page.locator('#mfa-dialog').waitFor({state:'visible'});
 const enrollmentVisible=await page.locator('#mfa-enrollment').isVisible();
 await page.locator('#mfa-qr').waitFor({state:'visible'});
 const qrRendered=await page.locator('#mfa-qr').evaluate(image=>image.src.startsWith('data:image/svg+xml')&&image.complete&&image.naturalWidth>0);
+const appLinkVisible=await page.locator('#mfa-open-app').isVisible();
+const qrVariants=await page.evaluate(()=>[
+  mfaQrSource('<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"><path fill="#000"/></svg>'),
+  mfaQrSource('%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E'),
+  mfaQrSource('data:image/svg+xml;base64,PHN2Zy8+')
+]);
+const qrVariantsSupported=qrVariants.every(value=>value.startsWith('data:image/svg+xml'));
 const textCorrect=await page.locator('#mfa-dialog').evaluate(dialog=>dialog.textContent.includes('autenticación')&&dialog.textContent.includes('Código temporal')&&!/[ÃÂ]|â†/.test(dialog.textContent));
 await page.locator('#mfa-code').fill('123456');
 await page.locator('#mfa-form .primary-button').click();
 await page.locator('#app').waitFor({state:'visible'});
 
 const result={
-  passed:enrollmentVisible&&qrRendered&&textCorrect&&mfaVerified&&calls.some(url=>url.endsWith('/challenge'))&&calls.some(url=>url.endsWith('/verify'))&&!errors.length,
-  enrollmentVisible,qrRendered,textCorrect,mfaVerified,errors
+  passed:enrollmentVisible&&qrRendered&&appLinkVisible&&qrVariantsSupported&&textCorrect&&mfaVerified&&calls.some(url=>url.endsWith('/challenge'))&&calls.some(url=>url.endsWith('/verify'))&&!errors.length,
+  enrollmentVisible,qrRendered,appLinkVisible,qrVariantsSupported,textCorrect,mfaVerified,errors
 };
 console.log(JSON.stringify(result,null,2));
 await browser.close();

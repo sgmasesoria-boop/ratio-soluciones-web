@@ -40,7 +40,7 @@ if(!auth.includes("assuranceLevel(request)!=='aal2'")||!http.includes("message==
 if(!mfaMigration.includes("auth.jwt()->>'aal','aal1')='aal2'"))failures.push('RLS no exige AAL2 para el personal interno.');
 if(!html.includes('id="mfa-dialog"')||!api.includes('async enrollTotp')||!api.includes('async verifyMfa'))failures.push('El CRM no incluye el flujo completo de alta y verificación MFA.');
 if(/[ÃÂ]|â†/.test(html)||/[ÃÂ]|â†/.test(app))failures.push('La interfaz MFA contiene texto con codificación incorrecta.');
-if(!app.includes("startsWith('<svg')")||!app.includes('data:image/svg+xml;charset=utf-8'))failures.push('El QR SVG de Supabase no se convierte en una URL de imagen válida.');
+if(!app.includes("qr.includes('<svg')")||!app.includes('data:image/svg+xml;charset=utf-8')||!app.includes("startsWith('otpauth://')"))failures.push('El alta MFA no cubre los formatos QR y URI de Supabase.');
 const result={passed:failures.length===0,failures};
 console.log(JSON.stringify(result,null,2));
 if(failures.length)process.exitCode=1;

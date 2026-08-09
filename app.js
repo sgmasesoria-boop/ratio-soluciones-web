@@ -211,16 +211,37 @@ async function openInternalMfa(user) {
     if (source) qr.src = source;
     else qr.removeAttribute('src');
     $('#mfa-secret').textContent = enrolled.totp?.secret || '';
+    const appLink = $('#mfa-open-app');
+    const uri = String(enrolled.totp?.uri || '');
+    appLink.hidden = !uri.startsWith('otpauth://');
+    if (!appLink.hidden) appLink.href = uri;
+    else appLink.removeAttribute('href');
   }
   if (!$('#mfa-dialog').open) $('#mfa-dialog').showModal();
   requestAnimationFrame(() => $('#mfa-code').focus());
 }
 
 function mfaQrSource(value) {
-  const qr = String(value || '').trim();
-  if (qr.startsWith('data:image/')) return qr;
-  if (qr.startsWith('<svg')) return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(qr)}`;
+  const qr = String(value || '').replace(/^\uFEFF/, '').trim();
+  if (/^data:image\/svg\+xml[^,]*;base64,/i.test(qr)) return qr;
+  if (/^data:image\/svg\+xml[^,]*,/i.test(qr)) {
+    const payload = qr.slice(qr.indexOf(',') + 1);
+    try { return mfaSvgDataUrl(decodeURIComponent(payload)); }
+    catch { return mfaSvgDataUrl(payload); }
+  }
+  if (/%3Csvg[\s%>]/i.test(qr)) {
+    try { return mfaSvgDataUrl(decodeURIComponent(qr)); }
+    catch { return ''; }
+  }
+  if (qr.includes('<svg')) return mfaSvgDataUrl(qr);
   return '';
+}
+
+function mfaSvgDataUrl(value) {
+  const svg = String(value || '');
+  const start = svg.indexOf('<svg');
+  if (start < 0) return '';
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.slice(start))}`;
 }
 async function logout() {
   if (productionMode && platformApi) await platformApi.signOut();

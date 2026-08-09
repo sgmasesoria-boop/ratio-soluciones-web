@@ -145,7 +145,7 @@
       <p class="activation-lead" id="mfa-dialog-description">El acceso interno exige un segundo factor.</p>
       <section id="mfa-enrollment" class="mfa-enrollment" hidden>
         <div class="mfa-qr-frame"><img id="mfa-qr" alt="Código QR para configurar la app de autenticación"><p id="mfa-qr-fallback" hidden>El QR no se ha podido mostrar. Utiliza la clave manual.</p></div>
-        <div><strong>Escanea el QR</strong><p>Usa Google Authenticator, Microsoft Authenticator, 1Password u otra app TOTP.</p><small>Clave manual</small><code id="mfa-secret"></code></div>
+        <div><strong>Escanea el QR</strong><p>Usa Google Authenticator, Microsoft Authenticator, 1Password u otra app TOTP.</p><a id="mfa-open-app" class="mfa-app-link" hidden>Abrir en la app de autenticación</a><small>Clave manual</small><code id="mfa-secret"></code></div>
       </section>
       <label>Código temporal<input id="mfa-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,8}" minlength="6" maxlength="8" required></label>
       <div class="privacy-preview"><small>Protección obligatoria</small><p>El CRM no se abrirá hasta que Supabase confirme una sesión con nivel AAL2.</p></div>
