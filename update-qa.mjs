@@ -26,7 +26,7 @@ await page.route('https://ratio-test.supabase.co/**',async route=>{
 
 await page.goto(pathToFileURL(resolve('index.html')).href);
 await page.locator('input[name="email"]').fill('admin@example.es');
-await page.locator('input[name="password"]').fill('contraseÃ±a-segura');
+await page.locator('input[name="password"]').fill('contraseña-segura');
 await page.locator('#login-form button[type="submit"]').click();
 await page.locator('#app').waitFor({state:'visible'});
 await page.locator('[data-section="cases"]').click();
@@ -42,7 +42,7 @@ const updateCalls=calls.filter(call=>call.url.endsWith('/functions/v1/update-cas
 const updateCall=updateCalls.at(-1);
 const updatePayload=JSON.parse(updateCall?.body||'{}');
 const authorizationSent=updateCall?.authorization===`Bearer ${adminToken}`;
-const automaticCopy=updatePayload.title==='Estado actualizado: En estudio'&&updatePayload.description==='El expediente ha pasado al estado Â«En estudioÂ».';
+const automaticCopy=updatePayload.title==='Estado actualizado: En estudio'&&updatePayload.description==='El expediente ha pasado al estado «En estudio».';
 const retriedAfterRefresh=updateCalls.length===2&&calls.some(call=>call.url.includes('grant_type=refresh_token'));
 const toastText=await page.locator('#toast').textContent();
 const result={passed:updated&&dialogClosed&&eventVisible&&authorizationSent&&automaticCopy&&retriedAfterRefresh&&!errors.length,updated,dialogClosed,eventVisible,authorizationSent,automaticCopy,retriedAfterRefresh,toastText,errors,calls:calls.map(call=>({url:call.url,method:call.method,authorization:Boolean(call.authorization)}))};
