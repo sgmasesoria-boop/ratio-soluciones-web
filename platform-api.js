@@ -107,7 +107,7 @@
 
     async signOut() {
       if (this.session) {
-        try { await this.#request('/auth/v1/logout', { method: 'POST' }); } catch { /* La sesiÃ³n local debe cerrarse igualmente. */ }
+        try { await this.#request('/auth/v1/logout', { method: 'POST' }); } catch { /* La sesión local debe cerrarse igualmente. */ }
       }
       this.session = null;
       this.storage.removeItem(SESSION_KEY);
@@ -158,7 +158,7 @@
           this.storage.setItem(PASSWORD_SETUP_KEY, 'required');
           return true;
         }
-      } catch { /* Un token no legible no se usa para tomar decisiones de autorizaciÃ³n. */ }
+      } catch { /* Un token no legible no se usa para tomar decisiones de autorización. */ }
       return false;
     }
 
