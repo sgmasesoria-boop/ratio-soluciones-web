@@ -5,61 +5,61 @@ const applicationMode = ['crm','portal'].includes(runtimeConfig.appMode) ? runti
 let platformApi = null;
 if (productionMode) {
   try { platformApi = new window.RatioPlatformApi(runtimeConfig); }
-  catch (error) { console.error('ConfiguraciÃ³n de plataforma no vÃ¡lida', error); }
+  catch (error) { console.error('Configuración de plataforma no válida', error); }
 }
 
 const now = new Date();
 const iso = (minutesAgo = 0) => new Date(now.getTime() - minutesAgo * 60000).toISOString();
-const statusLabels = { open:'Abierto', study:'En estudio', action:'Gestiones en curso', response:'Respuesta recibida', resolution:'ResoluciÃ³n', closed:'Cerrado', archived:'Archivado' };
+const statusLabels = { open:'Abierto', study:'En estudio', action:'Gestiones en curso', response:'Respuesta recibida', resolution:'Resolución', closed:'Cerrado', archived:'Archivado' };
 const statusStages = { open:0, study:1, action:2, response:3, resolution:4, closed:5, archived:5 };
-const leadStatusLabels = { new:'Nueva', review:'En estudio', waiting:'Falta informaciÃ³n', viable:'Viable', proposal:'Propuesta enviada', contract:'Contrato pendiente', won:'Contratada', lost:'No viable / cerrada' };
+const leadStatusLabels = { new:'Nueva', review:'En estudio', waiting:'Falta información', viable:'Viable', proposal:'Propuesta enviada', contract:'Contrato pendiente', won:'Contratada', lost:'No viable / cerrada' };
 
 const seed = {
   activeRole: null,
   users: {
-    client: { id:'usr_client_01', name:'Carlos MartÃ­n', initials:'CM', role:'Cliente' },
+    client: { id:'usr_client_01', name:'Carlos Martín', initials:'CM', role:'Cliente' },
     admin: { id:'usr_admin_01', name:'Sergio Guerrero', initials:'SG', role:'Gestor' }
   },
   cases: [
     {
-      id:'case_01', reference:'RS-2048', clientId:'usr_client_01', client:'Carlos MartÃ­n',
-      title:'RevisiÃ³n de financiaciÃ³n', category:'Banca y financiaciÃ³n', statusCode:'action',
+      id:'case_01', reference:'RS-2048', clientId:'usr_client_01', client:'Carlos Martín',
+      title:'Revisión de financiación', category:'Banca y financiación', statusCode:'action',
       status:'Gestiones en curso', stage:2, openedAt:iso(4320),
-      clientNextStep:'No tienes que hacer nada ahora. Te avisaremos cuando exista una novedad o necesitemos una decisiÃ³n.',
-      professionalName:'Laura FernÃ¡ndez Ruiz', professionalTitle:'Letrada responsable',
-      professionalRegistration:'ICAGR n.Âº 0000 Â· dato ficticio', professionalRegion:'AndalucÃ­a'
+      clientNextStep:'No tienes que hacer nada ahora. Te avisaremos cuando exista una novedad o necesitemos una decisión.',
+      professionalName:'Laura Fernández Ruiz', professionalTitle:'Letrada responsable',
+      professionalRegistration:'ICAGR n.º 0000 · dato ficticio', professionalRegion:'Andalucía'
     },
     {
       id:'case_02', reference:'RS-2051', clientId:'usr_client_02', client:'Ana Romero',
       title:'Incidencia en comunidad de propietarios', category:'Vivienda', statusCode:'study',
       status:'En estudio', stage:1, openedAt:iso(7200),
-      clientNextStep:'Estamos comprobando la informaciÃ³n inicial. Te avisaremos si necesitamos alguna aclaraciÃ³n.',
-      professionalName:'Miguel Torres SÃ¡nchez', professionalTitle:'Profesional responsable',
+      clientNextStep:'Estamos comprobando la información inicial. Te avisaremos si necesitamos alguna aclaración.',
+      professionalName:'Miguel Torres Sánchez', professionalTitle:'Profesional responsable',
       professionalRegistration:'Dato profesional ficticio', professionalRegion:'Madrid'
     },
     {
-      id:'case_03', reference:'RS-2056', clientId:'usr_client_03', client:'LucÃ­a Navarro',
-      title:'ReclamaciÃ³n de indemnizaciÃ³n', category:'Seguros e indemnizaciones', statusCode:'response',
+      id:'case_03', reference:'RS-2056', clientId:'usr_client_03', client:'Lucía Navarro',
+      title:'Reclamación de indemnización', category:'Seguros e indemnizaciones', statusCode:'response',
       status:'Respuesta recibida', stage:3, openedAt:iso(10080),
       clientNextStep:'Hemos recibido una respuesta. La estamos valorando antes de explicarte las opciones.',
       professionalName:'Elena Ruiz Moreno', professionalTitle:'Profesional responsable',
-      professionalRegistration:'Dato profesional ficticio', professionalRegion:'AndalucÃ­a'
+      professionalRegistration:'Dato profesional ficticio', professionalRegion:'Andalucía'
     }
   ],
   events: [
     { id:'evt_01', caseId:'case_01', kind:'open', title:'Expediente abierto', description:'Tu acceso privado ha quedado confirmado.', at:iso(4320), done:true },
-    { id:'evt_02', caseId:'case_01', kind:'study', title:'InformaciÃ³n inicial revisada', description:'Hemos situado el problema y definido las primeras comprobaciones.', at:iso(2880), done:true },
-    { id:'evt_03', caseId:'case_01', kind:'action', title:'GestiÃ³n en curso', description:'Estamos revisando las condiciones de la financiaciÃ³n.', at:iso(180), current:true },
+    { id:'evt_02', caseId:'case_01', kind:'study', title:'Información inicial revisada', description:'Hemos situado el problema y definido las primeras comprobaciones.', at:iso(2880), done:true },
+    { id:'evt_03', caseId:'case_01', kind:'action', title:'Gestión en curso', description:'Estamos revisando las condiciones de la financiación.', at:iso(180), current:true },
     { id:'evt_04', caseId:'case_02', kind:'open', title:'Expediente abierto', description:'La consulta ha sido aceptada y registrada.', at:iso(7200), done:true },
-    { id:'evt_05', caseId:'case_02', kind:'study', title:'InformaciÃ³n en estudio', description:'Estamos analizando los antecedentes de la comunidad.', at:iso(420), current:true },
-    { id:'evt_06', caseId:'case_03', kind:'open', title:'Expediente abierto', description:'La reclamaciÃ³n ha quedado registrada.', at:iso(10080), done:true },
-    { id:'evt_07', caseId:'case_03', kind:'action', title:'ReclamaciÃ³n presentada', description:'La solicitud de indemnizaciÃ³n fue comunicada a la entidad.', at:iso(5760), done:true },
-    { id:'evt_08', caseId:'case_03', kind:'response', title:'Respuesta recibida', description:'Estamos revisando la contestaciÃ³n antes de comunicar las opciones.', at:iso(90), current:true }
+    { id:'evt_05', caseId:'case_02', kind:'study', title:'Información en estudio', description:'Estamos analizando los antecedentes de la comunidad.', at:iso(420), current:true },
+    { id:'evt_06', caseId:'case_03', kind:'open', title:'Expediente abierto', description:'La reclamación ha quedado registrada.', at:iso(10080), done:true },
+    { id:'evt_07', caseId:'case_03', kind:'action', title:'Reclamación presentada', description:'La solicitud de indemnización fue comunicada a la entidad.', at:iso(5760), done:true },
+    { id:'evt_08', caseId:'case_03', kind:'response', title:'Respuesta recibida', description:'Estamos revisando la contestación antes de comunicar las opciones.', at:iso(90), current:true }
   ],
-  notifications: [{ id:'not_01', userId:'usr_client_01', caseId:'case_01', title:'Nuevo avance en tu expediente', body:'La revisiÃ³n de la financiaciÃ³n estÃ¡ en curso.', at:iso(180), read:false }],
+  notifications: [{ id:'not_01', userId:'usr_client_01', caseId:'case_01', title:'Nuevo avance en tu expediente', body:'La revisión de la financiación está en curso.', at:iso(180), read:false }],
   leads: [
-    { id:'lead_01', reference:'C-2026-001', name:'MarÃ­a LÃ³pez', phone:'600 000 001', email:'maria@example.es', province:'Granada', category:'Banca y financiaciÃ³n', source:'Formulario web', summary:'Consulta sobre una tarjeta revolving cuya deuda no disminuye.', status:'review', nextAction:'Revisar contrato y movimientos indicados durante la llamada', followUp:new Date(now.getTime()+86400000).toISOString().slice(0,10), amount:650, privacyNoticeAt:iso(1440), legalBasis:'precontractual_request', createdAt:iso(1440), updatedAt:iso(120), notes:[{id:'note_01',body:'Contacto inicial realizado. Pendiente de comprobaciÃ³n de viabilidad.',at:iso(120)}] },
-    { id:'lead_02', reference:'C-2026-002', name:'Antonio Ruiz', phone:'600 000 002', email:'antonio@example.es', province:'Madrid', category:'Vivienda', source:'RecomendaciÃ³n', summary:'Necesita orientaciÃ³n ante un conflicto en su comunidad de propietarios.', status:'new', nextAction:'Realizar primer contacto', followUp:new Date(now.getTime()+172800000).toISOString().slice(0,10), amount:0, privacyNoticeAt:iso(240), legalBasis:'precontractual_request', createdAt:iso(240), updatedAt:iso(240), notes:[] }
+    { id:'lead_01', reference:'C-2026-001', name:'María López', phone:'600 000 001', email:'maria@example.es', province:'Granada', category:'Banca y financiación', source:'Formulario web', summary:'Consulta sobre una tarjeta revolving cuya deuda no disminuye.', status:'review', nextAction:'Revisar contrato y movimientos indicados durante la llamada', followUp:new Date(now.getTime()+86400000).toISOString().slice(0,10), amount:650, privacyNoticeAt:iso(1440), legalBasis:'precontractual_request', createdAt:iso(1440), updatedAt:iso(120), notes:[{id:'note_01',body:'Contacto inicial realizado. Pendiente de comprobación de viabilidad.',at:iso(120)}] },
+    { id:'lead_02', reference:'C-2026-002', name:'Antonio Ruiz', phone:'600 000 002', email:'antonio@example.es', province:'Madrid', category:'Vivienda', source:'Recomendación', summary:'Necesita orientación ante un conflicto en su comunidad de propietarios.', status:'new', nextAction:'Realizar primer contacto', followUp:new Date(now.getTime()+172800000).toISOString().slice(0,10), amount:0, privacyNoticeAt:iso(240), legalBasis:'precontractual_request', createdAt:iso(240), updatedAt:iso(240), notes:[] }
   ],
   tasks: [
     { id:'task_01', leadId:'lead_01', title:'Comprobar viabilidad de la consulta bancaria', dueDate:new Date(now.getTime()+86400000).toISOString().slice(0,10), priority:'high', completed:false, createdAt:iso(120) },
@@ -153,7 +153,7 @@ function enter(role) {
   renderShell();
 }
 async function enterProduction() {
-  if (!platformApi) throw new Error('La conexiÃ³n segura todavÃ­a no estÃ¡ configurada.');
+  if (!platformApi) throw new Error('La conexión segura todavía no está configurada.');
   const user = await platformApi.currentUser();
   if (!user) return false;
   const profile = await platformApi.loadProfile(user.id);
@@ -189,15 +189,15 @@ async function openInternalMfa(user) {
   const verified = factors.find(item => item.status === 'verified');
   mfaEnrollment = !verified;
   $('#mfa-enrollment').hidden = !mfaEnrollment;
-  $('#mfa-dialog-title').textContent = mfaEnrollment ? 'Protege tu cuenta con una app de autenticaciÃ³n' : 'Introduce tu segundo factor';
+  $('#mfa-dialog-title').textContent = mfaEnrollment ? 'Protege tu cuenta con una app de autenticación' : 'Introduce tu segundo factor';
   $('#mfa-dialog-description').textContent = mfaEnrollment
-    ? 'El acceso al CRM exige un segundo factor. Escanea el cÃ³digo y confirma uno de los cÃ³digos temporales.'
-    : 'Abre tu app de autenticaciÃ³n e introduce el cÃ³digo temporal para continuar.';
+    ? 'El acceso al CRM exige un segundo factor. Escanea el código y confirma uno de los códigos temporales.'
+    : 'Abre tu app de autenticación e introduce el código temporal para continuar.';
   if (verified) {
     mfaFactorId = verified.id;
   } else {
     for (const stale of factors.filter(item => item.status !== 'verified')) {
-      try { await platformApi.unenrollFactor(stale.id); } catch { /* Se crearÃ¡ un factor nuevo igualmente. */ }
+      try { await platformApi.unenrollFactor(stale.id); } catch { /* Se creará un factor nuevo igualmente. */ }
     }
     const enrolled = await platformApi.enrollTotp('CRM Ratio Soluciones');
     mfaFactorId = enrolled.id;
@@ -257,10 +257,10 @@ async function logout() {
 function renderShell() {
   const user = currentUser();
   const isAdmin = state.activeRole === 'admin';
-  $('#workspace-kicker').textContent = isAdmin ? 'GestiÃ³n interna' : 'Espacio privado';
+  $('#workspace-kicker').textContent = isAdmin ? 'Gestión interna' : 'Espacio privado';
   $('#workspace-name').textContent = isAdmin ? 'CRM y expedientes' : 'Mi expediente';
   $('#header-kicker').textContent = isAdmin ? 'Ratio Soluciones' : 'Plataforma privada';
-  $('#header-title').textContent = isAdmin ? 'CRM y gestiÃ³n de expedientes' : 'Mi expediente';
+  $('#header-title').textContent = isAdmin ? 'CRM y gestión de expedientes' : 'Mi expediente';
   $('#profile-initials').textContent = user.initials;
   $('#profile-role').textContent = user.role;
   $('#profile-name').textContent = user.name;
@@ -268,8 +268,8 @@ function renderShell() {
   $('#notification-count').textContent = unread;
   $('#notification-count').hidden = unread === 0;
   const items = isAdmin
-    ? [['overview','Resumen'],['leads','Consultas'],['tasks','Agenda'],['cases','Expedientes'],['finance','Control econÃ³mico'],['notifications','Avisos'],['audit','Registro de actividad']]
-    : [['overview','Resumen'],['timeline','CronologÃ­a'],['notifications','Avisos'],['security','Acceso y seguridad']];
+    ? [['overview','Resumen'],['leads','Consultas'],['tasks','Agenda'],['cases','Expedientes'],['finance','Control económico'],['notifications','Avisos'],['audit','Registro de actividad']]
+    : [['overview','Resumen'],['timeline','Cronología'],['notifications','Avisos'],['security','Acceso y seguridad']];
   $('#app-nav').innerHTML = items.map(([id,label]) => `<button type="button" data-section="${id}" class="${activeSection===id?'active':''}">${label}</button>`).join('');
   $$('[data-section]').forEach(button => button.addEventListener('click', () => {
     activeSection=button.dataset.section;
@@ -282,7 +282,7 @@ function renderShell() {
 
 function renderMain() {
   if (!state.cases.length && state.activeRole !== 'admin') {
-    $('#main').innerHTML = `${pageHead('Plataforma privada','TodavÃ­a no hay expedientes asignados','Tu acceso estÃ¡ activo. Cuando se abra el primer expediente aparecerÃ¡ aquÃ­.')}<section class="panel"><div class="empty">No hay expedientes disponibles.</div></section>`;
+    $('#main').innerHTML = `${pageHead('Plataforma privada','Todavía no hay expedientes asignados','Tu acceso está activo. Cuando se abra el primer expediente aparecerá aquí.')}<section class="panel"><div class="empty">No hay expedientes disponibles.</div></section>`;
     return;
   }
   if (state.activeRole === 'admin') renderAdmin(); else renderClient();
@@ -294,15 +294,15 @@ function pageHead(kicker,title,description,actions='') {
 function renderClient() {
   const c = currentCase();
   if (activeSection === 'overview') {
-    $('#main').innerHTML = `${pageHead(c.reference,c.title,'Consulta el estado real del expediente y cada actuaciÃ³n ya registrada.','<span class="status-pill">'+escapeHtml(c.status)+'</span>')}
+    $('#main').innerHTML = `${pageHead(c.reference,c.title,'Consulta el estado real del expediente y cada actuación ya registrada.','<span class="status-pill">'+escapeHtml(c.status)+'</span>')}
       <div class="case-layout"><section class="panel"><div class="panel-head"><h2>Recorrido del expediente</h2><small>Sin fechas estimadas</small></div>${progress(c.stage)}${timeline()}</section><aside>${nextStepCard(c)}${professionalCard(c)}</aside></div>`;
   } else if (activeSection === 'timeline') {
-    $('#main').innerHTML = `${pageHead('CronologÃ­a','Cada actuaciÃ³n, en orden','El historial muestra hechos ya registrados. No incluye fechas estimadas de resoluciÃ³n.')}<section class="panel">${timeline(true)}</section>`;
+    $('#main').innerHTML = `${pageHead('Cronología','Cada actuación, en orden','El historial muestra hechos ya registrados. No incluye fechas estimadas de resolución.')}<section class="panel">${timeline(true)}</section>`;
   } else if (activeSection === 'notifications') {
     markNotificationsRead();
-    $('#main').innerHTML = `${pageHead('Avisos','Novedades de tu caso','Los avisos te indican cuÃ¡ndo existe un avance o necesitamos una decisiÃ³n.')}<section class="panel"><div class="notification-list">${notificationList()}</div></section>`;
+    $('#main').innerHTML = `${pageHead('Avisos','Novedades de tu caso','Los avisos te indican cuándo existe un avance o necesitamos una decisión.')}<section class="panel"><div class="notification-list">${notificationList()}</div></section>`;
   } else {
-    $('#main').innerHTML = `${pageHead('Seguridad','Tu acceso','Controla tu sesiÃ³n y protege el acceso al expediente.')}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Doble factor de autenticaciÃ³n</h2><span class="status-pill">Obligatorio para el equipo</span></div><p class="panel-copy">Las cuentas internas no podrÃ¡n utilizarse con clientes r…2895 tokens truncated…).join('')}</tbody></table>`;
+    $('#main').innerHTML = `${pageHead('Seguridad','Tu acceso','Controla tu sesión y protege el acceso al expediente.')}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Doble factor de autenticación</h2><span class="status-pill">Obligatorio para el equipo</span></div><p class="panel-copy">Las cuentas internas no podrán utilizarse con clientes reales hasta que el doble factor esté activado y verificado en el proveedor de identidad.</p></section><section class="panel"><d…2807 tokens truncated…td><td>${escapeHtml(c.category)}</td><td><span class="status-pill">${escapeHtml(c.status)}</span></td></tr>`).join('')}</tbody></table>`;
 }
 function bindCaseRows() {
   $$('[data-case-id]').forEach(row => {
@@ -316,8 +316,8 @@ function notificationList(all=false) {
   return list.length?list.map(n=>`<article class="notice ${n.read?'read':''}"><i></i><div><strong>${escapeHtml(n.title)}</strong><p>${escapeHtml(n.body)}</p></div><time>${formatDate(n.at)}</time></article>`).join(''):'<div class="empty">No hay avisos.</div>';
 }
 function auditTable() {
-  if(!state.audit.length)return '<div class="empty">Las acciones realizadas en esta prueba aparecerÃ¡n aquÃ­.</div>';
-  return `<table class="case-table"><thead><tr><th>Momento</th><th>AcciÃ³n</th><th>Objeto</th><th>Usuario</th></tr></thead><tbody>${[...state.audit].reverse().map(a=>`<tr><td>${formatDate(a.at)}</td><td>${escapeHtml(a.action)}</td><td>${escapeHtml(a.objectType)} Â· ${escapeHtml(String(a.objectId).slice(0,12))}</td><td>${escapeHtml(a.actorId)}</td></tr>`).join('')}</tbody></table>`;
+  if(!state.audit.length)return '<div class="empty">Las acciones realizadas en esta prueba aparecerán aquí.</div>';
+  return `<table class="case-table"><thead><tr><th>Momento</th><th>Acción</th><th>Objeto</th><th>Usuario</th></tr></thead><tbody>${[...state.audit].reverse().map(a=>`<tr><td>${formatDate(a.at)}</td><td>${escapeHtml(a.action)}</td><td>${escapeHtml(a.objectType)} · ${escapeHtml(String(a.objectId).slice(0,12))}</td><td>${escapeHtml(a.actorId)}</td></tr>`).join('')}</tbody></table>`;
 }
 
 function bindCrmActions() {
@@ -333,8 +333,8 @@ function bindCrmActions() {
 function openLeadDialog(leadId) {
   const lead=state.leads.find(item=>item.id===leadId); if(!lead)return;
   $('#lead-detail-id').value=lead.id;
-  $('#lead-detail-title').textContent=`${lead.reference} Â· ${lead.name}`;
-  $('#lead-detail-contact').innerHTML=`<div><small>Contacto</small><strong>${escapeHtml(lead.phone||'Sin telÃ©fono')}</strong><span>${escapeHtml(lead.email||'Sin correo')}</span></div><div><small>Consulta</small><strong>${escapeHtml(lead.category)}</strong><span>${escapeHtml(lead.summary)}</span></div><div><small>Privacidad</small><strong>InformaciÃ³n entregada</strong><span>${escapeHtml(formatDate(lead.privacyNoticeAt))}</span></div>`;
+  $('#lead-detail-title').textContent=`${lead.reference} · ${lead.name}`;
+  $('#lead-detail-contact').innerHTML=`<div><small>Contacto</small><strong>${escapeHtml(lead.phone||'Sin teléfono')}</strong><span>${escapeHtml(lead.email||'Sin correo')}</span></div><div><small>Consulta</small><strong>${escapeHtml(lead.category)}</strong><span>${escapeHtml(lead.summary)}</span></div><div><small>Privacidad</small><strong>Información entregada</strong><span>${escapeHtml(formatDate(lead.privacyNoticeAt))}</span></div>`;
   $('#lead-detail-phone').value=lead.phone||'';
   $('#lead-detail-email').value=lead.email||'';
   $('#lead-detail-status').value=lead.status;
@@ -346,7 +346,7 @@ function openLeadDialog(leadId) {
   $('#lead-detail-dialog').showModal();
 }
 function openTaskDialog() {
-  $('#task-lead').innerHTML=state.leads.filter(item=>!['won','lost'].includes(item.status)).map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.reference+' Â· '+item.name)}</option>`).join('');
+  $('#task-lead').innerHTML=state.leads.filter(item=>!['won','lost'].includes(item.status)).map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.reference+' · '+item.name)}</option>`).join('');
   $('#task-date').value=new Date().toISOString().slice(0,10);
   $('#task-dialog').showModal();
 }
@@ -382,7 +382,7 @@ function fillStatusUpdateCopy(force=false) {
   const description=$('#update-description');
   const label=statusLabels[status.value]||status.options[status.selectedIndex]?.text||'Actualizado';
   const nextTitle=`Estado actualizado: ${label}`;
-  const nextDescription=`El expediente ha pasado al estado Â«${label}Â».`;
+  const nextDescription=`El expediente ha pasado al estado «${label}».`;
   if(force||!title.value||title.value===title.dataset.autofill)title.value=nextTitle;
   if(force||!description.value||description.value===description.dataset.autofill)description.value=nextDescription;
   title.dataset.autofill=nextTitle;
@@ -402,16 +402,16 @@ function configureApplicationMode() {
   const clientButton=$('[data-demo-role="client"]'),adminButton=$('[data-demo-role="admin"]');
   if(applicationMode==='crm'){
     clientButton.hidden=true;adminButton.hidden=false;
-    $('.login-card>.kicker').textContent='GestiÃ³n interna';
+    $('.login-card>.kicker').textContent='Gestión interna';
     $('#login-title').textContent='Accede al CRM';
     $('.login-lead').textContent='Gestiona consultas, tareas, contrataciones y expedientes desde un espacio privado de Ratio Soluciones.';
     $('.demo-access p').textContent='Entorno interno de prueba con datos ficticios';
-    $('.test-banner').textContent='CRM DE PRUEBA Â· DATOS FICTICIOS Â· SIN DOCUMENTACIÃ“N';
+    $('.test-banner').textContent='CRM DE PRUEBA · DATOS FICTICIOS · SIN DOCUMENTACIÓN';
     document.title='CRM privado | Ratio Soluciones';
   }else if(applicationMode==='portal'){
     adminButton.hidden=true;clientButton.hidden=false;
     $('.demo-access p').textContent='Portal de cliente de prueba con datos ficticios';
-    $('.test-banner').textContent='PORTAL DE CLIENTE Â· DATOS FICTICIOS Â· SIN DOCUMENTACIÃ“N';
+    $('.test-banner').textContent='PORTAL DE CLIENTE · DATOS FICTICIOS · SIN DOCUMENTACIÓN';
     document.title='Portal de clientes | Ratio Soluciones';
   }
 }
@@ -422,16 +422,16 @@ $('#login-form').addEventListener('submit',async event=>{
   if(!productionMode){enter(applicationMode==='crm'?'admin':'client');return;}
   const button=event.submitter;button.disabled=true;
   try{const data=new FormData(event.currentTarget);await platformApi.signIn(data.get('email'),data.get('password'));await enterProduction();}
-  catch(error){toast(error?.status===400?'Correo o contraseÃ±a incorrectos.':'No se ha podido iniciar sesiÃ³n de forma segura.');}
+  catch(error){toast(error?.status===400?'Correo o contraseña incorrectos.':'No se ha podido iniciar sesión de forma segura.');}
   finally{button.disabled=false;}
 });
 $('#logout').addEventListener('click',logout);
 $('#recover-access').addEventListener('click',async()=>{
   const email=$('#login-form input[name="email"]').value.trim();
-  if(!productionMode){toast('En producciÃ³n recibirÃ¡s un enlace seguro para recuperar el acceso.');return;}
-  if(!email){toast('Escribe primero tu correo electrÃ³nico.');return;}
-  try{await platformApi.requestPasswordReset(email,`${location.origin}/restablecer`);toast('Si el correo estÃ¡ registrado, recibirÃ¡s un enlace de recuperaciÃ³n.');}
-  catch{toast('No se ha podido solicitar la recuperaciÃ³n. IntÃ©ntalo de nuevo.');}
+  if(!productionMode){toast('En producción recibirás un enlace seguro para recuperar el acceso.');return;}
+  if(!email){toast('Escribe primero tu correo electrónico.');return;}
+  try{await platformApi.requestPasswordReset(email,`${location.origin}/restablecer`);toast('Si el correo está registrado, recibirás un enlace de recuperación.');}
+  catch{toast('No se ha podido solicitar la recuperación. Inténtalo de nuevo.');}
 });
 $('#mobile-menu').addEventListener('click',()=>$('.sidebar').classList.toggle('open'));
 $('#update-status').addEventListener('change',()=>fillStatusUpdateCopy());
@@ -442,8 +442,8 @@ $('#update-form').addEventListener('submit',async event=>{
     clientNextStep:$('#update-next-step').value.trim(),professionalName:$('#professional-name').value.trim(),professionalTitle:$('#professional-title').value.trim(),
     professionalRegistration:$('#professional-registration').value.trim(),professionalRegion:$('#professional-region').value.trim()
   };
-  if(!payload.title||!payload.description){toast('AÃ±ade un tÃ­tulo y una explicaciÃ³n para guardar el cambio.');(!payload.title?$('#update-title'):$('#update-description')).focus();return;}
-  const submitter=event.submitter;const originalLabel=submitter.innerHTML;submitter.disabled=true;submitter.textContent='Guardando avanceâ€¦';
+  if(!payload.title||!payload.description){toast('Añade un título y una explicación para guardar el cambio.');(!payload.title?$('#update-title'):$('#update-description')).focus();return;}
+  const submitter=event.submitter;const originalLabel=submitter.innerHTML;submitter.disabled=true;submitter.textContent='Guardando avance…';
   try{
     if(productionMode&&platformApi){
       await platformApi.invoke('update-case',payload);
@@ -460,7 +460,7 @@ $('#update-form').addEventListener('submit',async event=>{
     }
     $('#update-form').reset();$('#update-dialog').close();toast('Avance guardado y aviso registrado.');
   }catch(error){
-    const messages={UNAUTHENTICATED:'Tu sesiÃ³n ha caducado. Vuelve a iniciar sesiÃ³n.',UNAUTHORIZED:'Tu sesiÃ³n ha caducado. Vuelve a iniciar sesiÃ³n.',MFA_REQUIRED:'Vuelve a confirmar el cÃ³digo de tu app de autenticaciÃ³n.',FORBIDDEN:'Tu usuario no tiene permiso para modificar expedientes.',INVALID_FIELDS:'Revisa el estado, el tÃ­tulo y la descripciÃ³n.'};
+    const messages={UNAUTHENTICATED:'Tu sesión ha caducado. Vuelve a iniciar sesión.',UNAUTHORIZED:'Tu sesión ha caducado. Vuelve a iniciar sesión.',MFA_REQUIRED:'Vuelve a confirmar el código de tu app de autenticación.',FORBIDDEN:'Tu usuario no tiene permiso para modificar expedientes.',INVALID_FIELDS:'Revisa el estado, el título y la descripción.'};
     toast(messages[error?.code]||`No se ha podido guardar el avance${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
   }
   finally{submitter.disabled=false;submitter.innerHTML=originalLabel;}
@@ -468,9 +468,9 @@ $('#update-form').addEventListener('submit',async event=>{
 $('#invite-form').addEventListener('submit',async event=>{
   event.preventDefault();if(event.submitter?.value==='cancel'){$('#invite-dialog').close();return;}
   const payload={email:$('#invite-email').value.trim(),displayName:$('#invite-name').value.trim(),title:$('#invite-title').value.trim(),category:$('#invite-category').value};
-  if(!productionMode||!platformApi){toast('El alta real se habilitarÃ¡ al conectar el servidor europeo.');return;}
+  if(!productionMode||!platformApi){toast('El alta real se habilitará al conectar el servidor europeo.');return;}
   const submitter=event.submitter;submitter.disabled=true;
-  try{const created=await platformApi.invoke('invite-client',payload);await enterProduction();activeCaseId=created.caseId;activeSection='cases';renderShell();$('#invite-form').reset();$('#invite-dialog').close();toast('Expediente creado e invitaciÃ³n enviada.');}
+  try{const created=await platformApi.invoke('invite-client',payload);await enterProduction();activeCaseId=created.caseId;activeSection='cases';renderShell();$('#invite-form').reset();$('#invite-dialog').close();toast('Expediente creado e invitación enviada.');}
   catch{toast('No se ha podido completar el alta. Revisa el correo y vuelve a intentarlo.');}
   finally{submitter.disabled=false;}
 });
@@ -480,7 +480,7 @@ $('#lead-form').addEventListener('submit',async event=>{
     fullName:$('#lead-name').value.trim(),phone:$('#lead-phone').value.trim(),email:$('#lead-email').value.trim().toLowerCase(),province:$('#lead-province').value.trim(),
     category:$('#lead-category').value,source:$('#lead-source').value,summary:$('#lead-summary').value.trim(),privacyNoticeAcknowledged:Boolean($('#lead-privacy-notice').checked)
   };
-  if(!payload.phone||!payload.email){toast('Indica el telÃ©fono y el correo electrÃ³nico.');return;}
+  if(!payload.phone||!payload.email){toast('Indica el teléfono y el correo electrónico.');return;}
   const submitter=event.submitter;submitter.disabled=true;
   try{
     if(productionMode&&platformApi){await platformApi.invoke('manage-crm',{action:'create_lead',...payload});await enterProduction();}
@@ -497,7 +497,7 @@ $('#lead-detail-form').addEventListener('submit',async event=>{
   event.preventDefault();if(event.submitter?.value==='cancel'){$('#lead-detail-dialog').close();return;}
   const lead=state.leads.find(item=>item.id===$('#lead-detail-id').value);if(!lead)return;
   const changes={phone:$('#lead-detail-phone').value.trim(),email:$('#lead-detail-email').value.trim().toLowerCase(),status:$('#lead-detail-status').value,nextAction:$('#lead-detail-next-action').value.trim(),followUp:$('#lead-detail-follow-up').value,amount:Number($('#lead-detail-amount').value||0),note:$('#lead-detail-note').value.trim()};
-  if(!changes.phone||!changes.email){toast('La consulta debe conservar el telÃ©fono y el correo electrÃ³nico.');return;}
+  if(!changes.phone||!changes.email){toast('La consulta debe conservar el teléfono y el correo electrónico.');return;}
   const submitter=event.submitter;submitter.disabled=true;
   try{
     if(productionMode&&platformApi){await platformApi.invoke('manage-crm',{action:'update_lead',leadId:lead.id,...changes});await enterProduction();}
@@ -524,7 +524,7 @@ $('#convert-lead').addEventListener('click',async()=>{
       log('lead_converted','crm_lead',lead.id,{caseId});saveState();
     }
     $('#lead-detail-dialog').close();activeSection='cases';renderShell();toast('Consulta convertida en expediente.');
-  }catch(error){toast(error?.code==='EMAIL_REQUIRED_FOR_PORTAL'?'AÃ±ade un correo electrÃ³nico antes de crear el acceso del cliente.':'No se ha podido convertir la consulta.');}
+  }catch(error){toast(error?.code==='EMAIL_REQUIRED_FOR_PORTAL'?'Añade un correo electrónico antes de crear el acceso del cliente.':'No se ha podido convertir la consulta.');}
   finally{button.disabled=false;}
 });
 $('#task-form').addEventListener('submit',async event=>{
@@ -540,10 +540,10 @@ $('#task-form').addEventListener('submit',async event=>{
 });
 $('#password-form').addEventListener('submit',async event=>{
   event.preventDefault();const password=$('#new-password').value,confirmation=$('#confirm-password').value;
-  if(password!==confirmation){toast('Las contraseÃ±as no coinciden.');return;}
+  if(password!==confirmation){toast('Las contraseñas no coinciden.');return;}
   const submitter=event.submitter;submitter.disabled=true;
   try{await platformApi.updatePassword(password);$('#password-form').reset();$('#password-dialog').close();await enterProduction();toast('Acceso confirmado correctamente.');}
-  catch(error){toast(error?.code==='WEAK_PASSWORD'?'La contraseÃ±a debe tener al menos 12 caracteres.':'No se ha podido confirmar el acceso.');}
+  catch(error){toast(error?.code==='WEAK_PASSWORD'?'La contraseña debe tener al menos 12 caracteres.':'No se ha podido confirmar el acceso.');}
   finally{submitter.disabled=false;}
 });
 $('#password-dialog').addEventListener('cancel',event=>event.preventDefault());
@@ -558,7 +558,7 @@ $('#mfa-form').addEventListener('submit',async event=>{
     await enterProduction();
     toast(mfaEnrollment?'Segundo factor activado correctamente.':'Identidad confirmada correctamente.');
   }catch(error){
-    toast(error?.code==='INVALID_MFA_CODE'?'Introduce un cÃ³digo vÃ¡lido de tu app de autenticaciÃ³n.':'No se ha podido verificar el segundo factor.');
+    toast(error?.code==='INVALID_MFA_CODE'?'Introduce un código válido de tu app de autenticación.':'No se ha podido verificar el segundo factor.');
   }finally{submitter.disabled=false;}
 });
 $('#mfa-logout').addEventListener('click',logout);
