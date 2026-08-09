@@ -54,15 +54,19 @@
       } catch { return {}; }
     }
 
-    async #ensureSession() {
-      if (this.session?.access_token && Number(this.session.expires_at) * 1000 > Date.now() + 30000) return;
+    async #refreshSession() {
       if (!this.session?.refresh_token) throw new PlatformError('UNAUTHENTICATED', 401);
       const refreshed = await this.#request('/auth/v1/token?grant_type=refresh_token', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ refresh_token: this.session.refresh_token })
-      }, false);
+      }, false, false);
       this.#storeSession(refreshed);
+    }
+
+    async #ensureSession() {
+      if (this.session?.access_token && Number(this.session.expires_at) * 1000 > Date.now() + 30000) return;
+      await this.#refreshSession();
     }
 
     #headers(extra = {}, authenticated = true) {
@@ -74,7 +78,7 @@
       return headers;
     }
 
-    async #request(path, options = {}, authenticated = true) {
+    async #request(path, options = {}, authenticated = true, retryAuthentication = true) {
       if (authenticated) await this.#ensureSession();
       const response = await this.fetch(`${this.url}${path}`, {
         ...options,
@@ -82,6 +86,10 @@
       });
       const type = response.headers?.get?.('content-type') || '';
       const body = type.includes('json') ? await response.json() : await response.text();
+      if (response.status === 401 && authenticated && retryAuthentication && this.session?.refresh_token) {
+        await this.#refreshSession();
+        return this.#request(path, options, authenticated, false);
+      }
       if (!response.ok) throw new PlatformError(body?.error_code || body?.code || body?.error || 'REQUEST_FAILED', response.status, body);
       return body;
     }
@@ -99,7 +107,7 @@
 
     async signOut() {
       if (this.session) {
-        try { await this.#request('/auth/v1/logout', { method: 'POST' }); } catch { /* La sesión local debe cerrarse igualmente. */ }
+        try { await this.#request('/auth/v1/logout', { method: 'POST' }); } catch { /* La sesiÃ³n local debe cerrarse igualmente. */ }
       }
       this.session = null;
       this.storage.removeItem(SESSION_KEY);
@@ -150,7 +158,7 @@
           this.storage.setItem(PASSWORD_SETUP_KEY, 'required');
           return true;
         }
-      } catch { /* Un token no legible no se usa para tomar decisiones de autorización. */ }
+      } catch { /* Un token no legible no se usa para tomar decisiones de autorizaciÃ³n. */ }
       return false;
     }
 
@@ -262,3 +270,4 @@
   global.RatioPlatformApi = RatioPlatformApi;
   global.RatioPlatformError = PlatformError;
 })(window);
+
