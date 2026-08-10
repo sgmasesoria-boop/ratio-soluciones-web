@@ -3,5 +3,6 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "scripts": {"build": "node build.mjs"}
+  "scripts": {"build": "node build.mjs", "test": "node qa-web.mjs", "test:intake": "node intake-flow-qa.mjs", "test:seo": "node seo-audit.mjs"},
+  "devDependencies": {"playwright": "^1.62.0"}
 }

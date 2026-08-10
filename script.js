@@ -13,6 +13,14 @@ menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () 
   document.body.classList.remove('menu-open');
 }));
 
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !menu?.classList.contains('open')) return;
+  menu.classList.remove('open');
+  menuButton?.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('menu-open');
+  menuButton?.focus();
+});
+
 const revealElements = document.querySelectorAll('.reveal');
 if ('IntersectionObserver' in window) {
   const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
@@ -31,6 +39,7 @@ if (year) year.textContent = new Date().getFullYear();
 
 const form = document.getElementById('contact-form');
 const steps = [...document.querySelectorAll('.form-step')];
+const progress = document.querySelector('.form-progress');
 const progressBars = [...document.querySelectorAll('.form-progress span')];
 let currentStep = 1;
 
@@ -42,6 +51,7 @@ function showStep(number) {
     step.classList.toggle('active', active);
   });
   progressBars.forEach((bar, index) => bar.classList.toggle('active', index < number));
+  progress?.setAttribute('aria-valuenow', String(number));
   form?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
@@ -65,14 +75,59 @@ document.querySelectorAll('.form-back').forEach((button) => button.addEventListe
   showStep(Math.max(currentStep - 1, 1));
 }));
 
-form?.addEventListener('submit', (event) => {
+const intakeEndpoint = 'https://bvpeztdfwdbiielaione.supabase.co/functions/v1/public-intake';
+const supabasePublishableKey = 'sb_publishable_0Y0eIdsliv-v2TJ44xRGTw_hhRv0r5h';
+
+form?.addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (!form.checkValidity()) {
-    form.reportValidity();
+  if (!validateStep(3)) {
     return;
   }
+  const submitButton = form.querySelector('button[type="submit"]');
+  const status = form.querySelector('.form-note');
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'Enviando consulta…';
+  }
+  if (status) status.textContent = 'Registrando tu consulta de forma segura…';
+
   const data = new FormData(form);
-  const deadline = data.get('plazo') === 'Sí' ? ' En un documento aparece una posible fecha límite.' : '';
-  const message = `Hola, quiero que estudiéis un caso relacionado con: ${data.get('area')}.${deadline} Prefiero explicar los detalles por el canal privado que me indiquéis.`;
-  window.location.href = `https://wa.me/34660918844?text=${encodeURIComponent(message)}`;
+  try {
+    const response = await fetch(intakeEndpoint, {
+      method: 'POST',
+      headers: {
+        apikey: supabasePublishableKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fullName: data.get('nombre'),
+        email: data.get('email'),
+        phone: data.get('telefono'),
+        area: data.get('area'),
+        situation: data.get('situacion'),
+        consultation: data.get('consulta'),
+        website: '',
+        privacyNoticeAcknowledged: data.get('privacidad') === 'Información leída'
+      })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok || !result.reference) throw new Error(result.error || `HTTP ${response.status}`);
+    window.location.assign(`gracias.html?ref=${encodeURIComponent(result.reference)}`);
+  } catch (error) {
+    console.error('No se pudo registrar la consulta', error);
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.innerHTML = 'Volver a intentar <span>↗</span>';
+    }
+    if (status) status.innerHTML = 'No hemos podido registrar la consulta. Vuelve a intentarlo o escríbenos a <a href="mailto:clientes@ratiosoluciones.es">clientes@ratiosoluciones.es</a>.';
+  }
 });
+
+const receiptReference = document.getElementById('consultation-reference');
+if (receiptReference) {
+  const reference = new URLSearchParams(window.location.search).get('ref') || '';
+  if (/^C-[0-9]{4}-[A-Z0-9]{6}$/.test(reference)) {
+    receiptReference.textContent = reference;
+    receiptReference.closest('.receipt-reference')?.removeAttribute('hidden');
+  }
+}

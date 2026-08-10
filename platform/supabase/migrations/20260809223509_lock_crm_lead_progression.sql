@@ -1,0 +1,18 @@
+create or replace function private.prevent_crm_lead_status_regression()
+returns trigger language plpgsql security invoker set search_path=public,pg_temp as $$
+declare old_rank integer; new_rank integer;
+begin
+  if new.status=old.status then return new; end if;
+  if old.status in ('won','lost') then raise exception 'STATUS_REGRESSION'; end if;
+  if new.status='lost' then return new; end if;
+  old_rank:=case old.status when 'new' then 0 when 'review' then 1 when 'waiting' then 2 when 'viable' then 3 when 'proposal' then 4 when 'contract' then 5 when 'won' then 6 else -1 end;
+  new_rank:=case new.status when 'new' then 0 when 'review' then 1 when 'waiting' then 2 when 'viable' then 3 when 'proposal' then 4 when 'contract' then 5 when 'won' then 6 else -1 end;
+  if old_rank<0 or new_rank<=old_rank then raise exception 'STATUS_REGRESSION'; end if;
+  return new;
+end; $$;
+
+revoke all on function private.prevent_crm_lead_status_regression() from public,anon,authenticated;
+drop trigger if exists crm_leads_prevent_status_regression on public.crm_leads;
+create trigger crm_leads_prevent_status_regression
+before update of status on public.crm_leads
+for each row execute function private.prevent_crm_lead_status_regression();

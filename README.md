@@ -1,6 +1,10 @@
-# Ratio Soluciones — web pública
+# Ratio Soluciones
 
-Web responsive orientada exclusivamente a particulares en España. Presenta soluciones para deudas, banca, vivienda, seguros, familia y consumo, con un orientador inicial que abre WhatsApp sin incorporar un relato personal ni documentación sensible.
+Repositorio privado de la web pública y de la plataforma de gestión de Ratio Soluciones.
+
+- La raíz contiene la web orientada a particulares en Andalucía y la Comunidad de Madrid.
+- [`platform/`](platform/) contiene el CRM interno y el portal privado de clientes, con despliegues independientes.
+- El formulario público registra las consultas directamente en el CRM sin admitir documentos adjuntos.
 
 ## Construcción
 
@@ -13,8 +17,8 @@ El resultado se genera en `dist/`, incluido el worker de publicación.
 ## Alcance actual
 
 - Web pública y páginas de servicio.
-- Aviso legal, privacidad y cookies completos con los datos facilitados por el responsable.
-- Maqueta claramente identificada del futuro espacio privado.
-- Sin base de datos, autenticación, almacenamiento documental ni área real de clientes.
+- Aviso legal, privacidad, cookies e información precontractual revisados con los datos facilitados por el responsable.
+- Presentación coherente con el portal privado.
+- Canal documental privado dentro de la plataforma; la web pública no admite archivos.
 
-La plataforma privada deberá desarrollarse y auditarse antes de activar altas o carga de documentos. El texto legal debe revisarse si cambia la actividad, el modelo contractual o los proveedores técnicos.
+La web y la plataforma comparten repositorio para mantener un respaldo coherente, pero se construyen y publican por separado. La plataforma utiliza Supabase para autenticación, datos, funciones y almacenamiento privado. Deben mantenerse documentados los encargados del tratamiento, la ubicación de los datos, las garantías aplicables, las pruebas de acceso y la política de conservación. Los textos legales deben revisarse si cambia la actividad, el modelo contractual o los proveedores técnicos.
