@@ -942,7 +942,8 @@ $('#mfa-form').addEventListener('submit',async event=>{
     await enterProduction();
     toast(mfaEnrollment?'Segundo factor activado correctamente.':'Identidad confirmada correctamente.');
   }catch(error){
-    toast(error?.code==='INVALID_MFA_CODE'?'Introduce un código válido de tu app de autenticación.':'No se ha podido verificar el segundo factor.');
+    const invalidCode=['INVALID_MFA_CODE','mfa_verification_failed'].includes(error?.code);
+    toast(invalidCode?'El código temporal no es válido o ha caducado. Abre tu app de autenticación e introduce el código nuevo que aparece.':'No se ha podido verificar el segundo factor. Inténtalo de nuevo.');
   }finally{submitter.disabled=false;}
 });
 $('#mfa-logout').addEventListener('click',logout);

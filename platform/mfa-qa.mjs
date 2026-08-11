@@ -6,6 +6,7 @@ const factorId='11111111-1111-4111-8111-111111111111';
 const challengeId='22222222-2222-4222-8222-222222222222';
 const jwt=payload=>`header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;
 let mfaVerified=false;
+let verificationAttempts=0;
 const calls=[];
 const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
 const page=await browser.newPage({viewport:{width:1280,height:900}});
@@ -19,7 +20,11 @@ await page.route('https://ratio-test.supabase.co/**',async route=>{
   if(url.endsWith('/auth/v1/user'))return fulfill({id:'admin-1',email:'admin@example.es',factors:mfaVerified?[{id:factorId,factor_type:'totp',status:'verified'}]:[]});
   if(url.endsWith('/auth/v1/factors'))return fulfill({id:factorId,type:'totp',totp:{qr_code:'data:image/svg+xml;utf-8,<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#fff"/><rect x="8" y="8" width="48" height="48" fill="#000"/></svg>',secret:'TESTSECRET',uri:'otpauth://totp/Ratio:admin@example.es?secret=TESTSECRET&issuer=Ratio'}});
   if(url.endsWith(`/auth/v1/factors/${factorId}/challenge`))return fulfill({id:challengeId});
-  if(url.endsWith(`/auth/v1/factors/${factorId}/verify`)){mfaVerified=true;return fulfill({access_token:jwt({aal:'aal2'}),refresh_token:'mfa-refresh',expires_in:3600});}
+  if(url.endsWith(`/auth/v1/factors/${factorId}/verify`)){
+    verificationAttempts+=1;
+    if(verificationAttempts===1)return route.fulfill({status:422,contentType:'application/json',body:JSON.stringify({error_code:'mfa_verification_failed',msg:'Invalid TOTP code entered'})});
+    mfaVerified=true;return fulfill({access_token:jwt({aal:'aal2'}),refresh_token:'mfa-refresh',expires_in:3600});
+  }
   if(url.includes('/rest/v1/profiles?'))return fulfill([{id:'admin-1',display_name:'Gestor Prueba',internal_role:'admin',active:true}]);
   if(url.includes('/rest/v1/cases?')||url.includes('/rest/v1/case_events?')||url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_leads?')||url.includes('/rest/v1/crm_lead_notes?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?'))return fulfill([]);
   return route.fulfill({status:404,contentType:'application/json',body:'{"error":"NOT_FOUND"}'});
@@ -43,11 +48,15 @@ const qrVariantsSupported=qrVariants.every(value=>value.startsWith('data:image/s
 const textCorrect=await page.locator('#mfa-dialog').evaluate(dialog=>dialog.textContent.includes('autenticación')&&dialog.textContent.includes('Código temporal')&&!/[ÃÂ]|â†/.test(dialog.textContent));
 await page.locator('#mfa-code').fill('123456');
 await page.locator('#mfa-form .primary-button').click();
+await page.locator('#toast').waitFor({state:'visible'});
+const invalidCodeExplained=await page.locator('#toast').evaluate(toast=>toast.textContent.includes('no es válido o ha caducado')&&toast.textContent.includes('app de autenticación'));
+await page.locator('#mfa-code').fill('654321');
+await page.locator('#mfa-form .primary-button').click();
 await page.locator('#app').waitFor({state:'visible'});
 
 const result={
-  passed:enrollmentVisible&&qrRendered&&appLinkVisible&&qrVariantsSupported&&textCorrect&&mfaVerified&&calls.some(url=>url.endsWith('/challenge'))&&calls.some(url=>url.endsWith('/verify'))&&!errors.length,
-  enrollmentVisible,qrRendered,appLinkVisible,qrVariantsSupported,textCorrect,mfaVerified,errors
+  passed:enrollmentVisible&&qrRendered&&appLinkVisible&&qrVariantsSupported&&textCorrect&&invalidCodeExplained&&verificationAttempts===2&&mfaVerified&&calls.some(url=>url.endsWith('/challenge'))&&calls.some(url=>url.endsWith('/verify'))&&!errors.length,
+  enrollmentVisible,qrRendered,appLinkVisible,qrVariantsSupported,textCorrect,invalidCodeExplained,verificationAttempts,mfaVerified,errors
 };
 console.log(JSON.stringify(result,null,2));
 await browser.close();
