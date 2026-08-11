@@ -2,11 +2,14 @@ import {chromium} from 'file:///C:/Users/PC/.cache/codex-runtimes/codex-primary-
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 import {readFile} from 'node:fs/promises';
+import {sanitizeClientDraft} from './supabase/functions/_shared/ai-output.ts';
 
 const edge=await readFile('supabase/functions/ai-assist/index.ts','utf8');
 const app=await readFile('app.js','utf8');
 const http=await readFile('supabase/functions/_shared/http.ts','utf8');
 const migration=await readFile('supabase/migrations/20260812003000_case_ai_audit.sql','utf8');
+const hostileDraft='Estado «won» y open. [case:record] [event:c13c7744-a2c8-4fb2-9b08-ea12e4d7189cc] Los metadatos indican que el documento no está analizado. Próximo paso confirmado.';
+const safeDraft=sanitizeClientDraft(hostileDraft);
 const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
 const page=await browser.newPage({viewport:{width:1280,height:900}});
 const errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -42,6 +45,7 @@ const result={
   caseSourcesVisible:await page.locator('.ai-source').count()>0,
   caseDataMinimised:edge.includes("privacy_mode:'No contiene nombre, email, teléfono, DNI ni ruta de almacenamiento")&&!edge.includes("select('id,client_name"),
   documentContentBlocked:edge.includes('content_analyzed:false')&&edge.includes('document_content_analyzed:false'),
+  clientDraftSanitized:edge.includes('sanitizeClientDraft(result.draft_client_update)')&&!safeDraft.includes('[case:')&&!safeDraft.includes('[event:')&&!safeDraft.includes('c13c7744-a2c8-4fb2-9b08-ea12e4d7189cc')&&!/\b(?:won|open|metadatos?)\b/i.test(safeDraft),
   caseMemoryAudited:migration.includes('create table public.case_ai_runs')&&migration.includes('automatic_write boolean not null default false')&&migration.includes('revoke all privileges on public.case_ai_runs from public, anon, authenticated'),
   internalNoteApplied,
   internalNoteFeedback,
