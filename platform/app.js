@@ -372,6 +372,7 @@ function renderAdmin() {
       $('#request-document').addEventListener('click',openDocumentRequestDialog);
       $('#resend-case-confirmation')?.addEventListener('click',()=>resendCaseConfirmation(linkedLead));
       $('#analyze-case-ai')?.addEventListener('click',()=>analyzeCurrentCase(c));
+      $('#test-document-ai')?.addEventListener('click',testSyntheticDocumentPipeline);
       bindDocumentActions();
     }
   } else if (activeSection === 'finance') {
@@ -668,7 +669,7 @@ function renderAiAssistant(result) {
 }
 
 function caseAiPanel() {
-  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente interno · revisión humana</p><h3>Analizar el expediente completo</h3><p>Revisa la ficha, consulta inicial, notas, cronología, solicitudes, respuestas y metadatos documentales. No modifica nada ni envía mensajes.</p></div><button class="secondary-button" id="analyze-case-ai" type="button">Analizar expediente</button></div><p class="ai-data-scope">Privacidad: no se envían nombre, email, teléfono, DNI ni rutas de archivos. En esta fase no se lee el contenido de los documentos.</p><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
+  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente interno · revisión humana</p><h3>Analizar el expediente completo</h3><p>Revisa la ficha, consulta inicial, notas, cronología, solicitudes y respuestas. La lectura de documentos reales permanece bloqueada durante el piloto.</p></div><div class="ai-result-actions"><button class="secondary-button" id="test-document-ai" type="button">Probar PDF ficticio</button><button class="secondary-button" id="analyze-case-ai" type="button">Analizar expediente</button></div></div><p class="ai-data-scope">Privacidad: la prueba documental genera un PDF ficticio dentro del servidor. No utiliza documentos de clientes. La activación futura tendrá límites, auditoría y revisión humana.</p><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
 }
 
 function renderCaseAiAssistant(result) {
@@ -709,6 +710,18 @@ async function analyzeCurrentCase(caseItem) {
   }catch(error){
     const messages={AI_NOT_CONFIGURED:'Falta configurar la clave privada del servicio de análisis.',AI_BUDGET_EXCEEDED:'Se ha alcanzado el límite mensual configurado.',AI_KEY_INVALID:'La clave del servicio de análisis no es válida.',AI_QUOTA_EXCEEDED:'La cuenta del servicio de análisis no tiene cuota disponible.',AI_MODEL_UNAVAILABLE:'El modelo configurado no está disponible.',AI_REQUEST_INVALID:'El servicio rechazó la configuración del análisis.',AI_TEMPORARILY_UNAVAILABLE:'El servicio de análisis no está disponible temporalmente.',UNAUTHENTICATED:'Tu sesión ha caducado.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.',FORBIDDEN:'Tu usuario no tiene permiso para analizar expedientes.',CASE_NOT_FOUND:'El expediente ya no está disponible.'};
     setModalFeedback('#case-ai-feedback',messages[error?.code]||`No se ha podido analizar el expediente${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
+  }finally{button.disabled=false;button.textContent=original;}
+}
+async function testSyntheticDocumentPipeline(){
+  const button=$('#test-document-ai');if(!button)return;
+  const original=button.textContent;button.disabled=true;button.textContent='Probando…';
+  setModalFeedback('#case-ai-feedback','Generando y leyendo un PDF ficticio sin datos personales…','info');
+  try{
+    if(!productionMode||!platformApi){setModalFeedback('#case-ai-feedback','La prueba completa solo está disponible en el CRM protegido.','info');return;}
+    const result=await platformApi.invoke('ai-assist',{action:'test_document_pipeline'});
+    setModalFeedback('#case-ai-feedback',result.test_passed?`Prueba superada. Texto detectado: ${result.detected_text}`:`La API respondió, pero no identificó correctamente el PDF ficticio: ${result.caution}` ,result.test_passed?'info':'error');
+  }catch(error){
+    setModalFeedback('#case-ai-feedback',`No se ha podido completar la prueba documental${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
   }finally{button.disabled=false;button.textContent=original;}
 }
 function markNotificationsRead() {
