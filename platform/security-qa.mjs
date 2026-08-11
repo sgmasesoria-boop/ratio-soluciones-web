@@ -7,6 +7,8 @@ const crm=await readFile('supabase/functions/manage-crm/index.ts','utf8');
 const inviteClient=await readFile('supabase/functions/invite-client/index.ts','utf8');
 const caseEmail=await readFile('supabase/functions/_shared/case-email.ts','utf8');
 const documentEmail=await readFile('supabase/functions/_shared/document-email.ts','utf8');
+const updateCase=await readFile('supabase/functions/update-case/index.ts','utf8');
+const caseUpdateEmail=await readFile('supabase/functions/_shared/case-update-email.ts','utf8');
 const publicIntake=await readFile('supabase/functions/public-intake/index.ts','utf8');
 const config=await readFile('supabase/config.toml','utf8');
 const api=await readFile('platform-api.js','utf8');
@@ -33,6 +35,8 @@ for(const [name,source] of [['invite-client',inviteClient],['manage-crm',crm],['
   if(source.includes("Deno.env.get('CLIENT_PORTAL_URL')"))failures.push(`${name} permite que una variable antigua sustituya el portal corporativo.`);
   if(source.includes('ratio-portal-pruebas.sgmasesoria.chatgpt.site'))failures.push(`${name} conserva el portal provisional.`);
 }
+if(!updateCase.includes('sendCaseUpdateEmail')||!updateCase.includes('emailSent'))failures.push('Los avances del expediente no notifican al cliente por correo.');
+if(!caseUpdateEmail.includes("'case_update_email_sent'")||!caseUpdateEmail.includes('https://clientes.ratiosoluciones.es'))failures.push('El correo de avances no deja auditoría o no enlaza al portal corporativo.');
 if(http.includes("return json(request,{error:message}"))failures.push('Las funciones exponen errores internos.');
 if(!crm.includes("privacy_notice_at")||crm.includes("consent_at"))failures.push('El CRM no distingue información de privacidad y consentimiento.');
 for(const functionName of ['invite-client','update-case','manage-crm']){

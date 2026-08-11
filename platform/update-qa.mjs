@@ -20,7 +20,7 @@ await page.route('https://ratio-test.supabase.co/**',async route=>{
   if(url.includes('/rest/v1/case_events?'))return fulfill(updated?[{id:'event-1',case_id:'case-1',event_type:'study',title:latestUpdate.title,description:latestUpdate.description,visibility:'client',stage:'study',occurred_at:'2026-08-09T09:00:00Z'}]:[]);
   if(url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_leads?')||url.includes('/rest/v1/crm_lead_notes?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?'))return fulfill([]);
   if(url.endsWith('/functions/v1/update-case')&&!rejectedUpdateOnce){rejectedUpdateOnce=true;return route.fulfill({status:401,contentType:'application/json',body:'{"error":"UNAUTHORIZED"}'});}
-  if(url.endsWith('/functions/v1/update-case')){latestUpdate=JSON.parse(route.request().postData()||'{}');updated=true;return fulfill({eventId:'event-1'});}
+  if(url.endsWith('/functions/v1/update-case')){latestUpdate=JSON.parse(route.request().postData()||'{}');updated=true;return fulfill({eventId:'event-1',emailSent:true});}
   return route.fulfill({status:404,contentType:'application/json',body:'{"error":"NOT_FOUND"}'});
 });
 
@@ -47,7 +47,8 @@ const simplifiedPayload=updatePayload.title==='Demanda contestada'&&updatePayloa
 const retriedAfterRefresh=updateCalls.length===2&&calls.some(call=>call.url.includes('grant_type=refresh_token'));
 const toastText=await page.locator('#toast').textContent();
 const removedFields=await page.locator('#update-status, #update-description').count()===0;
-const result={passed:updated&&dialogClosed&&eventVisible&&authorizationSent&&simplifiedPayload&&removedFields&&retriedAfterRefresh&&!errors.length,updated,dialogClosed,eventVisible,authorizationSent,simplifiedPayload,removedFields,retriedAfterRefresh,toastText,errors,calls:calls.map(call=>({url:call.url,method:call.method,authorization:Boolean(call.authorization)}))};
+const emailNotificationConfirmed=toastText==='Avance guardado y cliente avisado por email.';
+const result={passed:updated&&dialogClosed&&eventVisible&&authorizationSent&&simplifiedPayload&&removedFields&&retriedAfterRefresh&&emailNotificationConfirmed&&!errors.length,updated,dialogClosed,eventVisible,authorizationSent,simplifiedPayload,removedFields,retriedAfterRefresh,emailNotificationConfirmed,toastText,errors,calls:calls.map(call=>({url:call.url,method:call.method,authorization:Boolean(call.authorization)}))};
 console.log(JSON.stringify(result,null,2));
 await browser.close();
 if(!result.passed)process.exitCode=1;

@@ -702,11 +702,12 @@ $('#update-form').addEventListener('submit',async event=>{
   setModalFeedback('#update-feedback','Guardando el avance…','info');
   try{
     if(productionMode&&platformApi){
-      await platformApi.invoke('update-case',payload);
+      const result=await platformApi.invoke('update-case',payload);
       await enterProduction();
       activeCaseId=payload.caseId;
       activeSection='cases';
       renderShell();
+      payload.emailSent=result.emailSent;
     }
     else{
       const c=currentCase();Object.assign(c,{clientNextStep:payload.clientNextStep,professionalName:payload.professionalName,professionalTitle:payload.professionalTitle,professionalRegistration:payload.professionalRegistration,professionalRegion:payload.professionalRegion});
@@ -714,7 +715,7 @@ $('#update-form').addEventListener('submit',async event=>{
       state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId:c.id,title:'Nuevo avance en tu expediente',body:payload.title,at,read:false});
       log('case_updated','case',c.id);saveState();renderShell();
     }
-    setModalFeedback('#update-feedback');$('#update-form').reset();$('#update-dialog').close();toast('Avance guardado y aviso registrado.');
+    setModalFeedback('#update-feedback');$('#update-form').reset();$('#update-dialog').close();toast(payload.emailSent===false?'Avance guardado en la plataforma, pero el correo no pudo enviarse.':'Avance guardado y cliente avisado por email.');
   }catch(error){
     const messages={UNAUTHENTICATED:'Tu sesión ha caducado. Vuelve a iniciar sesión.',UNAUTHORIZED:'Tu sesión ha caducado. Vuelve a iniciar sesión.',MFA_REQUIRED:'Vuelve a confirmar el código de tu app de autenticación.',FORBIDDEN:'Tu usuario no tiene permiso para modificar expedientes.',INVALID_FIELDS:'Revisa el título del avance.'};
     setModalFeedback('#update-feedback',messages[error?.code]||`No se ha podido guardar el avance${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);

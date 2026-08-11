@@ -1,5 +1,6 @@
 import {serviceClient,requireAdmin} from '../_shared/auth.ts';
 import {errorJson,handleOptions,json} from '../_shared/http.ts';
+import {sendCaseUpdateEmail} from '../_shared/case-update-email.ts';
 
 const clean=(value:unknown,max:number)=>String(value??'').trim().slice(0,max);
 
@@ -14,7 +15,7 @@ Deno.serve(async request=>{
     const title=clean(input.title,120);
     const allowedStatuses=['open','study','action','response','resolution','closed'];
     if(!/^[0-9a-f-]{36}$/i.test(caseId)||title.length<3)return respond({error:'INVALID_FIELDS'},400);
-    const {data:caseRecord,error:caseError}=await serviceClient.from('cases').select('status').eq('id',caseId).single();
+    const {data:caseRecord,error:caseError}=await serviceClient.from('cases').select('status,client_id,client_name,reference').eq('id',caseId).single();
     if(caseError||!caseRecord)return respond({error:'CASE_NOT_FOUND'},404);
     if(!allowedStatuses.includes(caseRecord.status))return respond({error:'INVALID_CASE_STATUS'},409);
     const {data:eventId,error}=await serviceClient.rpc('server_update_case',{
@@ -24,7 +25,10 @@ Deno.serve(async request=>{
       p_professional_region:clean(input.professionalRegion,80)
     });
     if(error)throw error;
-    return respond({eventId,status:caseRecord.status});
+    const {data:authUser}=await serviceClient.auth.admin.getUserById(caseRecord.client_id);
+    const email=authUser?.user?.email||'';
+    const emailSent=email?await sendCaseUpdateEmail({caseId,reference:caseRecord.reference,fullName:caseRecord.client_name,email}):false;
+    return respond({eventId,status:caseRecord.status,emailSent});
   }catch(error){
     return errorJson(request,error);
   }
