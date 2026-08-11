@@ -15,12 +15,12 @@ Deno.serve(async request=>{
     const title=clean(input.title,120);
     const allowedStatuses=['open','study','action','response','resolution','closed'];
     if(!/^[0-9a-f-]{36}$/i.test(caseId)||title.length<3)return respond({error:'INVALID_FIELDS'},400);
-    const {data:caseRecord,error:caseError}=await serviceClient.from('cases').select('status,client_id,client_name,reference').eq('id',caseId).single();
+    const {data:caseRecord,error:caseError}=await serviceClient.from('cases').select('status,client_id,client_name,reference,client_next_step').eq('id',caseId).single();
     if(caseError||!caseRecord)return respond({error:'CASE_NOT_FOUND'},404);
     if(!allowedStatuses.includes(caseRecord.status))return respond({error:'INVALID_CASE_STATUS'},409);
     const {data:eventId,error}=await serviceClient.rpc('server_update_case',{
       p_case_id:caseId,p_admin_id:admin.id,p_status:caseRecord.status,p_title:title,p_description:title,
-      p_client_next_step:clean(input.clientNextStep,400),p_professional_name:clean(input.professionalName,120),
+      p_client_next_step:caseRecord.client_next_step||'',p_professional_name:clean(input.professionalName,120),
       p_professional_title:clean(input.professionalTitle,120),p_professional_registration:clean(input.professionalRegistration,160),
       p_professional_region:clean(input.professionalRegion,80)
     });

@@ -76,7 +76,7 @@ const seed = {
   ],
   notifications: [{ id:'not_01', userId:'usr_client_01', caseId:'case_01', title:'Nuevo avance en tu expediente', body:'La revisión de la financiación está en curso.', at:iso(180), read:false }],
   documentRequests: [
-    {id:'req_01',caseId:'case_01',title:'Contrato de la tarjeta',instructions:'Sube el contrato o la copia más completa que tengas.',status:'pending',requestedAt:iso(60)}
+    {id:'req_01',caseId:'case_01',requestType:'document',title:'Contrato de la tarjeta',instructions:'Sube el contrato o la copia más completa que tengas.',status:'pending',responseText:'',responseAt:'',requestedAt:iso(60)}
   ],
   caseDocuments: [],
   leads: [
@@ -166,7 +166,7 @@ function mapProductionWorkspace(workspace, authUser) {
       }))
     })),
     tasks:(workspace.tasks || []).map(item => ({ id:item.id, leadId:item.lead_id, title:item.title, dueDate:item.due_on, priority:item.priority, completed:Boolean(item.completed_at), createdAt:item.created_at })),
-    documentRequests:(workspace.documentRequests || []).map(item => ({id:item.id,caseId:item.case_id,title:item.title,instructions:item.instructions||'',status:item.status,requestedBy:item.requested_by,requestedAt:item.requested_at,fulfilledAt:item.fulfilled_at||''})),
+    documentRequests:(workspace.documentRequests || []).map(item => ({id:item.id,caseId:item.case_id,requestType:item.request_type||'document',title:item.title,instructions:item.instructions||'',status:item.status,responseText:item.response_text||'',responseAt:item.response_at||'',requestedBy:item.requested_by,requestedAt:item.requested_at,fulfilledAt:item.fulfilled_at||''})),
     caseDocuments:(workspace.caseDocuments || []).map(item => ({id:item.id,caseId:item.case_id,requestId:item.request_id,originalName:item.original_name,mimeType:item.mime_type,sizeBytes:Number(item.size_bytes||0),status:item.status,uploadedBy:item.uploaded_by,privacyNoticeAt:item.privacy_notice_at,createdAt:item.created_at,reviewedAt:item.reviewed_at||''})),
     audit:[]
   };
@@ -366,11 +366,12 @@ function renderAdmin() {
     } else {
       const linkedLead=state.leads.find(lead=>lead.convertedCaseId===c.id);
       const resendAction=linkedLead?'<button class="secondary-button" id="resend-case-confirmation">Reenviar confirmación</button>':'';
-      $('#main').innerHTML = `${pageHead('Expedientes',c.reference+' · '+c.client,c.title,`<button class="secondary-button" id="back-to-cases">← Todos los expedientes</button>${resendAction}<button class="secondary-button" id="request-document">Solicitar documentación</button><button class="primary-button" id="new-update">Registrar avance →</button>`)}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Cronología</h2><span class="status-pill">${escapeHtml(c.status)}</span></div>${timeline(true)}</section><aside>${nextStepCard(c)}${professionalCard(c)}</aside></div>${caseDocumentsPanel(c,true)}${caseConsultationHistory(c)}`;
+      $('#main').innerHTML = `${pageHead('Expedientes',c.reference+' · '+c.client,c.title,`<button class="secondary-button" id="back-to-cases">← Todos los expedientes</button>${resendAction}<button class="secondary-button" id="request-document">Solicitar al cliente</button><button class="primary-button" id="new-update">Registrar avance →</button>`)}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Cronología</h2><span class="status-pill">${escapeHtml(c.status)}</span></div>${timeline(true)}</section><aside>${nextStepCard(c)}${professionalCard(c)}</aside></div>${caseAiPanel()}${caseDocumentsPanel(c,true)}${caseConsultationHistory(c)}`;
       $('#back-to-cases').addEventListener('click',()=>{activeCaseId=null;renderShell();});
       $('#new-update').addEventListener('click',openUpdateDialog);
       $('#request-document').addEventListener('click',openDocumentRequestDialog);
       $('#resend-case-confirmation')?.addEventListener('click',()=>resendCaseConfirmation(linkedLead));
+      $('#analyze-case-ai')?.addEventListener('click',()=>analyzeCurrentCase(c));
       bindDocumentActions();
     }
   } else if (activeSection === 'finance') {
@@ -435,8 +436,16 @@ function timeline(full=false) {
   return `<div class="timeline">${events.map((e,i)=>{const detail=e.description&&e.description!==e.title?`<p>${escapeHtml(e.description)}</p>`:'';return `<article class="event ${e.current?'current':''}"><span class="event-mark">${e.done?'✓':String(i+1).padStart(2,'0')}</span><div class="event-body"><small>${formatDate(e.at)} · ${e.done?'Registrado':e.current?'Último avance':'Avance'}</small><strong>${escapeHtml(e.title)}</strong>${detail}</div></article>`;}).join('')}${full?'<article class="event"><span class="event-mark">—</span><div class="event-body"><small>Siguiente avance</small><strong>Se añadirá cuando ocurra</strong><p>No mostramos fechas previstas que todavía no pueden confirmarse.</p></div></article>':''}</div>`;
 }
 function nextStepCard(c) {
-  const hasAction=Boolean(c.clientNextStep);
-  return `<section class="panel next-step-card"><div class="panel-head"><h2>${hasAction?'Qué necesitamos de ti':'Tu siguiente paso'}</h2><small>${hasAction?'Acción indicada':'Sin tareas'}</small></div><p>${escapeHtml(hasAction?c.clientNextStep:'No tienes que hacer nada ahora. Te avisaremos cuando exista una novedad.')}</p></section>`;
+  const pending=state.documentRequests.filter(item=>item.caseId===c.id&&item.status==='pending');
+  const isClient=state.activeRole==='client';
+  const content=pending.length?`<div class="client-action-list">${pending.map(request=>{
+    const typeLabel=request.requestType==='clarification'?'Aclaración':'Documentación';
+    const action=isClient?(request.requestType==='clarification'
+      ?`<button type="button" class="secondary-button" data-respond-request="${escapeHtml(request.id)}">Responder aclaración</button>`
+      :`<button type="button" class="secondary-button" data-upload-request="${escapeHtml(request.id)}">Entregar archivo</button>`):'';
+    return `<article class="client-action"><small>${escapeHtml(typeLabel)}</small><strong>${escapeHtml(request.title)}</strong>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${action}</article>`;
+  }).join('')}</div>`:'<p><strong>Por ahora, nada.</strong></p><p>Te avisaremos cuando necesitemos documentación, una aclaración o una decisión.</p>';
+  return `<section class="panel next-step-card"><div class="panel-head"><h2>Qué necesitamos de ti</h2><small>${pending.length?`${pending.length} pendiente${pending.length===1?'':'s'}`:'Sin peticiones pendientes'}</small></div>${content}</section>`;
 }
 function professionalCard(c) {
   const assigned=Boolean(c.professionalName);
@@ -457,10 +466,16 @@ function caseDocumentsPanel(caseItem,isAdmin) {
   const content=requests.length?requests.map(request=>{
     const files=documents.filter(document=>document.requestId===request.id);
     const fileList=files.length?`<ul class="document-list">${files.map(document=>`<li><span>${document.mimeType==='application/pdf'?'PDF':'IMG'}</span><div><strong>${escapeHtml(document.originalName)}</strong><small>${escapeHtml(formatFileSize(document.sizeBytes))} · ${escapeHtml(formatDate(document.createdAt))}</small></div><div class="document-actions"><em>${escapeHtml(statusText[document.status]||document.status)}</em><button type="button" class="document-download" data-download-document="${escapeHtml(document.id)}">Descargar</button>${isAdmin&&document.status==='uploaded'?`<button type="button" class="document-download" data-review-document="${escapeHtml(document.id)}" data-review-status="accepted">Validar</button>`:''}</div></li>`).join('')}</ul>`:'<p class="document-empty">Todavía no se ha entregado ningún archivo.</p>';
-    const uploadAction=!isAdmin&&['pending','submitted'].includes(request.status)?`<button type="button" class="secondary-button document-upload-button" data-upload-request="${escapeHtml(request.id)}">Entregar archivo</button>`:'';
-    return `<article class="document-request"><div class="document-request-head"><div><span class="history-source">${escapeHtml(statusText[request.status]||request.status)}</span><h3>${escapeHtml(request.title)}</h3></div>${uploadAction}</div>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${fileList}</article>`;
-  }).join(''):'<div class="empty">No hay solicitudes de documentación en este expediente.</div>';
-  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Canal documental privado</p><h2>Solicitudes y entregas</h2><p>Los archivos no se envían por correo. Cada operación queda vinculada al expediente.</p></div><small>${requests.length} ${requests.length===1?'solicitud':'solicitudes'}</small></div>${content}</section>`;
+    if(request.requestType==='clarification'){
+      const clarificationStatus={pending:'Pendiente de respuesta',submitted:'Respondida',accepted:'Revisada',cancelled:'Cancelada'};
+      const response=request.responseText?`<div class="clarification-response"><small>Respuesta del cliente${request.responseAt?` · ${escapeHtml(formatDate(request.responseAt))}`:''}</small><p>${escapeHtml(request.responseText)}</p></div>`:'<p class="document-empty">Todavía no se ha recibido la aclaración.</p>';
+      const adminAction=isAdmin&&request.status==='pending'?`<button type="button" class="document-download" data-cancel-request="${escapeHtml(request.id)}">Retirar solicitud</button>`:'';
+      return `<article class="document-request"><div class="document-request-head"><div><span class="history-source">Aclaración · ${escapeHtml(clarificationStatus[request.status]||request.status)}</span><h3>${escapeHtml(request.title)}</h3></div>${adminAction}</div>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${response}</article>`;
+    }
+    const adminAction=isAdmin&&request.status==='pending'?`<button type="button" class="document-download" data-cancel-request="${escapeHtml(request.id)}">Retirar solicitud</button>`:'';
+    return `<article class="document-request"><div class="document-request-head"><div><span class="history-source">Documentación · ${escapeHtml(statusText[request.status]||request.status)}</span><h3>${escapeHtml(request.title)}</h3></div>${adminAction}</div>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${fileList}</article>`;
+  }).join(''):'<div class="empty">No hay solicitudes al cliente en este expediente.</div>';
+  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Canal privado</p><h2>Solicitudes y respuestas</h2><p>Las aclaraciones y los archivos permanecen vinculados al expediente y dejan registro cronológico.</p></div><small>${requests.length} ${requests.length===1?'solicitud':'solicitudes'}</small></div>${content}</section>`;
 }
 
 function openDocumentRequestDialog() {
@@ -470,6 +485,7 @@ function openDocumentRequestDialog() {
   $('#document-request-context').textContent=`${c.reference} · ${c.client}`;
   $('#document-request-form').reset();
   $('#document-request-case').value=c.id;
+  $('#document-request-type').value='document';
   setModalFeedback('#document-request-feedback');
   $('#document-request-dialog').showModal();
 }
@@ -484,10 +500,23 @@ function openDocumentUploadDialog(requestId) {
   setModalFeedback('#document-upload-feedback');
   $('#document-upload-dialog').showModal();
 }
+function openClarificationResponseDialog(requestId) {
+  const request=state.documentRequests.find(item=>item.id===requestId&&item.requestType==='clarification');
+  if(!request)return;
+  $('#clarification-response-form').reset();
+  $('#clarification-response-case').value=request.caseId;
+  $('#clarification-response-request').value=request.id;
+  $('#clarification-response-title').textContent=request.title;
+  $('#clarification-response-instructions').textContent=request.instructions||'Escribe la aclaración solicitada.';
+  setModalFeedback('#clarification-response-feedback');
+  $('#clarification-response-dialog').showModal();
+}
 function bindDocumentActions() {
   $$('[data-upload-request]').forEach(button=>button.addEventListener('click',()=>openDocumentUploadDialog(button.dataset.uploadRequest)));
+  $$('[data-respond-request]').forEach(button=>button.addEventListener('click',()=>openClarificationResponseDialog(button.dataset.respondRequest)));
   $$('[data-download-document]').forEach(button=>button.addEventListener('click',()=>downloadDocument(button.dataset.downloadDocument,button)));
   $$('[data-review-document]').forEach(button=>button.addEventListener('click',()=>reviewDocument(button.dataset.reviewDocument,button.dataset.reviewStatus,button)));
+  $$('[data-cancel-request]').forEach(button=>button.addEventListener('click',()=>cancelClientRequest(button.dataset.cancelRequest,button)));
 }
 function caseSearchText(c) {
   const relatedLeads=state.leads.filter(lead=>lead.convertedCaseId===c.id);
@@ -587,7 +616,6 @@ function nextLeadReference() {
 function openUpdateDialog() {
   const c=currentCase();
   $('#update-title').value='';
-  $('#update-next-step').value=c.clientNextStep || '';
   $('#professional-name').value=c.professionalName || '';
   $('#professional-title').value=c.professionalTitle || '';
   $('#professional-registration').value=c.professionalRegistration || '';
@@ -637,6 +665,51 @@ function renderAiAssistant(result) {
     field.value=(field.value.trim()?`${field.value.trim()}\n\n${suggestion}`:suggestion).slice(0,800);field.focus();
     setModalFeedback('#lead-detail-feedback','Sugerencia añadida a la nota interna. Revísala y pulsa «Guardar cambios».','info');
   });
+}
+
+function caseAiPanel() {
+  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente interno · revisión humana</p><h3>Analizar el expediente completo</h3><p>Revisa la ficha, consulta inicial, notas, cronología, solicitudes, respuestas y metadatos documentales. No modifica nada ni envía mensajes.</p></div><button class="secondary-button" id="analyze-case-ai" type="button">Analizar expediente</button></div><p class="ai-data-scope">Privacidad: no se envían nombre, email, teléfono, DNI ni rutas de archivos. En esta fase no se lee el contenido de los documentos.</p><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
+}
+
+function renderCaseAiAssistant(result) {
+  const catalog=new Map((result.source_catalog||[]).map(source=>[source.id,source]));
+  const citations=ids=>(ids||[]).map(id=>catalog.get(id)).filter(Boolean).map(source=>`<span class="ai-source" title="${escapeHtml(source.id)}">${escapeHtml(source.label)}</span>`).join(' ');
+  const sourcedList=(items,empty='Ninguno detectado')=>items?.length?`<ul class="ai-sourced-list">${items.map(item=>`<li><span>${escapeHtml(item.statement||item.action)}</span>${item.rationale?`<small>${escapeHtml(item.rationale)}</small>`:''}<div>${citations(item.source_ids)}</div></li>`).join('')}</ul>`:`<p>${empty}</p>`;
+  const plainList=(items,empty='Ninguna detectada')=>items?.length?`<ul>${items.map(item=>`<li>${escapeHtml(item)}</li>`).join('')}</ul>`:`<p>${empty}</p>`;
+  $('#case-ai-result').innerHTML=`
+    <div class="ai-result-head"><strong>Análisis del expediente para revisión</strong><span>${escapeHtml(result.model||'Modelo configurado')} · ${escapeHtml(formatDate(result.analyzed_at||new Date().toISOString()))}</span></div>
+    <div class="ai-result-grid">
+      <section><small>Resumen ejecutivo</small><p>${escapeHtml(result.executive_summary)}</p></section>
+      <section><small>Situación actual</small><p>${escapeHtml(result.current_position)}</p></section>
+      <section><small>Hechos con fuente</small>${sourcedList(result.confirmed_facts)}</section>
+      <section><small>Peticiones pendientes</small>${sourcedList(result.pending_client_requests)}</section>
+      <section><small>Información que falta</small>${plainList(result.missing_information)}</section>
+      <section><small>Señales de urgencia</small>${sourcedList(result.urgency_flags)}</section>
+      <section><small>Posibles contradicciones</small>${sourcedList(result.contradictions)}</section>
+      <section><small>Próximas acciones sugeridas</small>${sourcedList(result.suggested_next_actions)}</section>
+    </div>
+    <section class="ai-draft"><small>Borrador de actualización al cliente</small><p>${escapeHtml(result.draft_client_update)}</p></section>
+    <p class="ai-caution">${escapeHtml(result.caution)} ${result.document_content_analyzed?'':'El contenido de los archivos no ha sido analizado.'}</p>
+    <div class="ai-result-actions"><button class="secondary-button" id="copy-case-ai-draft" type="button">Copiar borrador</button></div>`;
+  $('#case-ai-result').hidden=false;
+  $('#copy-case-ai-draft').addEventListener('click',async()=>{
+    const copied=await copyTextSafely(result.draft_client_update);
+    setModalFeedback('#case-ai-feedback',copied?'Borrador copiado. Revísalo antes de utilizarlo.':'No se ha podido copiar automáticamente.',copied?'info':'error');
+  });
+}
+
+async function analyzeCurrentCase(caseItem) {
+  const button=$('#analyze-case-ai');if(!button)return;
+  const original=button.textContent;button.disabled=true;button.textContent='Analizando…';
+  setModalFeedback('#case-ai-feedback','Analizando el expediente y comprobando sus fuentes. Puede tardar unos segundos…','info');
+  try{
+    const demo={model:'Piloto demostrativo',analyzed_at:new Date().toISOString(),executive_summary:'El expediente está en curso y contiene una solicitud pendiente al cliente.',current_position:'Debe revisarse la documentación solicitada antes de proponer nuevas actuaciones.',confirmed_facts:[{statement:'Existe una solicitud pendiente.',source_ids:['request:req_01']}],pending_client_requests:[{statement:'Contrato de la tarjeta pendiente de entrega.',source_ids:['request:req_01']}],missing_information:['Contenido del contrato solicitado'],urgency_flags:[],contradictions:[],suggested_next_actions:[{action:'Esperar la entrega solicitada y revisarla.',rationale:'La decisión debe basarse en el documento.',source_ids:['request:req_01'],requires_human_review:true}],draft_client_update:'Hemos revisado el expediente. Para continuar necesitamos que entregues el documento solicitado desde tu plataforma privada.',caution:'Análisis orientativo sujeto a revisión humana.',source_catalog:[{id:'request:req_01',label:'Contrato de la tarjeta',type:'client_request',at:new Date().toISOString()}],document_content_analyzed:false};
+    const result=productionMode&&platformApi?await platformApi.invoke('ai-assist',{action:'analyze_case',caseId:caseItem.id}):demo;
+    renderCaseAiAssistant(result);setModalFeedback('#case-ai-feedback');
+  }catch(error){
+    const messages={AI_NOT_CONFIGURED:'Falta configurar la clave privada del servicio de análisis.',AI_BUDGET_EXCEEDED:'Se ha alcanzado el límite mensual configurado.',AI_KEY_INVALID:'La clave del servicio de análisis no es válida.',AI_QUOTA_EXCEEDED:'La cuenta del servicio de análisis no tiene cuota disponible.',AI_MODEL_UNAVAILABLE:'El modelo configurado no está disponible.',AI_REQUEST_INVALID:'El servicio rechazó la configuración del análisis.',AI_TEMPORARILY_UNAVAILABLE:'El servicio de análisis no está disponible temporalmente.',UNAUTHENTICATED:'Tu sesión ha caducado.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.',FORBIDDEN:'Tu usuario no tiene permiso para analizar expedientes.',CASE_NOT_FOUND:'El expediente ya no está disponible.'};
+    setModalFeedback('#case-ai-feedback',messages[error?.code]||`No se ha podido analizar el expediente${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
+  }finally{button.disabled=false;button.textContent=original;}
 }
 function markNotificationsRead() {
   const unread=state.notifications.filter(n=>n.userId===currentUser().id&&!n.read);
@@ -694,7 +767,7 @@ $('#update-form').addEventListener('submit',async event=>{
   event.preventDefault();if(event.submitter?.value==='cancel'){$('#update-dialog').close();return;}
   const payload={
     caseId:currentCase().id,title:$('#update-title').value.trim(),
-    clientNextStep:$('#update-next-step').value.trim(),professionalName:$('#professional-name').value.trim(),professionalTitle:$('#professional-title').value.trim(),
+    professionalName:$('#professional-name').value.trim(),professionalTitle:$('#professional-title').value.trim(),
     professionalRegistration:$('#professional-registration').value.trim(),professionalRegion:$('#professional-region').value.trim()
   };
   if(!payload.title){setModalFeedback('#update-feedback','Añade el título del avance para guardar el cambio.');$('#update-title').focus();return;}
@@ -710,7 +783,7 @@ $('#update-form').addEventListener('submit',async event=>{
       payload.emailSent=result.emailSent;
     }
     else{
-      const c=currentCase();Object.assign(c,{clientNextStep:payload.clientNextStep,professionalName:payload.professionalName,professionalTitle:payload.professionalTitle,professionalRegistration:payload.professionalRegistration,professionalRegion:payload.professionalRegion});
+      const c=currentCase();Object.assign(c,{professionalName:payload.professionalName,professionalTitle:payload.professionalTitle,professionalRegistration:payload.professionalRegistration,professionalRegion:payload.professionalRegion});
       const at=new Date().toISOString();state.events.forEach(item=>item.current=false);state.events.push({id:crypto.randomUUID(),caseId:c.id,kind:'case_update',title:payload.title,description:payload.title,at,current:true});
       state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId:c.id,title:'Nuevo avance en tu expediente',body:payload.title,at,read:false});
       log('case_updated','case',c.id);saveState();renderShell();
@@ -849,8 +922,8 @@ $('#task-form').addEventListener('submit',async event=>{
 $('#document-request-form').addEventListener('submit',async event=>{
   event.preventDefault();
   if(event.submitter?.value==='cancel'){$('#document-request-dialog').close();return;}
-  const payload={action:'request_document',caseId:$('#document-request-case').value,title:$('#document-request-title').value.trim(),instructions:$('#document-request-instructions').value.trim()};
-  if(payload.title.length<3){setModalFeedback('#document-request-feedback','Indica con claridad qué documentación necesitas.');return;}
+  const payload={action:'request_document',caseId:$('#document-request-case').value,requestType:$('#document-request-type').value,title:$('#document-request-title').value.trim(),instructions:$('#document-request-instructions').value.trim()};
+  if(payload.title.length<3){setModalFeedback('#document-request-feedback','Indica con claridad qué necesitas del cliente.');return;}
   const button=event.submitter||$('#document-request-form .primary-button');const original=button.innerHTML;button.disabled=true;button.textContent='Creando solicitud…';
   setModalFeedback('#document-request-feedback','Creando la solicitud y registrando el aviso…','info');
   try{
@@ -860,16 +933,41 @@ $('#document-request-form').addEventListener('submit',async event=>{
       await enterProduction();activeCaseId=payload.caseId;activeSection='cases';renderShell();
     }else{
       const at=new Date().toISOString(),id=crypto.randomUUID();
-      state.documentRequests.unshift({id,caseId:payload.caseId,title:payload.title,instructions:payload.instructions,status:'pending',requestedAt:at,requestedBy:currentUser().id});
-      state.events.push({id:crypto.randomUUID(),caseId:payload.caseId,kind:'document_requested',title:`Documentación solicitada: ${payload.title}`,description:payload.instructions,at,current:true});
-      state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId:payload.caseId,title:'Nueva solicitud de documentación',body:payload.title,at,read:false});
-      log('document_requested','document_request',id);saveState();renderShell();
+      const isDocument=payload.requestType==='document';
+      state.documentRequests.unshift({id,caseId:payload.caseId,requestType:payload.requestType,title:payload.title,instructions:payload.instructions,status:'pending',responseText:'',responseAt:'',requestedAt:at,requestedBy:currentUser().id});
+      state.events.push({id:crypto.randomUUID(),caseId:payload.caseId,kind:isDocument?'document_requested':'clarification_requested',title:`${isDocument?'Documentación':'Aclaración'} solicitada: ${payload.title}`,description:payload.instructions,at,current:true});
+      state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId:payload.caseId,title:isDocument?'Nueva solicitud de documentación':'Necesitamos una aclaración',body:payload.title,at,read:false});
+      log(isDocument?'document_requested':'clarification_requested','client_request',id);saveState();renderShell();
     }
     $('#document-request-form').reset();$('#document-request-dialog').close();
     toast(result.emailSent===false?'Solicitud creada. El aviso está en el portal, pero el correo no pudo enviarse.':'Solicitud creada y cliente avisado.');
   }catch(error){
-    const messages={CASE_CLOSED:'No se puede pedir documentación en un expediente cerrado.',INVALID_DOCUMENT_REQUEST:'Revisa el título de la solicitud.',MFA_REQUIRED:'Vuelve a confirmar el código de tu app de autenticación.',FORBIDDEN:'Tu usuario no tiene permiso para crear solicitudes.'};
+    const messages={CASE_CLOSED:'No se puede crear una solicitud en un expediente cerrado.',INVALID_CLIENT_REQUEST:'Revisa el tipo y el título de la solicitud.',MFA_REQUIRED:'Vuelve a confirmar el código de tu app de autenticación.',FORBIDDEN:'Tu usuario no tiene permiso para crear solicitudes.'};
     setModalFeedback('#document-request-feedback',messages[error?.code]||'No se ha podido crear la solicitud.');
+  }finally{button.disabled=false;button.innerHTML=original;}
+});
+$('#clarification-response-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(event.submitter?.value==='cancel'){$('#clarification-response-dialog').close();return;}
+  const caseId=$('#clarification-response-case').value,requestId=$('#clarification-response-request').value,responseText=$('#clarification-response-text').value.trim();
+  if(responseText.length<2){setModalFeedback('#clarification-response-feedback','Escribe la aclaración antes de enviarla.');return;}
+  const button=event.submitter||$('#clarification-response-form .primary-button');const original=button.innerHTML;button.disabled=true;button.textContent='Enviando aclaración…';
+  setModalFeedback('#clarification-response-feedback','Guardando la respuesta en el expediente…','info');
+  try{
+    if(productionMode&&platformApi){
+      await platformApi.invoke('document-workflow',{action:'submit_clarification',caseId,requestId,responseText});
+      await enterProduction();activeCaseId=caseId;activeSection='overview';renderShell();
+    }else{
+      const at=new Date().toISOString(),request=state.documentRequests.find(item=>item.id===requestId);
+      if(request){request.status='submitted';request.responseText=responseText;request.responseAt=at;request.fulfilledAt=at;}
+      state.events.push({id:crypto.randomUUID(),caseId,kind:'clarification_submitted',title:`Aclaración enviada: ${request?.title||'Respuesta solicitada'}`,description:responseText,at,current:true});
+      state.notifications.push({id:crypto.randomUUID(),userId:state.users.admin.id,caseId,title:'Aclaración recibida',body:request?.title||'Respuesta del cliente',at,read:false});
+      log('clarification_submitted','client_request',requestId);saveState();renderShell();
+    }
+    $('#clarification-response-form').reset();$('#clarification-response-dialog').close();toast('Aclaración enviada y registrada en tu expediente.');
+  }catch(error){
+    const messages={INVALID_CLARIFICATION_RESPONSE:'Revisa la aclaración antes de enviarla.',CLIENT_REQUEST_ACCESS_DENIED:'No tienes acceso a esta solicitud.',DOCUMENT_REQUEST_UNAVAILABLE:'Esta solicitud ya no admite respuestas.'};
+    setModalFeedback('#clarification-response-feedback',messages[error?.code]||'No se ha podido guardar la aclaración. Vuelve a intentarlo.');
   }finally{button.disabled=false;button.innerHTML=original;}
 });
 $('#document-file').addEventListener('change',event=>{
@@ -921,6 +1019,17 @@ async function reviewDocument(documentId,status,button){
     else{const item=state.caseDocuments.find(document=>document.id===documentId);if(item)item.status=status;saveState();renderShell();}
     toast(status==='accepted'?'Documento validado.':'Documento marcado para revisión.');
   }catch{toast('No se ha podido actualizar el documento.');}
+  finally{button.disabled=false;button.textContent=original;}
+}
+async function cancelClientRequest(requestId,button){
+  if(!window.confirm('¿Retirar esta solicitud? El cliente verá que ya no tiene que responderla.'))return;
+  const original=button.textContent;button.disabled=true;button.textContent='Retirando…';
+  try{
+    const request=state.documentRequests.find(item=>item.id===requestId);
+    if(productionMode&&platformApi){await platformApi.invoke('document-workflow',{action:'cancel_request',requestId});await enterProduction();activeCaseId=request?.caseId||activeCaseId;activeSection='cases';renderShell();}
+    else if(request){request.status='cancelled';const at=new Date().toISOString();state.events.push({id:crypto.randomUUID(),caseId:request.caseId,kind:'client_request_cancelled',title:`Solicitud retirada: ${request.title}`,description:'Ya no necesitamos esta respuesta.',at,current:true});saveState();renderShell();}
+    toast('Solicitud retirada. El cliente ya no tiene que responderla.');
+  }catch{toast('No se ha podido retirar la solicitud.');}
   finally{button.disabled=false;button.textContent=original;}
 }
 $('#password-form').addEventListener('submit',async event=>{

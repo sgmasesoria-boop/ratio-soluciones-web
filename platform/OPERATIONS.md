@@ -59,7 +59,11 @@ El gestor marca el expediente como cerrado y registra el último avance. La cuen
 # Piloto de IA interno
 
 - El botón `Analizar consulta` solo aparece dentro del CRM.
-- La función envía a OpenAI categoría, provincia, resumen y estado; excluye nombre, teléfono y correo.
+- El triaje de consultas envía a OpenAI categoría, provincia, resumen y estado; excluye nombre, teléfono y correo.
+- El análisis de expedientes envía la ficha minimizada, consulta inicial, notas, cronología, solicitudes, respuestas y metadatos de documentos. Excluye nombre, teléfono, correo, DNI, rutas de almacenamiento y contenido de archivos.
+- Cada análisis del expediente se conserva en `case_ai_runs` con fuentes, modelo, versión del prompt, consumo y coste estimado. La tabla es de solo servicio y el historial es inmutable.
+- La función usa `store:false`, exige administrador con AAL2 y nunca modifica el expediente ni envía comunicaciones.
+- No habilitar contenido documental hasta documentar contrato, subencargados, localización, conservación y transferencias del proveedor de IA, y completar una prueba específica con datos ficticios.
 - El resultado es una sugerencia: no decide viabilidad, no envía mensajes y no cambia datos automáticamente.
 - Cada uso queda auditado con modelo, consumo y coste estimado.
 - El límite mensual predeterminado es 25 USD y puede reducirse con `OPENAI_MONTHLY_HARD_LIMIT_USD`.

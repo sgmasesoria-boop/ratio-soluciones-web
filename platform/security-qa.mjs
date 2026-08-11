@@ -7,6 +7,7 @@ const crm=await readFile('supabase/functions/manage-crm/index.ts','utf8');
 const inviteClient=await readFile('supabase/functions/invite-client/index.ts','utf8');
 const caseEmail=await readFile('supabase/functions/_shared/case-email.ts','utf8');
 const documentEmail=await readFile('supabase/functions/_shared/document-email.ts','utf8');
+const documentUploadEmail=await readFile('supabase/functions/_shared/document-upload-email.ts','utf8');
 const updateCase=await readFile('supabase/functions/update-case/index.ts','utf8');
 const caseUpdateEmail=await readFile('supabase/functions/_shared/case-update-email.ts','utf8');
 const publicIntake=await readFile('supabase/functions/public-intake/index.ts','utf8');
@@ -37,6 +38,7 @@ for(const [name,source] of [['invite-client',inviteClient],['manage-crm',crm],['
 }
 if(!updateCase.includes('sendCaseUpdateEmail')||!updateCase.includes('emailSent'))failures.push('Los avances del expediente no notifican al cliente por correo.');
 if(!caseUpdateEmail.includes("'case_update_email_sent'")||!caseUpdateEmail.includes('https://clientes.ratiosoluciones.es'))failures.push('El correo de avances no deja auditoría o no enlaza al portal corporativo.');
+if(!documentUploadEmail.includes("'document_upload_email_sent'")||!documentUploadEmail.includes('https://crm.ratiosoluciones.es'))failures.push('La entrega documental no avisa por correo al canal interno.');
 if(http.includes("return json(request,{error:message}"))failures.push('Las funciones exponen errores internos.');
 if(!crm.includes("privacy_notice_at")||crm.includes("consent_at"))failures.push('El CRM no distingue información de privacidad y consentimiento.');
 for(const functionName of ['invite-client','update-case','manage-crm']){

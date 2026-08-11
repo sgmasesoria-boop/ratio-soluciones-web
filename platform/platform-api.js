@@ -279,7 +279,7 @@
         includeCrm ? this.select('crm_leads', 'select=id,reference,full_name,phone,email,province,category,source,summary,status,next_action,quoted_amount,privacy_notice_at,legal_basis,converted_case_id,created_at,updated_at&order=created_at.desc') : Promise.resolve([]),
         includeCrm ? this.select('crm_lead_notes', 'select=id,lead_id,body,author_id,created_at&order=created_at.asc') : Promise.resolve([]),
         includeCrm ? this.select('crm_tasks', 'select=id,lead_id,case_id,title,due_on,priority,assigned_to,completed_at,created_at&order=due_on.asc') : Promise.resolve([]),
-        this.select('document_requests', 'select=id,case_id,title,instructions,status,requested_by,requested_at,fulfilled_at&order=requested_at.desc'),
+        this.select('document_requests', 'select=id,case_id,request_type,title,instructions,status,response_text,response_at,requested_by,requested_at,fulfilled_at&order=requested_at.desc'),
         this.select('case_documents', 'select=id,case_id,request_id,original_name,mime_type,size_bytes,status,uploaded_by,privacy_notice_at,created_at,reviewed_at&order=created_at.desc')
       ]);
       return { profile: profile[0] || null, cases, events, notifications, leads, leadNotes, tasks, documentRequests, caseDocuments };

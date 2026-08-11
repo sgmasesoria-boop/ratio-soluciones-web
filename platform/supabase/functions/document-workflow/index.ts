@@ -1,6 +1,7 @@
 import {canAccessCase,requireAdmin,requireUser,serviceClient} from '../_shared/auth.ts';
 import {errorJson,handleOptions,json} from '../_shared/http.ts';
 import {sendDocumentRequestEmail} from '../_shared/document-email.ts';
+import {sendDocumentUploadEmail} from '../_shared/document-upload-email.ts';
 
 const BUCKET='case-documents';
 const MAX_BYTES=5*1024*1024;
@@ -21,18 +22,42 @@ async function requireCaseAccess(request:Request,userId:string,caseId:string){
 async function createRequest(request:Request,input:Record<string,unknown>){
   const admin=await requireAdmin(request);
   const caseId=clean(input.caseId,36),title=clean(input.title,120),instructions=clean(input.instructions,800);
-  if(!validUuid(caseId)||title.length<3)throw new Error('INVALID_DOCUMENT_REQUEST');
+  const requestType=clean(input.requestType,20)||'document';
+  if(!validUuid(caseId)||title.length<3||!['document','clarification'].includes(requestType))throw new Error('INVALID_CLIENT_REQUEST');
   const {data:caseRecord,error:caseError}=await serviceClient.from('cases').select('client_id,client_name,status').eq('id',caseId).single();
   if(caseError||!caseRecord)throw new Error('CASE_NOT_FOUND');
   if(['closed','archived'].includes(caseRecord.status))throw new Error('CASE_CLOSED');
-  const {data:requestId,error}=await serviceClient.rpc('server_create_document_request',{
-    p_case_id:caseId,p_admin_id:admin.id,p_title:title,p_instructions:instructions
+  const {data:requestId,error}=await serviceClient.rpc('server_create_client_request',{
+    p_case_id:caseId,p_admin_id:admin.id,p_request_type:requestType,p_title:title,p_instructions:instructions
   });
   if(error)throw error;
   const {data:authUser}=await serviceClient.auth.admin.getUserById(caseRecord.client_id);
   const email=authUser?.user?.email||'';
-  const emailSent=email?await sendDocumentRequestEmail({caseId,email,fullName:caseRecord.client_name}):false;
-  return {requestId,emailSent};
+  const emailSent=email?await sendDocumentRequestEmail({caseId,email,fullName:caseRecord.client_name,requestType}):false;
+  return {requestId,emailSent,requestType};
+}
+
+async function submitClarification(request:Request,input:Record<string,unknown>){
+  const user=await requireUser(request);
+  const caseId=clean(input.caseId,36),requestId=clean(input.requestId,36),responseText=clean(input.responseText,4000);
+  await requireCaseAccess(request,user.id,caseId);
+  if(!validUuid(requestId)||responseText.length<2)throw new Error('INVALID_CLARIFICATION_RESPONSE');
+  const {error}=await serviceClient.rpc('server_submit_clarification',{
+    p_case_id:caseId,p_request_id:requestId,p_client_id:user.id,p_response_text:responseText
+  });
+  if(error)throw error;
+  return {ok:true,status:'submitted'};
+}
+
+async function cancelRequest(request:Request,input:Record<string,unknown>){
+  const admin=await requireAdmin(request);
+  const requestId=clean(input.requestId,36);
+  if(!validUuid(requestId))throw new Error('INVALID_CLIENT_REQUEST');
+  const {error}=await serviceClient.rpc('server_cancel_client_request',{
+    p_request_id:requestId,p_admin_id:admin.id
+  });
+  if(error)throw error;
+  return {ok:true,status:'cancelled'};
 }
 
 async function uploadDocument(request:Request,form:FormData){
@@ -59,7 +84,9 @@ async function uploadDocument(request:Request,form:FormData){
       p_privacy_notice_version:PRIVACY_VERSION
     });
     if(error)throw error;
-    return {documentId,status:'uploaded'};
+    const {data:caseRecord}=await serviceClient.from('cases').select('reference').eq('id',caseId).single();
+    const emailSent=caseRecord?.reference?await sendDocumentUploadEmail({caseId,reference:caseRecord.reference}):false;
+    return {documentId,status:'uploaded',emailSent};
   }catch(error){
     await serviceClient.storage.from(BUCKET).remove([storagePath]);
     throw error;
@@ -113,6 +140,8 @@ Deno.serve(async request=>{
     }
     const input=await request.json();
     if(input.action==='request_document')return json(request,await createRequest(request,input),201);
+    if(input.action==='submit_clarification')return json(request,await submitClarification(request,input),201);
+    if(input.action==='cancel_request')return json(request,await cancelRequest(request,input));
     if(input.action==='download_document')return json(request,await downloadDocument(request,input));
     if(input.action==='review_document')return json(request,await reviewDocument(request,input));
     return json(request,{error:'UNKNOWN_ACTION'},400);

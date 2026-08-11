@@ -53,7 +53,6 @@
     <form method="dialog" id="update-form">
       <div class="modal-head"><div><p class="kicker">Seguimiento del expediente</p><h2>Registrar un avance</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
       <label>Título del avance<input id="update-title" required maxlength="120" placeholder="Ej. Demanda contestada"></label>
-      <label>Qué necesitamos ahora del cliente<textarea id="update-next-step" rows="2" maxlength="400" placeholder="Déjalo vacío si no tiene que hacer nada"></textarea></label>
       <div class="professional-fields">
         <p class="kicker">Profesional asignado</p>
         <label>Nombre y apellidos<input id="professional-name" maxlength="120" placeholder="Se mostrará al cliente cuando se asigne"></label>
@@ -61,7 +60,7 @@
         <label>Colegiación o acreditación<input id="professional-registration" maxlength="160" placeholder="Ej. ICAGR n.º 0000"></label>
         <label>Territorio<input id="professional-region" maxlength="80" placeholder="Ej. Andalucía o Madrid"></label>
       </div>
-      <div class="privacy-preview"><small>Qué verá el cliente</small><p>El título del avance, lo que necesitamos de él y los datos del profesional asignado. Las solicitudes de archivos se crean por separado en el canal documental privado.</p></div>
+      <div class="privacy-preview"><small>Qué verá el cliente</small><p>El título del avance y los datos del profesional asignado. Si necesitas documentación o una aclaración, utiliza «Solicitar al cliente».</p></div>
       <div id="update-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
       <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Guardar y notificar <span>→</span></button></div>
     </form>
@@ -69,14 +68,28 @@
 
   <dialog id="document-request-dialog" class="modal">
     <form method="dialog" id="document-request-form">
-      <div class="modal-head"><div><p class="kicker">Canal documental privado</p><h2>Solicitar documentación</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <div class="modal-head"><div><p class="kicker">Canal privado</p><h2>Solicitar al cliente</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
       <input id="document-request-case" type="hidden">
       <div class="request-context"><small>Expediente</small><strong id="document-request-context"></strong><p>La solicitud aparecerá en el portal y generará un aviso por correo sin adjuntar información sensible.</p></div>
-      <label>Documento o información solicitada<input id="document-request-title" required maxlength="120" placeholder="Ej. Contrato de financiación"></label>
-      <label>Indicaciones para el cliente<textarea id="document-request-instructions" rows="3" maxlength="800" placeholder="Explica qué debe entregar, sin pedir datos innecesarios"></textarea></label>
-      <div class="privacy-preview"><small>Canal seguro</small><p>El cliente verá esta solicitud dentro de su expediente y solo podrá subir PDF, JPG o PNG de hasta 5 MB.</p></div>
+      <label>Tipo de respuesta<select id="document-request-type"><option value="document">Entregar documentación</option><option value="clarification">Responder una aclaración por escrito</option></select></label>
+      <label>Qué necesitamos<input id="document-request-title" required maxlength="120" placeholder="Ej. Escritura de compraventa o aclaración sobre el pago"></label>
+      <label>Indicaciones para el cliente<textarea id="document-request-instructions" rows="3" maxlength="800" placeholder="Explica con claridad qué debe entregar o responder"></textarea></label>
+      <div class="privacy-preview"><small>Canal seguro</small><p>La petición aparecerá en «Qué necesitamos de ti». El cliente responderá dentro del portal, mediante archivo o texto según el tipo elegido.</p></div>
       <div id="document-request-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
       <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Crear solicitud y avisar <span>→</span></button></div>
+    </form>
+  </dialog>
+
+  <dialog id="clarification-response-dialog" class="modal">
+    <form method="dialog" id="clarification-response-form">
+      <div class="modal-head"><div><p class="kicker">Respuesta dentro del expediente</p><h2 id="clarification-response-title">Enviar aclaración</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <input id="clarification-response-case" type="hidden">
+      <input id="clarification-response-request" type="hidden">
+      <div class="request-context"><small>Qué necesitamos</small><p id="clarification-response-instructions"></p></div>
+      <label>Tu respuesta<textarea id="clarification-response-text" rows="6" minlength="2" maxlength="4000" required placeholder="Escribe aquí la aclaración solicitada"></textarea></label>
+      <div class="privacy-preview"><small>Registro seguro</small><p>La respuesta quedará vinculada al expediente y aparecerá en su cronología. No incluyas información distinta de la solicitada.</p></div>
+      <div id="clarification-response-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Enviar aclaración <span>→</span></button></div>
     </form>
   </dialog>
 

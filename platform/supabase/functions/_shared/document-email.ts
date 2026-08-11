@@ -5,6 +5,7 @@ type DocumentRequestEmail={
   caseId:string;
   email:string;
   fullName:string;
+  requestType:'document'|'clarification';
 };
 
 function safeHtml(value:string){
@@ -30,6 +31,8 @@ export async function sendDocumentRequestEmail(message:DocumentRequestEmail){
     auth:{user:smtpUser,pass:smtpPassword}
   });
   const cleanName=message.fullName.replace(/[\r\n]+/g,' ').trim();
+  const isDocument=message.requestType==='document';
+  const requestCopy=isDocument?'entregar la documentación de forma segura':'responder la aclaración dentro de tu expediente';
   try{
     await transporter.sendMail({
       from:`Ratio Soluciones <${smtpUser}>`,
@@ -39,12 +42,12 @@ export async function sendDocumentRequestEmail(message:DocumentRequestEmail){
       text:[
         `Hola ${cleanName},`,'',
         'Tienes una nueva solicitud en tu plataforma privada de Ratio Soluciones.',
-        'Accede para consultar el detalle y entregar la documentación de forma segura.','',
+        `Accede para consultar el detalle y ${requestCopy}.`,'',
         `Acceso: ${portalUrl}`,'',
         'Por tu seguridad, no respondas a este correo adjuntando documentos.','',
         'Ratio Soluciones',smtpUser
       ].join('\n'),
-      html:`<!doctype html><html lang="es"><body style="margin:0;background:#f4f5f2;font-family:Arial,sans-serif;color:#10231e"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:28px 12px;background:#f4f5f2"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:580px;background:#fff;border-radius:16px;overflow:hidden"><tr><td style="padding:24px 28px;background:#0b2e25;color:#fff"><strong style="font-size:20px">RATIO <span style="color:#d9ff68">SOLUCIONES</span></strong></td></tr><tr><td style="padding:30px 28px"><p>Hola ${safeHtml(cleanName)},</p><h1 style="font-size:25px">Tienes una nueva solicitud</h1><p style="line-height:1.6;color:#51635d">Accede a tu plataforma privada para consultar el detalle y entregar la documentación de forma segura.</p><p style="margin:26px 0"><a href="${safeHtml(portalUrl)}" style="display:inline-block;padding:13px 20px;border-radius:8px;background:#0b2e25;color:#fff;text-decoration:none;font-weight:bold">Acceder a mi expediente</a></p><p style="font-size:12px;line-height:1.6;color:#71817b"><strong>Por tu seguridad, no respondas a este correo adjuntando documentos.</strong></p></td></tr><tr><td style="padding:17px 28px;background:#edf3f0;font-size:11px;color:#71817b">Ratio Soluciones · ${safeHtml(smtpUser)}</td></tr></table></td></tr></table></body></html>`
+      html:`<!doctype html><html lang="es"><body style="margin:0;background:#f4f5f2;font-family:Arial,sans-serif;color:#10231e"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:28px 12px;background:#f4f5f2"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:580px;background:#fff;border-radius:16px;overflow:hidden"><tr><td style="padding:24px 28px;background:#0b2e25;color:#fff"><strong style="font-size:20px">RATIO <span style="color:#d9ff68">SOLUCIONES</span></strong></td></tr><tr><td style="padding:30px 28px"><p>Hola ${safeHtml(cleanName)},</p><h1 style="font-size:25px">Tienes una nueva solicitud</h1><p style="line-height:1.6;color:#51635d">Accede a tu plataforma privada para consultar el detalle y ${safeHtml(requestCopy)}.</p><p style="margin:26px 0"><a href="${safeHtml(portalUrl)}" style="display:inline-block;padding:13px 20px;border-radius:8px;background:#0b2e25;color:#fff;text-decoration:none;font-weight:bold">Acceder a mi expediente</a></p><p style="font-size:12px;line-height:1.6;color:#71817b"><strong>Por tu seguridad, no respondas a este correo adjuntando documentos.</strong></p></td></tr><tr><td style="padding:17px 28px;background:#edf3f0;font-size:11px;color:#71817b">Ratio Soluciones · ${safeHtml(smtpUser)}</td></tr></table></td></tr></table></body></html>`
     });
     await serviceClient.from('audit_events').insert({
       case_id:message.caseId,actor_id:null,action:'document_request_email_sent',

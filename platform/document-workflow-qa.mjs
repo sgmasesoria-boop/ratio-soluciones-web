@@ -5,10 +5,12 @@ import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
 const migration=await readFile('supabase/migrations/20260810134257_case_document_workflow.sql','utf8');
+const clientActionMigration=await readFile('supabase/migrations/20260811213000_client_action_requests.sql','utf8');
 const edge=await readFile('supabase/functions/document-workflow/index.ts','utf8');
+const uploadEmail=await readFile('supabase/functions/_shared/document-upload-email.ts','utf8');
 const api=await readFile('platform-api.js','utf8');
 const staticChecks={
-  privateBucket:migration.includes("'case-documents',\n  'case-documents',\n  false"),
+  privateBucket:/\'case-documents\',\r?\n\s*\'case-documents\',\r?\n\s*false/.test(migration),
   noStorageObjectPolicy:!migration.includes('create policy')||!migration.includes('on storage.objects'),
   rlsEnabled:['document_requests','case_documents','document_access_events'].every(table=>migration.includes(`alter table public.${table} enable row level security`)),
   browserReadOnly:migration.includes('revoke all privileges on')&&migration.includes('grant select on'),
@@ -19,7 +21,14 @@ const staticChecks={
   internalSessionValidation:edge.includes('requireAdmin(request)')&&edge.includes('requireUser(request)'),
   uploadRollback:edge.includes("storage.from(BUCKET).remove([storagePath])"),
   temporaryDownload:edge.includes("createSignedUrl(document.storage_path,60"),
-  multipartApi:api.includes('async invokeMultipart(functionName, formData)')
+  multipartApi:api.includes('async invokeMultipart(functionName, formData)'),
+  typedClientRequests:clientActionMigration.includes("request_type in ('document','clarification')"),
+  clarificationAudit:clientActionMigration.includes("'clarification_submitted'")&&clientActionMigration.includes('public.server_submit_clarification'),
+  serviceOnlyClarification:clientActionMigration.includes('revoke all on function public.server_submit_clarification')&&clientActionMigration.includes('to service_role'),
+  clarificationEndpoint:edge.includes("input.action==='submit_clarification'")&&edge.includes('requireCaseAccess(request,user.id,caseId)'),
+  uploadEmailNotification:edge.includes('sendDocumentUploadEmail')&&edge.includes('emailSent'),
+  uploadEmailAudited:uploadEmail.includes("'document_upload_email_sent'")&&uploadEmail.includes("'document_upload_email_failed'"),
+  uploadEmailPrivate:uploadEmail.includes('Este correo no contiene archivos ni datos sensibles')&&!uploadEmail.includes('originalName')
 };
 
 execFileSync(process.execPath,['build.mjs','combined','','demo'],{stdio:'inherit'});
@@ -44,18 +53,36 @@ await page.locator('[data-demo-role="admin"]').click();
 await page.locator('[data-section="cases"]').click();
 await page.locator('[data-case-id="case_01"]').click();
 await page.locator('#request-document').click();
+await page.locator('#document-request-type').selectOption('clarification');
+await page.locator('#document-request-title').fill('Aclara la fecha del último pago');
+await page.locator('#document-request-instructions').fill('Indica la fecha aproximada y el medio de pago.');
+await page.locator('#document-request-form .primary-button').click();
+await page.locator('#logout').click();
+await page.locator('[data-demo-role="client"]').click();
+await page.getByRole('button',{name:'Responder aclaración',exact:true}).click();
+await page.locator('#clarification-response-text').fill('El último pago fue aproximadamente el 3 de agosto mediante transferencia.');
+await page.locator('#clarification-response-form .primary-button').click();
+const clarificationVisible=await page.getByText('El último pago fue aproximadamente el 3 de agosto mediante transferencia.',{exact:true}).first().isVisible();
+const clarificationInTimeline=await page.getByText('Aclaración enviada: Aclara la fecha del último pago',{exact:true}).isVisible();
+const noPendingAction=await page.getByText('Por ahora, nada.',{exact:true}).isVisible();
+
+await page.locator('#logout').click();
+await page.locator('[data-demo-role="admin"]').click();
+await page.locator('[data-section="cases"]').click();
+await page.locator('[data-case-id="case_01"]').click();
+await page.locator('#request-document').click();
 await page.locator('#document-request-title').fill('<img src=x onerror="window.__documentXss=1">');
 await page.locator('#document-request-instructions').fill('Entrega únicamente el documento solicitado.');
 await page.locator('#document-request-form .primary-button').click();
-const escapedRequestVisible=await page.getByText('<img src=x onerror="window.__documentXss=1">',{exact:true}).isVisible();
+const escapedRequestVisible=await page.getByText('<img src=x onerror="window.__documentXss=1">',{exact:true}).first().isVisible();
 const xssSafe=await page.evaluate(()=>window.__documentXss===undefined);
 const requestInTimeline=await page.getByText('Documentación solicitada: <img src=x onerror="window.__documentXss=1">',{exact:true}).isVisible();
 const noOverflow=await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth);
 await browser.close();
 
 const result={
-  passed:Object.values(staticChecks).every(Boolean)&&privacyTextVisible&&blockedUntilPrivacy&&uploadVisible&&uploadInTimeline&&escapedRequestVisible&&xssSafe&&requestInTimeline&&noOverflow&&!errors.length,
-  staticChecks,privacyTextVisible,blockedUntilPrivacy,uploadVisible,uploadInTimeline,escapedRequestVisible,xssSafe,requestInTimeline,noOverflow,errors
+  passed:Object.values(staticChecks).every(Boolean)&&privacyTextVisible&&blockedUntilPrivacy&&uploadVisible&&uploadInTimeline&&clarificationVisible&&clarificationInTimeline&&noPendingAction&&escapedRequestVisible&&xssSafe&&requestInTimeline&&noOverflow&&!errors.length,
+  staticChecks,privacyTextVisible,blockedUntilPrivacy,uploadVisible,uploadInTimeline,clarificationVisible,clarificationInTimeline,noPendingAction,escapedRequestVisible,xssSafe,requestInTimeline,noOverflow,errors
 };
 console.log(JSON.stringify(result,null,2));
 if(!result.passed)process.exitCode=1;

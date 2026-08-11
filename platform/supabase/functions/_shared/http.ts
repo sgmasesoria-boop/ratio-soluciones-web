@@ -37,6 +37,9 @@ export function errorJson(request:Request,error:unknown){
   if(message==='DOCUMENT_REQUEST_UNAVAILABLE')return json(request,{error:'DOCUMENT_REQUEST_UNAVAILABLE'},409);
   if(message==='PRIVACY_NOTICE_REQUIRED')return json(request,{error:'PRIVACY_NOTICE_REQUIRED'},400);
   if(message==='INVALID_DOCUMENT_REQUEST')return json(request,{error:'INVALID_DOCUMENT_REQUEST'},400);
+  if(message==='INVALID_CLIENT_REQUEST')return json(request,{error:'INVALID_CLIENT_REQUEST'},400);
+  if(message==='INVALID_CLARIFICATION_RESPONSE')return json(request,{error:'INVALID_CLARIFICATION_RESPONSE'},400);
+  if(message==='CLIENT_REQUEST_ACCESS_DENIED')return json(request,{error:'CLIENT_REQUEST_ACCESS_DENIED'},403);
   if(message==='INVALID_DOCUMENT_FILE')return json(request,{error:'INVALID_DOCUMENT_FILE'},400);
   if(message==='INVALID_DOCUMENT_STATUS')return json(request,{error:'INVALID_DOCUMENT_STATUS'},400);
   if(message==='AI_NOT_CONFIGURED')return json(request,{error:'AI_NOT_CONFIGURED'},503);
