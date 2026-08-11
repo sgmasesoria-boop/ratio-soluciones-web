@@ -1,6 +1,6 @@
 import {serviceClient,requireAdmin} from '../_shared/auth.ts';
 import {errorJson,handleOptions,json} from '../_shared/http.ts';
-import {sanitizeClientDraft} from '../_shared/ai-output.ts';
+import {humanizeInternalStatus,sanitizeClientDraft} from '../_shared/ai-output.ts';
 
 const clean=(value:unknown,max:number)=>String(value??'').trim().slice(0,max);
 const validUuid=(value:string)=>/^[0-9a-f-]{36}$/i.test(value);
@@ -125,12 +125,12 @@ async function analyzeCase(apiKey:string,adminId:string,caseId:string){
   const sources:any[]=[];
   const add=(id:string,type:string,label:string,at:string|null,content:unknown)=>sources.push({id,type,label,at,content});
   const c=caseResult.data;
-  add('case:record','case','Ficha del expediente',c.opened_at,{category:c.category,status:c.status,title:clean(c.title,240),summary:clean(c.summary,3000),opened_at:c.opened_at,closed_at:c.closed_at,professional_role:clean(c.professional_title,160),professional_region:clean(c.professional_region,100)});
-  if(lead)add(`lead:${lead.id}`,'lead','Consulta inicial',lead.created_at,{category:lead.category,status:lead.status,summary:clean(lead.summary,3000)});
+  add('case:record','case','Ficha del expediente',c.opened_at,{category:c.category,case_status:humanizeInternalStatus(c.status,'case'),title:clean(c.title,240),summary:clean(c.summary,3000),opened_at:c.opened_at,closed_at:c.closed_at,professional_role:clean(c.professional_title,160),professional_region:clean(c.professional_region,100)});
+  if(lead)add(`lead:${lead.id}`,'lead','Consulta inicial',lead.created_at,{category:lead.category,consultation_status:humanizeInternalStatus(lead.status,'lead'),summary:clean(lead.summary,3000)});
   for(const note of notes)add(`lead_note:${note.id}`,'lead_note','Nota interna de consulta',note.created_at,{body:clean(note.body,2000)});
   for(const event of eventResult.data||[])add(`event:${event.id}`,'case_event',clean(event.title,160),event.occurred_at,{event_type:event.event_type,title:clean(event.title,300),description:clean(event.description,2500),visibility:event.visibility});
-  for(const request of requestResult.data||[])add(`request:${request.id}`,'client_request',clean(request.title,160),request.requested_at,{request_type:request.request_type,title:clean(request.title,300),instructions:clean(request.instructions,1600),status:request.status,response_text:clean(request.response_text,4000),response_at:request.response_at,fulfilled_at:request.fulfilled_at});
-  for(const document of documentResult.data||[])add(`document:${document.id}`,'document_metadata',clean(document.original_name,180),document.created_at,{request_id:document.request_id,mime_type:document.mime_type,size_bytes:document.size_bytes,status:document.status,reviewed_at:document.reviewed_at,content_analyzed:false});
+  for(const request of requestResult.data||[])add(`request:${request.id}`,'client_request',clean(request.title,160),request.requested_at,{request_type:request.request_type,title:clean(request.title,300),instructions:clean(request.instructions,1600),request_status:humanizeInternalStatus(request.status,'request'),response_text:clean(request.response_text,4000),response_at:request.response_at,fulfilled_at:request.fulfilled_at});
+  for(const document of documentResult.data||[])add(`document:${document.id}`,'document_metadata',clean(document.original_name,180),document.created_at,{request_id:document.request_id,mime_type:document.mime_type,size_bytes:document.size_bytes,document_status:humanizeInternalStatus(document.status,'document'),reviewed_at:document.reviewed_at,content_analyzed:false});
 
   const sourceCatalog=sources.map(({id,type,label,at})=>({id,type,label,at}));
   const prompt={privacy_mode:'No contiene nombre, email, teléfono, DNI ni ruta de almacenamiento. El contenido de los archivos NO está incluido.',source_catalog:sourceCatalog,sources:sources.map(({id,type,at,content})=>({source_id:id,type,at,content}))};

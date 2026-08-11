@@ -2,7 +2,7 @@ import {chromium} from 'file:///C:/Users/PC/.cache/codex-runtimes/codex-primary-
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 import {readFile} from 'node:fs/promises';
-import {sanitizeClientDraft} from './supabase/functions/_shared/ai-output.ts';
+import {humanizeInternalStatus,sanitizeClientDraft} from './supabase/functions/_shared/ai-output.ts';
 
 const edge=await readFile('supabase/functions/ai-assist/index.ts','utf8');
 const app=await readFile('app.js','utf8');
@@ -46,6 +46,7 @@ const result={
   caseDataMinimised:edge.includes("privacy_mode:'No contiene nombre, email, teléfono, DNI ni ruta de almacenamiento")&&!edge.includes("select('id,client_name"),
   documentContentBlocked:edge.includes('content_analyzed:false')&&edge.includes('document_content_analyzed:false'),
   clientDraftSanitized:edge.includes('sanitizeClientDraft(result.draft_client_update)')&&!safeDraft.includes('[case:')&&!safeDraft.includes('[event:')&&!safeDraft.includes('c13c7744-a2c8-4fb2-9b08-ea12e4d7189cc')&&!/\b(?:won|open|metadatos?)\b/i.test(safeDraft),
+  internalStatusesHumanized:humanizeInternalStatus('won','lead')==='consulta contratada'&&humanizeInternalStatus('open','case')==='expediente abierto'&&edge.includes("case_status:humanizeInternalStatus(c.status,'case')")&&edge.includes("consultation_status:humanizeInternalStatus(lead.status,'lead')"),
   caseMemoryAudited:migration.includes('create table public.case_ai_runs')&&migration.includes('automatic_write boolean not null default false')&&migration.includes('revoke all privileges on public.case_ai_runs from public, anon, authenticated'),
   internalNoteApplied,
   internalNoteFeedback,
