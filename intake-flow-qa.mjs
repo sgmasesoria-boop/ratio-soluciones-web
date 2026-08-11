@@ -14,8 +14,6 @@ async function completeForm(page){
   await page.goto(origin);
   await page.locator('input[name="area"]').first().check();
   await page.locator('[data-step="1"] .form-next').click();
-  await page.locator('select[name="situacion"]').selectOption({index:1});
-  await page.locator('[data-step="2"] .form-next').click();
   await page.locator('input[name="nombre"]').fill('Prueba interna');
   await page.locator('input[name="email"]').fill('prueba@example.es');
   await page.locator('input[name="telefono"]').fill('600000000');
@@ -29,7 +27,7 @@ await successPage.route('**/functions/v1/public-intake',route=>{submittedPayload
 await completeForm(successPage);
 await successPage.locator('button[type="submit"]').click();
 await successPage.waitForURL(/gracias\.html\?ref=C-2026-ABC123/);
-const success={referenceVisible:await successPage.getByText('C-2026-ABC123',{exact:true}).isVisible(),emailCopyVisible:await successPage.getByText(/correo de confirmación/i).isVisible(),antispamDoesNotBlockPeople:submittedPayload?.website==='' };
+const success={referenceVisible:await successPage.getByText('C-2026-ABC123',{exact:true}).isVisible(),emailCopyVisible:await successPage.getByText(/correo de confirmación/i).isVisible(),antispamDoesNotBlockPeople:submittedPayload?.website==='',situationRemoved:!('situation' in submittedPayload),consultationSent:submittedPayload?.consultation==='Prueba interna del circuito de recepción.'};
 
 const errorPage=await browser.newPage();
 await errorPage.route('**/functions/v1/public-intake',route=>route.fulfill({status:400,contentType:'application/json',body:'{"error":"SUBMISSION_REJECTED"}'}));

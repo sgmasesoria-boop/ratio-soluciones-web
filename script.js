@@ -80,7 +80,7 @@ const supabasePublishableKey = 'sb_publishable_0Y0eIdsliv-v2TJ44xRGTw_hhRv0r5h';
 
 form?.addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (!validateStep(3)) {
+  if (!validateStep(2)) {
     return;
   }
   const submitButton = form.querySelector('button[type="submit"]');
@@ -104,7 +104,6 @@ form?.addEventListener('submit', async (event) => {
         email: data.get('email'),
         phone: data.get('telefono'),
         area: data.get('area'),
-        situation: data.get('situacion'),
         consultation: data.get('consulta'),
         website: '',
         privacyNoticeAcknowledged: data.get('privacidad') === 'Información leída'

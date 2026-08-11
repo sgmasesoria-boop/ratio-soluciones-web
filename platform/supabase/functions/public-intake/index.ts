@@ -17,15 +17,6 @@ const categoryMap:Record<string,string>={
   'Otro problema':'Otro asunto'
 };
 
-const allowedSituations=new Set([
-  'Acaba de ocurrir',
-  'Ya he reclamado o negociado',
-  'He recibido una respuesta',
-  'He recibido una notificación formal',
-  'Ya existe un procedimiento',
-  'No estoy seguro'
-]);
-
 function headers(origin:string){
   return {
     ...(allowedOrigins.has(origin)?{'access-control-allow-origin':origin,'vary':'Origin'}:{}),
@@ -62,7 +53,7 @@ async function recordEmailAudit(leadId:string,action:string,details:Record<strin
   await serviceClient.from('audit_events').insert({actor_id:null,action,object_type:'crm_lead',object_id:leadId,details});
 }
 
-async function sendLeadNotifications(lead:{id:string;reference:string;fullName:string;email:string;phone:string;category:string;situation:string}){
+async function sendLeadNotifications(lead:{id:string;reference:string;fullName:string;email:string;phone:string;category:string}){
   const smtpPassword=Deno.env.get('RATIO_SMTP_PASSWORD');
   const smtpUser=Deno.env.get('RATIO_SMTP_USER')||'clientes@ratiosoluciones.es';
   const destination=Deno.env.get('RATIO_NOTIFICATION_EMAIL')||'clientes@ratiosoluciones.es';
@@ -91,7 +82,6 @@ async function sendLeadNotifications(lead:{id:string;reference:string;fullName:s
         `Referencia: ${lead.reference}`,
         `Nombre: ${lead.fullName.replace(/[\r\n]+/g,' ')}`,
         `Área: ${lead.category}`,
-        `Situación: ${lead.situation}`,
         `Email: ${lead.email}`,
         `Teléfono: ${lead.phone}`,
         ``,
@@ -155,16 +145,15 @@ Deno.serve(async(request)=>{
     const email=clean(body.email,160).toLowerCase();
     const phone=clean(body.phone,20);
     const area=clean(body.area,80);
-    const situation=clean(body.situation,80);
-    const consultation=clean(body.consultation,500);
+    const consultation=clean(body.consultation,800);
     const honeypot=clean(body.website,200);
 
     if(honeypot)return reply(origin,{error:'SUBMISSION_REJECTED'},400);
-    if(fullName.length<2||!validEmail(email)||!/[0-9+() .-]{7,20}/.test(phone)||!categoryMap[area]||!allowedSituations.has(situation)||body.privacyNoticeAcknowledged!==true){
+    if(fullName.length<2||!validEmail(email)||!/[0-9+() .-]{7,20}/.test(phone)||!categoryMap[area]||consultation.length<10||body.privacyNoticeAcknowledged!==true){
       return reply(origin,{error:'INVALID_SUBMISSION'},400);
     }
 
-    const summary=`Situación indicada: ${situation}.${consultation?`\n\nConsulta: ${consultation}`:''}`;
+    const summary=consultation;
     let created:{id:string;reference:string}|null=null;
     for(let attempt=0;attempt<2&&!created;attempt+=1){
       const {data,error}=await serviceClient.from('crm_leads').insert({
@@ -181,7 +170,7 @@ Deno.serve(async(request)=>{
       details:{source:'Formulario web',privacy_version:'web-v4',contact_channels:['email','phone']}
     });
     const notification=sendLeadNotifications({
-      id:created.id,reference:created.reference,fullName,email,phone,category:categoryMap[area],situation
+      id:created.id,reference:created.reference,fullName,email,phone,category:categoryMap[area]
     });
     const runtime=(globalThis as typeof globalThis&{EdgeRuntime?:{waitUntil(promise:Promise<unknown>):void}}).EdgeRuntime;
     if(runtime)runtime.waitUntil(notification);else await notification;

@@ -61,18 +61,20 @@ async function audit(viewport) {
 
   await page.locator('input[name="area"]').first().check();
   await page.locator('[data-step="1"] .form-next').click();
-  await page.locator('select[name="situacion"]').selectOption({ index: 1 });
-  await page.locator('[data-step="2"] .form-next').click();
   const contactState = await page.evaluate(() => ({
     emailRequired: document.querySelector('input[name="email"]').required,
     emailDisabled: document.querySelector('input[name="email"]').disabled,
     phoneRequired: document.querySelector('input[name="telefono"]').required,
     phoneDisabled: document.querySelector('input[name="telefono"]').disabled,
     preferredChannelPresent: Boolean(document.querySelector('[name="contacto_preferido"]')),
-    taxCategoryPresent: Boolean(document.querySelector('input[name="area"][value="Hacienda e impuestos"]'))
+    taxCategoryPresent: Boolean(document.querySelector('input[name="area"][value="Hacienda e impuestos"]')),
+    situationFieldPresent: Boolean(document.querySelector('[name="situacion"]')),
+    consultationRequired: document.querySelector('textarea[name="consulta"]')?.required === true,
+    stepCount: document.querySelectorAll('.form-step').length
   }));
   if (!contactState.taxCategoryPresent) findings.push('El formulario no incluye Hacienda e impuestos.');
   if (!contactState.emailRequired || contactState.emailDisabled || !contactState.phoneRequired || contactState.phoneDisabled || contactState.preferredChannelPresent) findings.push('El formulario no exige correctamente email y teléfono.');
+  if (contactState.situationFieldPresent || !contactState.consultationRequired || contactState.stepCount !== 2) findings.push('El formulario no está simplificado correctamente a dos pasos.');
   await page.close();
   return result;
 }
