@@ -63,9 +63,9 @@ El gestor marca el expediente como cerrado y registra el último avance. La cuen
 - El análisis de expedientes envía la ficha minimizada, consulta inicial, notas, cronología, solicitudes, respuestas y metadatos de documentos. Excluye nombre, teléfono, correo, DNI y rutas de almacenamiento.
 - Cada análisis del expediente se conserva en `case_ai_runs` con fuentes, modelo, versión del prompt, consumo y coste estimado. La tabla es de solo servicio y el historial es inmutable.
 - La función usa `store:false`, exige administrador con AAL2 y nunca modifica el expediente ni envía comunicaciones.
-- El piloto incluye una acción independiente que genera y analiza un PDF ficticio sin datos personales. Superada esa prueba, el 12 de agosto de 2026 se autorizó la lectura real exclusivamente para un expediente piloto mediante comparación de hash, sin publicar su identificador.
-- La ampliación a todos los expedientes permanece desactivada. Solo podrá habilitarse con `OPENAI_DOCUMENT_ANALYSIS_ALL_CASES=true` tras una nueva autorización, revisión jurídica y de riesgos, actualización del deber de información y pruebas de seguridad.
-- En el piloto se procesan únicamente PDF validados: máximo tres, 5 MB por archivo y 10 MB combinados. Se usa `store:false`, se registra cada documento procesado y toda salida requiere revisión humana.
+- El piloto comenzó con un PDF ficticio y continuó con un único expediente autorizado. Tras verificar la lectura y los eventos de auditoría, el 12 de agosto de 2026 se autorizó la lectura documental para todos los expedientes.
+- El análisis siempre se inicia manualmente por un administrador con AAL2. Solo procesa PDF validados: máximo tres, 5 MB por archivo y 10 MB combinados. Se usa `store:false`, se registra cada documento procesado y toda salida requiere revisión humana.
+- Interruptor de emergencia: establecer `OPENAI_DOCUMENT_ANALYSIS_DISABLED=true` detiene la lectura de documentos en todos los expedientes sin desactivar el resto del asistente.
 - El resultado es una sugerencia: no decide viabilidad, no envía mensajes y no cambia datos automáticamente.
 - Cada uso queda auditado con modelo, consumo y coste estimado.
 - El límite mensual predeterminado es 25 USD y puede reducirse con `OPENAI_MONTHLY_HARD_LIMIT_USD`.

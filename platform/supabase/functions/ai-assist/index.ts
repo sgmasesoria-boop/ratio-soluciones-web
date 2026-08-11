@@ -8,9 +8,8 @@ const model=Deno.env.get('OPENAI_TRIAGE_MODEL')||'gpt-5.6-luna';
 const hardLimit=Math.max(1,Number(Deno.env.get('OPENAI_MONTHLY_HARD_LIMIT_USD')||25));
 const inputRate=Math.max(0,Number(Deno.env.get('OPENAI_INPUT_USD_PER_MILLION')||0.2));
 const outputRate=Math.max(0,Number(Deno.env.get('OPENAI_OUTPUT_USD_PER_MILLION')||1.2));
-const documentAnalysisAllCases=Deno.env.get('OPENAI_DOCUMENT_ANALYSIS_ALL_CASES')==='true';
-// Piloto autorizado: se compara un hash irreversible para no publicar el identificador del expediente.
-const DOCUMENT_ANALYSIS_PILOT_CASE_HASHES=new Set(['bd2956cfc142be069e11a6c7c3d2d2f358d6f646e951e7f7af888691577059d7']);
+// Activado para todos los expedientes. Este interruptor permite detenerlo de inmediato sin modificar el código.
+const documentAnalysisEnabled=Deno.env.get('OPENAI_DOCUMENT_ANALYSIS_DISABLED')!=='true';
 const DOCUMENT_BUCKET='case-documents';
 const MAX_DOCUMENTS=3;
 const MAX_DOCUMENT_BYTES=5*1024*1024;
@@ -79,15 +78,6 @@ function bytesToBase64(bytes:Uint8Array){
   return btoa(binary);
 }
 
-async function sha256(value:string){
-  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
-}
-
-async function documentAnalysisAllowed(caseId:string){
-  return documentAnalysisAllCases||DOCUMENT_ANALYSIS_PILOT_CASE_HASHES.has(await sha256(caseId));
-}
-
 function syntheticPdf(){
   const text='DOCUMENTO FICTICIO RATIO. PRUEBA SEGURA. IMPORTE 1234 EUR. SIN DATOS PERSONALES.';
   const stream=`BT /F1 14 Tf 72 720 Td (${text}) Tj ET`;
@@ -140,10 +130,9 @@ async function callOpenAI(apiKey:string,instructions:string,input:unknown,name:s
   return {response,result:JSON.parse(outputText(response))};
 }
 
-async function prepareDocumentInputs(documents:any[],caseId:string){
+async function prepareDocumentInputs(documents:any[]){
   const skipped:string[]=[],analyzed:string[]=[],content:any[]=[];
-  const enabled=await documentAnalysisAllowed(caseId);
-  if(!enabled)return {content,analyzed,skipped:documents.map(document=>document.id),failures:[] as string[],enabled};
+  if(!documentAnalysisEnabled)return {content,analyzed,skipped:documents.map(document=>document.id),failures:[] as string[],enabled:false};
   let total=0;
   const failures:string[]=[];
   for(const document of documents){
@@ -155,7 +144,7 @@ async function prepareDocumentInputs(documents:any[],caseId:string){
     analyzed.push(document.id);total+=bytes.length;
     content.push({type:'input_file',filename:`documento-${analyzed.length}.pdf`,file_data:`data:application/pdf;base64,${bytesToBase64(bytes)}`,detail:'low'});
   }
-  return {content,analyzed,skipped,failures,enabled};
+  return {content,analyzed,skipped,failures,enabled:true};
 }
 
 async function testSyntheticDocument(apiKey:string,adminId:string){
@@ -210,7 +199,7 @@ async function analyzeCase(apiKey:string,adminId:string,caseId:string){
   for(const note of notes)add(`lead_note:${note.id}`,'lead_note','Nota interna de consulta',note.created_at,{body:clean(note.body,2000)});
   for(const event of eventResult.data||[])add(`event:${event.id}`,'case_event',clean(event.title,160),event.occurred_at,{event_type:event.event_type,title:clean(event.title,300),description:clean(event.description,2500),visibility:event.visibility});
   for(const request of requestResult.data||[])add(`request:${request.id}`,'client_request',clean(request.title,160),request.requested_at,{request_type:request.request_type,title:clean(request.title,300),instructions:clean(request.instructions,1600),request_status:humanizeInternalStatus(request.status,'request'),response_text:clean(request.response_text,4000),response_at:request.response_at,fulfilled_at:request.fulfilled_at});
-  const preparedDocuments=await prepareDocumentInputs(documentResult.data||[],caseId);
+  const preparedDocuments=await prepareDocumentInputs(documentResult.data||[]);
   for(const document of documentResult.data||[])add(`document:${document.id}`,'document_metadata',clean(document.original_name,180),document.created_at,{request_id:document.request_id,mime_type:document.mime_type,size_bytes:document.size_bytes,document_status:humanizeInternalStatus(document.status,'document'),reviewed_at:document.reviewed_at,content_analyzed:preparedDocuments.analyzed.includes(document.id)});
 
   const sourceCatalog=sources.map(({id,type,label,at})=>({id,type,label,at}));
