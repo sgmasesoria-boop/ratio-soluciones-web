@@ -14,7 +14,7 @@ function safeHtml(value:string){
 export async function sendDocumentRequestEmail(message:DocumentRequestEmail){
   const smtpPassword=Deno.env.get('RATIO_SMTP_PASSWORD');
   const smtpUser=Deno.env.get('RATIO_SMTP_USER')||'clientes@ratiosoluciones.es';
-  const portalUrl=Deno.env.get('CLIENT_PORTAL_URL')||'https://clientes.ratiosoluciones.es';
+  const portalUrl='https://clientes.ratiosoluciones.es';
   if(!smtpPassword){
     await serviceClient.from('audit_events').insert({
       case_id:message.caseId,actor_id:null,action:'document_request_email_skipped',

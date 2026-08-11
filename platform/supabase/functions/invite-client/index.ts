@@ -14,7 +14,7 @@ Deno.serve(async request=>{
     const allowedCategories=['Banca y financiación','Deudas y negociación','Vivienda','Familia','Seguros e indemnizaciones','Consumo','Otro asunto'];
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)||normalizedEmail.length>254||normalizedName.length<2||normalizedName.length>120||normalizedTitle.length<3||normalizedTitle.length>160||!allowedCategories.includes(category))return respond({error:'INVALID_FIELDS'},400);
 
-    const redirectTo=Deno.env.get('CLIENT_PORTAL_URL')||'https://clientes.ratiosoluciones.es';
+    const redirectTo='https://clientes.ratiosoluciones.es';
     const {data:invite,error:inviteError}=await serviceClient.auth.admin.inviteUserByEmail(normalizedEmail,{redirectTo,data:{display_name:normalizedName}});
     if(inviteError)throw inviteError;
     const clientId=invite.user.id;

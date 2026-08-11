@@ -4,6 +4,9 @@ const migration=await readFile('supabase/migrations/005_security_and_minimizatio
 const http=await readFile('supabase/functions/_shared/http.ts','utf8');
 const auth=await readFile('supabase/functions/_shared/auth.ts','utf8');
 const crm=await readFile('supabase/functions/manage-crm/index.ts','utf8');
+const inviteClient=await readFile('supabase/functions/invite-client/index.ts','utf8');
+const caseEmail=await readFile('supabase/functions/_shared/case-email.ts','utf8');
+const documentEmail=await readFile('supabase/functions/_shared/document-email.ts','utf8');
 const publicIntake=await readFile('supabase/functions/public-intake/index.ts','utf8');
 const config=await readFile('supabase/config.toml','utf8');
 const api=await readFile('platform-api.js','utf8');
@@ -25,6 +28,11 @@ if(!migration.includes('assert_active_admin'))failures.push('Las funciones SQL n
 if(!http.includes('https://crm.ratiosoluciones.es')||!http.includes('https://clientes.ratiosoluciones.es'))failures.push('CORS no contempla CRM y portal.');
 if(!config.includes('site_url = "https://clientes.ratiosoluciones.es"'))failures.push('Supabase conserva el portal temporal como URL principal.');
 if(!publicIntake.includes('https://crm.ratiosoluciones.es/'))failures.push('Los avisos de consultas siguen enlazando al CRM temporal.');
+for(const [name,source] of [['invite-client',inviteClient],['manage-crm',crm],['case-email',caseEmail],['document-email',documentEmail]]){
+  if(!source.includes('https://clientes.ratiosoluciones.es'))failures.push(`${name} no enlaza al portal corporativo.`);
+  if(source.includes("Deno.env.get('CLIENT_PORTAL_URL')"))failures.push(`${name} permite que una variable antigua sustituya el portal corporativo.`);
+  if(source.includes('ratio-portal-pruebas.sgmasesoria.chatgpt.site'))failures.push(`${name} conserva el portal provisional.`);
+}
 if(http.includes("return json(request,{error:message}"))failures.push('Las funciones exponen errores internos.');
 if(!crm.includes("privacy_notice_at")||crm.includes("consent_at"))failures.push('El CRM no distingue información de privacidad y consentimiento.');
 for(const functionName of ['invite-client','update-case','manage-crm']){

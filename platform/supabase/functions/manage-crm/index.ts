@@ -77,7 +77,7 @@ Deno.serve(async request=>{
       if(lead.converted_case_id)return respond({error:'LEAD_ALREADY_CONVERTED'},409);
       if(lead.status!=='won')return respond({error:'LEAD_NOT_CONTRACTED'},409);
       if(!lead.email)return respond({error:'EMAIL_REQUIRED_FOR_PORTAL'},409);
-      const redirectTo=Deno.env.get('CLIENT_PORTAL_URL')||'https://clientes.ratiosoluciones.es';
+      const redirectTo='https://clientes.ratiosoluciones.es';
       const existingUser=await findAuthUserByEmail(lead.email);
       if(existingUser){
         const {data:profile,error:profileError}=await serviceClient.from('profiles').select('internal_role').eq('id',existingUser.id).maybeSingle();

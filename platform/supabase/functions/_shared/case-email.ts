@@ -22,7 +22,7 @@ async function audit(message:CaseConfirmation,action:string,details:Record<strin
 export async function sendCaseConfirmation(message:CaseConfirmation){
   const smtpPassword=Deno.env.get('RATIO_SMTP_PASSWORD');
   const smtpUser=Deno.env.get('RATIO_SMTP_USER')||'clientes@ratiosoluciones.es';
-  const portalUrl=Deno.env.get('CLIENT_PORTAL_URL')||'https://clientes.ratiosoluciones.es';
+  const portalUrl='https://clientes.ratiosoluciones.es';
   if(!smtpPassword){
     console.warn('Case confirmation skipped: RATIO_SMTP_PASSWORD is not configured',{caseId:message.caseId});
     await audit(message,'case_confirmation_skipped',{reason:'smtp_not_configured'});
