@@ -36,3 +36,12 @@ verify_jwt = false
 
 [functions.ai-assist]
 verify_jwt = false
+
+[functions.contract-signature]
+verify_jwt = false
+
+[functions.signaturit-webhook]
+verify_jwt = false
+
+[functions.case-communications]
+verify_jwt = false

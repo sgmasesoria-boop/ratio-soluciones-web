@@ -49,17 +49,17 @@ function safeHtml(value:string){
   return value.replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]||character));
 }
 
-async function recordEmailAudit(leadId:string,action:string,details:Record<string,unknown>={}){
-  await serviceClient.from('audit_events').insert({actor_id:null,action,object_type:'crm_lead',object_id:leadId,details});
+async function recordEmailAudit(caseId:string,action:string,details:Record<string,unknown>={}){
+  await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:null,action,object_type:'case',object_id:caseId,details});
 }
 
-async function sendLeadNotifications(lead:{id:string;reference:string;fullName:string;email:string;phone:string;category:string}){
+async function sendCaseNotifications(caseRecord:{id:string;reference:string;fullName:string;email:string;phone:string;category:string}){
   const smtpPassword=Deno.env.get('RATIO_SMTP_PASSWORD');
   const smtpUser=Deno.env.get('RATIO_SMTP_USER')||'clientes@ratiosoluciones.es';
   const destination=Deno.env.get('RATIO_NOTIFICATION_EMAIL')||'clientes@ratiosoluciones.es';
   if(!smtpPassword){
     console.warn('Lead email notification skipped: RATIO_SMTP_PASSWORD is not configured');
-    await recordEmailAudit(lead.id,'lead_notification_skipped',{reason:'smtp_not_configured'});
+    await recordEmailAudit(caseRecord.id,'case_intake_notification_skipped',{reason:'smtp_not_configured'});
     return;
   }
 
@@ -74,16 +74,16 @@ async function sendLeadNotifications(lead:{id:string;reference:string;fullName:s
     await transporter.sendMail({
       from:`Ratio Soluciones <${smtpUser}>`,
       to:destination,
-      replyTo:lead.email,
-      subject:`Nueva consulta ${lead.reference}`,
+      replyTo:caseRecord.email,
+      subject:`Nuevo expediente interno ${caseRecord.reference}`,
       text:[
         `Se ha registrado una nueva consulta en el CRM.`,
         ``,
-        `Referencia: ${lead.reference}`,
-        `Nombre: ${lead.fullName.replace(/[\r\n]+/g,' ')}`,
-        `Área: ${lead.category}`,
-        `Email: ${lead.email}`,
-        `Teléfono: ${lead.phone}`,
+        `Referencia: ${caseRecord.reference}`,
+        `Nombre: ${caseRecord.fullName.replace(/[\r\n]+/g,' ')}`,
+        `Área: ${caseRecord.category}`,
+        `Email: ${caseRecord.email}`,
+        `Teléfono: ${caseRecord.phone}`,
         ``,
         `Consulta los detalles y gestiona el seguimiento dentro del CRM:`,
         `https://crm.ratiosoluciones.es/`,
@@ -91,26 +91,26 @@ async function sendLeadNotifications(lead:{id:string;reference:string;fullName:s
         `Este aviso no incluye la explicación libre ni documentación sensible.`
       ].join('\n')
     });
-    await recordEmailAudit(lead.id,'lead_notification_sent',{channel:'email',destination});
+    await recordEmailAudit(caseRecord.id,'case_intake_notification_sent',{channel:'email',destination});
   }catch(error){
-    console.error('Lead email notification failed',{leadId:lead.id,error});
-    await recordEmailAudit(lead.id,'lead_notification_failed',{channel:'email'});
+    console.error('Case intake email notification failed',{caseId:caseRecord.id,error});
+    await recordEmailAudit(caseRecord.id,'case_intake_notification_failed',{channel:'email'});
   }
 
   try{
-    const customerName=safeHtml(lead.fullName.replace(/[\r\n]+/g,' '));
-    const customerReference=safeHtml(lead.reference);
+    const customerName=safeHtml(caseRecord.fullName.replace(/[\r\n]+/g,' '));
+    const customerReference=safeHtml(caseRecord.reference);
     await transporter.sendMail({
       from:`Ratio Soluciones <${smtpUser}>`,
-      to:lead.email,
+      to:caseRecord.email,
       replyTo:smtpUser,
-      subject:`Ratio Soluciones | Hemos recibido tu consulta ${lead.reference}`,
+      subject:`Ratio Soluciones | Hemos recibido tu consulta ${caseRecord.reference}`,
       text:[
-        `Hola ${lead.fullName.replace(/[\r\n]+/g,' ')},`,
+        `Hola ${caseRecord.fullName.replace(/[\r\n]+/g,' ')},`,
         ``,
         `Hemos recibido correctamente tu consulta en Ratio Soluciones.`,
         ``,
-        `Referencia: ${lead.reference}`,
+        `Referencia: ${caseRecord.reference}`,
         ``,
         `Nuestro equipo revisará la información y se pondrá en contacto contigo utilizando el correo y el teléfono que nos has facilitado.`,
         ``,
@@ -123,10 +123,10 @@ async function sendLeadNotifications(lead:{id:string;reference:string;fullName:s
       ].join('\n'),
       html:`<!doctype html><html lang="es"><body style="margin:0;background:#f4f5f2;font-family:Arial,sans-serif;color:#10231e"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:28px 12px;background:#f4f5f2"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:580px;background:#fff;border-radius:16px;overflow:hidden"><tr><td style="padding:24px 28px;background:#0b2e25;color:#fff"><strong style="font-size:20px">RATIO <span style="color:#d9ff68">SOLUCIONES</span></strong></td></tr><tr><td style="padding:30px 28px"><p>Hola ${customerName},</p><h1 style="font-size:25px">Hemos recibido tu consulta</h1><p style="line-height:1.6;color:#51635d">La consulta ha quedado registrada correctamente. Nuestro equipo revisará la información y se pondrá en contacto contigo utilizando los datos que nos has facilitado.</p><p style="padding:14px;border-radius:9px;background:#edf3f0"><strong>Referencia: ${customerReference}</strong></p><p style="line-height:1.6;color:#51635d">Este mensaje confirma únicamente la recepción. Todavía no supone la aceptación del asunto ni la contratación de ningún servicio.</p><p style="font-size:12px;line-height:1.6;color:#71817b"><strong>Por tu seguridad, no envíes documentación sensible por correo electrónico.</strong> Si necesitamos ampliar información, te indicaremos cómo continuar.</p></td></tr><tr><td style="padding:17px 28px;background:#edf3f0;font-size:11px;color:#71817b">Ratio Soluciones · clientes@ratiosoluciones.es</td></tr></table></td></tr></table></body></html>`
     });
-    await recordEmailAudit(lead.id,'lead_receipt_sent',{channel:'email'});
+    await recordEmailAudit(caseRecord.id,'case_intake_receipt_sent',{channel:'email'});
   }catch(error){
-    console.error('Lead customer receipt failed',{leadId:lead.id,error});
-    await recordEmailAudit(lead.id,'lead_receipt_failed',{channel:'email'});
+    console.error('Case intake customer receipt failed',{caseId:caseRecord.id,error});
+    await recordEmailAudit(caseRecord.id,'case_intake_receipt_failed',{channel:'email'});
   }
 }
 
@@ -156,20 +156,26 @@ Deno.serve(async(request)=>{
     const summary=consultation;
     let created:{id:string;reference:string}|null=null;
     for(let attempt=0;attempt<2&&!created;attempt+=1){
-      const {data,error}=await serviceClient.from('crm_leads').insert({
-        reference:reference(),full_name:fullName,phone,email,category:categoryMap[area],source:'Formulario web',summary,
-        status:'new',next_action:'Realizar primer contacto',privacy_notice_at:new Date().toISOString(),privacy_version:'web-v4',
-        legal_basis:'precontractual_request',created_by:null
+      const now=new Date().toISOString();
+      const {data,error}=await serviceClient.from('cases').insert({
+        reference:reference(),client_id:null,client_name:fullName,title:summary.slice(0,160),category:categoryMap[area],
+        status:'open',summary,created_by:null,contact_phone:phone,contact_email:email,source:'Formulario web',
+        manual_phase:'',portal_status:'disabled',privacy_notice_at:now,privacy_version:'web-v4',
+        legal_basis:'precontractual_request',opened_at:now
       }).select('id,reference').single();
       if(error&&error.code!=='23505')throw error;
       created=data;
     }
     if(!created)throw new Error('REFERENCE_COLLISION');
+    await serviceClient.from('case_events').insert({
+      case_id:created.id,event_type:'consultation_received',title:'Consulta inicial recibida',description:summary,
+      visibility:'internal',actor_id:null,metadata:{source:'Formulario web'}
+    });
     await serviceClient.from('audit_events').insert({
-      actor_id:null,action:'public_lead_created',object_type:'crm_lead',object_id:created.id,
+      case_id:created.id,actor_id:null,action:'public_case_created',object_type:'case',object_id:created.id,
       details:{source:'Formulario web',privacy_version:'web-v4',contact_channels:['email','phone']}
     });
-    const notification=sendLeadNotifications({
+    const notification=sendCaseNotifications({
       id:created.id,reference:created.reference,fullName,email,phone,category:categoryMap[area]
     });
     const runtime=(globalThis as typeof globalThis&{EdgeRuntime?:{waitUntil(promise:Promise<unknown>):void}}).EdgeRuntime;

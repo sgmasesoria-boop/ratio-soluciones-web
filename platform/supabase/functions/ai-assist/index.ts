@@ -14,6 +14,8 @@ const DOCUMENT_BUCKET='case-documents';
 const MAX_DOCUMENTS=3;
 const MAX_DOCUMENT_BYTES=5*1024*1024;
 const MAX_DOCUMENT_TOTAL_BYTES=10*1024*1024;
+const MAX_WORKING_DOCUMENTS=12;
+const MAX_WORKING_DRAFT_TOTAL_CHARS=60000;
 
 const leadSchema={
   type:'object',additionalProperties:false,
@@ -178,29 +180,43 @@ async function analyzeLead(apiKey:string,adminId:string,leadId:string){
 }
 
 async function analyzeCase(apiKey:string,adminId:string,caseId:string){
-  const [caseResult,eventResult,requestResult,documentResult,leadResult]=await Promise.all([
-    serviceClient.from('cases').select('id,category,status,summary,title,opened_at,closed_at,professional_title,professional_region').eq('id',caseId).maybeSingle(),
+  const [caseResult,eventResult,requestResult,documentResult,workingDocumentResult]=await Promise.all([
+    serviceClient.from('cases').select('id,category,status,manual_phase,summary,title,opened_at,closed_at,professional_title,professional_region').eq('id',caseId).maybeSingle(),
     serviceClient.from('case_events').select('id,event_type,title,description,visibility,occurred_at').eq('case_id',caseId).order('occurred_at',{ascending:true}).limit(250),
     serviceClient.from('document_requests').select('id,request_type,title,instructions,status,response_text,requested_at,response_at,fulfilled_at').eq('case_id',caseId).order('requested_at',{ascending:true}).limit(100),
     serviceClient.from('case_documents').select('id,request_id,storage_path,original_name,mime_type,size_bytes,status,created_at,reviewed_at').eq('case_id',caseId).is('deleted_at',null).order('created_at',{ascending:true}).limit(100),
-    serviceClient.from('crm_leads').select('id,category,summary,status,created_at').eq('converted_case_id',caseId).limit(1).maybeSingle()
+    serviceClient.from('case_working_documents').select('id,title,document_type,current_status_label,visibility,created_at,updated_at').eq('case_id',caseId).order('updated_at',{ascending:false}).limit(MAX_WORKING_DOCUMENTS)
   ]);
   if(caseResult.error||!caseResult.data)throw new Error('CASE_NOT_FOUND');
-  for(const result of [eventResult,requestResult,documentResult,leadResult])if(result.error)throw result.error;
-  const lead=leadResult.data;
-  let notes:any[]=[];
-  if(lead?.id){const noteResult=await serviceClient.from('crm_lead_notes').select('id,body,created_at').eq('lead_id',lead.id).order('created_at',{ascending:true}).limit(100);if(noteResult.error)throw noteResult.error;notes=noteResult.data||[];}
+  for(const result of [eventResult,requestResult,documentResult,workingDocumentResult])if(result.error)throw result.error;
+  const workingDocumentIds=(workingDocumentResult.data||[]).map((item:any)=>item.id);
+  const versionResult=workingDocumentIds.length
+    ? await serviceClient.from('case_document_versions').select('id,working_document_id,version_number,status_label,change_summary,draft_content,created_at').in('working_document_id',workingDocumentIds).order('created_at',{ascending:false}).limit(MAX_WORKING_DOCUMENTS*20)
+    : {data:[],error:null};
+  if(versionResult.error)throw versionResult.error;
 
   const sources:any[]=[];
   const add=(id:string,type:string,label:string,at:string|null,content:unknown)=>sources.push({id,type,label,at,content});
   const c=caseResult.data;
-  add('case:record','case','Ficha del expediente',c.opened_at,{category:c.category,case_status:humanizeInternalStatus(c.status,'case'),title:clean(c.title,240),summary:clean(c.summary,3000),opened_at:c.opened_at,closed_at:c.closed_at,professional_role:clean(c.professional_title,160),professional_region:clean(c.professional_region,100)});
-  if(lead)add(`lead:${lead.id}`,'lead','Consulta inicial',lead.created_at,{category:lead.category,consultation_status:humanizeInternalStatus(lead.status,'lead'),summary:clean(lead.summary,3000)});
-  for(const note of notes)add(`lead_note:${note.id}`,'lead_note','Nota interna de consulta',note.created_at,{body:clean(note.body,2000)});
+  add('case:record','case','Ficha del expediente',c.opened_at,{category:c.category,lifecycle:humanizeInternalStatus(c.status,'case'),manual_phase:clean(c.manual_phase,240),title:clean(c.title,240),summary:clean(c.summary,3000),opened_at:c.opened_at,closed_at:c.closed_at,professional_role:clean(c.professional_title,160),professional_region:clean(c.professional_region,100)});
   for(const event of eventResult.data||[])add(`event:${event.id}`,'case_event',clean(event.title,160),event.occurred_at,{event_type:event.event_type,title:clean(event.title,300),description:clean(event.description,2500),visibility:event.visibility});
   for(const request of requestResult.data||[])add(`request:${request.id}`,'client_request',clean(request.title,160),request.requested_at,{request_type:request.request_type,title:clean(request.title,300),instructions:clean(request.instructions,1600),request_status:humanizeInternalStatus(request.status,'request'),response_text:clean(request.response_text,4000),response_at:request.response_at,fulfilled_at:request.fulfilled_at});
   const preparedDocuments=await prepareDocumentInputs(documentResult.data||[]);
   for(const document of documentResult.data||[])add(`document:${document.id}`,'document_metadata',clean(document.original_name,180),document.created_at,{request_id:document.request_id,mime_type:document.mime_type,size_bytes:document.size_bytes,document_status:humanizeInternalStatus(document.status,'document'),reviewed_at:document.reviewed_at,content_analyzed:preparedDocuments.analyzed.includes(document.id)});
+  const workingIds=new Set(workingDocumentIds);
+  const latestVersions=new Map<string,any>();
+  for(const version of versionResult.data||[]){if(workingIds.has(version.working_document_id)&&!latestVersions.has(version.working_document_id))latestVersions.set(version.working_document_id,version);}
+  let remainingWorkingDraftChars=MAX_WORKING_DRAFT_TOTAL_CHARS;
+  let truncatedWorkingDrafts=0;
+  for(const document of workingDocumentResult.data||[]){
+    const latest=latestVersions.get(document.id);
+    const rawDraft=String(latest?.draft_content??'');
+    const allowed=Math.max(0,Math.min(12000,remainingWorkingDraftChars));
+    const latestDraftContent=clean(rawDraft,allowed);
+    remainingWorkingDraftChars-=latestDraftContent.length;
+    if(rawDraft.length>latestDraftContent.length)truncatedWorkingDrafts++;
+    add(`working_document:${document.id}`,'working_document',clean(document.title,180),document.updated_at,{document_type:clean(document.document_type,120),status_label:clean(document.current_status_label,120),latest_version:latest?.version_number||0,latest_version_status:clean(latest?.status_label,120),latest_change_summary:clean(latest?.change_summary,800),latest_draft_content:latestDraftContent,draft_content_truncated:rawDraft.length>latestDraftContent.length});
+  }
 
   const sourceCatalog=sources.map(({id,type,label,at})=>({id,type,label,at}));
   const fileMap=preparedDocuments.analyzed.map((id,index)=>({source_id:`document:${id}`,file_name:`documento-${index+1}.pdf`}));
@@ -218,9 +234,9 @@ async function analyzeCase(apiKey:string,adminId:string,caseId:string){
   result.suggested_next_actions=sanitizeSources(result.suggested_next_actions).map((item:any)=>({...item,requires_human_review:true}));
   result.draft_client_update=sanitizeClientDraft(result.draft_client_update);
   const {inputTokens,outputTokens,estimatedCost}=usage(response);
-  const {data:run,error:runError}=await serviceClient.from('case_ai_runs').insert({case_id:caseId,requested_by:adminId,action:'analyze_case',model,prompt_version:'ratio-case-v3',status:'completed',result,source_refs:sourceCatalog,input_tokens:inputTokens,output_tokens:outputTokens,estimated_cost_usd:estimatedCost,automatic_write:false}).select('id,created_at').single();
+  const {data:run,error:runError}=await serviceClient.from('case_ai_runs').insert({case_id:caseId,requested_by:adminId,action:'analyze_case',model,prompt_version:'ratio-case-v4',status:'completed',result,source_refs:sourceCatalog,input_tokens:inputTokens,output_tokens:outputTokens,estimated_cost_usd:estimatedCost,automatic_write:false}).select('id,created_at').single();
   if(runError)throw runError;
-  const auditRows=[{case_id:caseId,actor_id:adminId,action:'ai_case_analyzed',object_type:'case',object_id:caseId,details:{run_id:run.id,model,prompt_version:'ratio-case-v3',source_count:sources.length,document_count:(documentResult.data||[]).length,analyzed_document_count:preparedDocuments.analyzed.length,input_tokens:inputTokens,output_tokens:outputTokens,estimated_cost_usd:estimatedCost,automatic_write:false}},...preparedDocuments.analyzed.map(documentId=>({case_id:caseId,actor_id:adminId,action:'ai_document_content_processed',object_type:'case_document',object_id:documentId,details:{run_id:run.id,model,store:false,automatic_write:false}}))];
+  const auditRows=[{case_id:caseId,actor_id:adminId,action:'ai_case_analyzed',object_type:'case',object_id:caseId,details:{run_id:run.id,model,prompt_version:'ratio-case-v4',source_count:sources.length,working_document_count:(workingDocumentResult.data||[]).length,truncated_working_draft_count:truncatedWorkingDrafts,document_count:(documentResult.data||[]).length,analyzed_document_count:preparedDocuments.analyzed.length,input_tokens:inputTokens,output_tokens:outputTokens,estimated_cost_usd:estimatedCost,automatic_write:false}},...preparedDocuments.analyzed.map(documentId=>({case_id:caseId,actor_id:adminId,action:'ai_document_content_processed',object_type:'case_document',object_id:documentId,details:{run_id:run.id,model,store:false,automatic_write:false}}))];
   await serviceClient.from('audit_events').insert(auditRows);
   return {...result,model,run_id:run.id,analyzed_at:run.created_at,source_catalog:sourceCatalog,document_content_analyzed:preparedDocuments.analyzed.length>0,analyzed_document_count:preparedDocuments.analyzed.length,skipped_document_count:preparedDocuments.skipped.length,failed_document_count:preparedDocuments.failures.length,document_analysis_enabled:preparedDocuments.enabled};
 }

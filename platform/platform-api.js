@@ -271,18 +271,23 @@
 
     async loadWorkspace(userId = '') {
       const includeCrm = this.appMode !== 'portal';
-      const [profile, cases, events, notifications, leads, leadNotes, tasks, documentRequests, caseDocuments] = await Promise.all([
+      const [profile, cases, events, notifications, tasks, documentRequests, caseDocuments, workingDocuments, contracts, communicationRequests] = await Promise.all([
         this.select('profiles', `select=id,display_name,internal_role,active${userId?`&id=eq.${encodeURIComponent(userId)}`:''}&limit=1`),
-        this.select('cases', 'select=id,reference,client_id,client_name,title,category,status,summary,client_next_step,professional_name,professional_title,professional_registration,professional_region,opened_at,closed_at&order=opened_at.desc'),
+        this.select('cases', 'select=id,reference,client_id,client_name,title,category,status,summary,client_next_step,professional_name,professional_title,professional_registration,professional_region,opened_at,closed_at,contact_phone,contact_email,contact_province,source,manual_phase,portal_status,contract_confirmed_at,quoted_amount,privacy_notice_at,privacy_version,legal_basis&order=opened_at.desc'),
         this.select('case_events', 'select=id,case_id,event_type,title,description,visibility,stage,occurred_at&order=occurred_at.asc'),
         this.select('notifications', 'select=id,user_id,case_id,notification_type,title,body,read_at,created_at&order=created_at.desc'),
-        includeCrm ? this.select('crm_leads', 'select=id,reference,full_name,phone,email,province,category,source,summary,status,next_action,quoted_amount,privacy_notice_at,legal_basis,converted_case_id,created_at,updated_at&order=created_at.desc') : Promise.resolve([]),
-        includeCrm ? this.select('crm_lead_notes', 'select=id,lead_id,body,author_id,created_at&order=created_at.asc') : Promise.resolve([]),
-        includeCrm ? this.select('crm_tasks', 'select=id,lead_id,case_id,title,due_on,priority,assigned_to,completed_at,created_at&order=due_on.asc') : Promise.resolve([]),
+        includeCrm ? this.select('crm_tasks', 'select=id,case_id,title,due_on,priority,assigned_to,completed_at,created_at&order=due_on.asc') : Promise.resolve([]),
         this.select('document_requests', 'select=id,case_id,request_type,title,instructions,status,response_text,response_at,requested_by,requested_at,fulfilled_at&order=requested_at.desc'),
-        this.select('case_documents', 'select=id,case_id,request_id,original_name,mime_type,size_bytes,status,uploaded_by,privacy_notice_at,created_at,reviewed_at&order=created_at.desc')
+        this.select('case_documents', 'select=id,case_id,request_id,original_name,mime_type,size_bytes,status,uploaded_by,privacy_notice_at,created_at,reviewed_at&order=created_at.desc'),
+        includeCrm ? this.select('case_working_documents', 'select=id,case_id,title,document_type,current_status_label,visibility,published_at,created_by,created_at,updated_at&order=updated_at.desc') : Promise.resolve([]),
+        includeCrm ? this.select('case_contracts', 'select=id,case_id,template_key,template_version,contract_note,signer_full_name,signer_identifier,signer_address,cause,work_scope,price_amount,currency,provider,provider_request_id,provider_document_id,unsigned_storage_path,unsigned_sha256,sent_at,signed_at,invalidated_at,created_at,updated_at&order=created_at.desc') : Promise.resolve([]),
+        this.select('case_communication_requests', 'select=id,case_id,requested_by,subject,message,deadline_context,availability_note,response_text,responded_by,responded_at,created_at&order=created_at.desc')
       ]);
-      return { profile: profile[0] || null, cases, events, notifications, leads, leadNotes, tasks, documentRequests, caseDocuments };
+      const workingDocumentIds=workingDocuments.map(item=>item.id).filter(id=>/^[0-9a-f-]{36}$/i.test(id));
+      const documentVersions=includeCrm&&workingDocumentIds.length
+        ? await this.select('case_document_versions', `select=id,working_document_id,version_number,status_label,change_summary,draft_content,original_name,mime_type,size_bytes,source_ai_run_id,created_by,created_at&working_document_id=in.(${workingDocumentIds.join(',')})&order=version_number.desc`)
+        : [];
+      return { profile: profile[0] || null, cases, events, notifications, tasks, documentRequests, caseDocuments, workingDocuments, documentVersions, contracts, communicationRequests };
     }
   }
 

@@ -19,6 +19,10 @@
     "test:security": "node security-qa.mjs",
     "test:mfa": "node mfa-qa.mjs",
     "test:ai": "node ai-qa.mjs",
-    "test:documents": "node document-workflow-qa.mjs"
+    "test:documents": "node document-workflow-qa.mjs",
+    "test:unified-cases": "node unified-case-qa.mjs",
+    "test:unified-schema": "node unified-case-schema-qa.mjs",
+    "test:contract-signature": "node contract-signature-qa.mjs",
+    "test:communications": "node communication-workflow-qa.mjs"
   }
 }

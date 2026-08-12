@@ -108,6 +108,33 @@
     </form>
   </dialog>
 
+  <dialog id="communication-dialog" class="modal">
+    <form method="dialog" id="communication-form">
+      <div class="modal-head"><div><p class="kicker">Canal del expediente</p><h2>Solicitar una aclaración o una llamada</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <input id="communication-case" type="hidden">
+      <p class="activation-lead">Cuéntanos qué necesitas. Ratio coordinará la respuesta y, cuando corresponda, el contacto con el profesional asignado.</p>
+      <label>Asunto<input id="communication-subject" required minlength="3" maxlength="140" placeholder="Ej. Duda sobre la última comunicación"></label>
+      <label>Tu consulta<textarea id="communication-message" rows="6" required minlength="10" maxlength="4000" placeholder="Explica la duda o el motivo de la llamada"></textarea></label>
+      <label>¿Existe una notificación, cita o plazo?<textarea id="communication-deadline" rows="3" maxlength="1000" placeholder="Indica la fecha y qué documento has recibido. Si no existe, puedes dejarlo en blanco."></textarea></label>
+      <label>Disponibilidad orientativa para hablar<input id="communication-availability" maxlength="500" placeholder="Ej. De lunes a jueves, de 16:00 a 19:00"></label>
+      <div class="privacy-preview"><small>Comunicación trazable</small><p>La solicitud quedará vinculada a tu expediente. No adjuntes documentos aquí: utiliza únicamente las solicitudes de documentación del portal.</p></div>
+      <div id="communication-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Enviar solicitud <span>→</span></button></div>
+    </form>
+  </dialog>
+
+  <dialog id="communication-response-dialog" class="modal">
+    <form method="dialog" id="communication-response-form">
+      <div class="modal-head"><div><p class="kicker">Respuesta trazable</p><h2>Responder al cliente</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <input id="communication-response-id" type="hidden">
+      <div class="request-context"><small>Solicitud</small><strong id="communication-response-subject"></strong></div>
+      <label>Respuesta de Ratio<textarea id="communication-response-text" rows="7" required minlength="2" maxlength="4000" placeholder="Indica la respuesta o cómo se coordinará el contacto"></textarea></label>
+      <div class="privacy-preview"><small>Antes de enviar</small><p>La respuesta aparecerá en el portal y se avisará al cliente. No incluyas notas internas ni datos de terceros.</p></div>
+      <div id="communication-response-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Responder y avisar <span>→</span></button></div>
+    </form>
+  </dialog>
+
   <dialog id="invite-dialog" class="modal">
     <form method="dialog" id="invite-form">
       <div class="modal-head"><div><p class="kicker">Alta controlada</p><h2>Crear cliente y expediente</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
@@ -123,20 +150,20 @@
 
   <dialog id="lead-dialog" class="modal">
     <form method="dialog" id="lead-form">
-      <div class="modal-head"><div><p class="kicker">Nueva consulta</p><h2>Registrar contacto</h2></div><button class="close-button" id="close-lead-dialog" type="button" aria-label="Cerrar">×</button></div>
+      <div class="modal-head"><div><p class="kicker">Nuevo expediente</p><h2>Registrar el primer contacto</h2></div><button class="close-button" id="close-lead-dialog" type="button" aria-label="Cerrar">×</button></div>
       <p class="upload-warning">Registra únicamente la información necesaria para estudiar el asunto. No incluyas documentos ni datos especialmente sensibles.</p>
       <div class="form-grid">
         <label>Nombre y apellidos<input id="lead-name" autocomplete="name" required maxlength="120"></label>
         <label>Teléfono<input id="lead-phone" type="tel" autocomplete="tel" maxlength="30" required></label>
         <label>Correo electrónico<input id="lead-email" type="email" autocomplete="email" maxlength="254" required></label>
         <label>Provincia<input id="lead-province" maxlength="80" placeholder="Ej. Granada"></label>
-        <label>Área<select id="lead-category"><option>Banca y financiación</option><option>Deudas y negociación</option><option>Vivienda</option><option>Familia</option><option>Seguros e indemnizaciones</option><option>Consumo</option><option>Otro asunto</option></select></label>
+        <label>Área<select id="lead-category"><option>Banca y financiación</option><option>Deudas y negociación</option><option>Vivienda</option><option>Hacienda e impuestos</option><option>Familia</option><option>Seguros e indemnizaciones</option><option>Consumo</option><option>Otro asunto</option></select></label>
         <label>Origen<select id="lead-source"><option>Formulario web</option><option>Recomendación</option><option>Teléfono</option><option>Profesional colaborador</option><option>Otro</option></select></label>
       </div>
-      <label>Resumen de la consulta<textarea id="lead-summary" rows="3" required maxlength="800" placeholder="Describe brevemente el problema y la actuación solicitada"></textarea></label>
+      <label>Información inicial<textarea id="lead-summary" rows="4" required maxlength="1200" placeholder="Describe el problema, notificaciones o urgencias conocidas"></textarea></label>
       <label class="confirm-reading"><input id="lead-privacy-notice" type="checkbox" required><span>La persona ha recibido o leído la información de privacidad aplicable a la consulta.</span></label>
       <div id="lead-form-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
-      <div class="modal-actions"><button class="secondary-button" id="cancel-lead" type="button">Cancelar</button><button class="primary-button" type="submit" value="default">Guardar consulta <span>→</span></button></div>
+      <div class="modal-actions"><button class="secondary-button" id="cancel-lead" type="button">Cancelar</button><button class="primary-button" type="submit" value="default">Crear expediente <span>→</span></button></div>
     </form>
   </dialog>
 
@@ -171,8 +198,69 @@
       <div class="modal-head"><div><p class="kicker">Agenda interna</p><h2>Nueva tarea</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
       <label>Tarea<input id="task-title" required maxlength="180" placeholder="Ej. Revisar viabilidad de la consulta"></label>
       <div class="form-grid"><label>Fecha interna<input id="task-date" type="date" required></label><label>Prioridad<select id="task-priority"><option value="normal">Normal</option><option value="high">Alta</option></select></label></div>
-      <label>Consulta relacionada<select id="task-lead"></select></label>
+      <label>Expediente relacionado<select id="task-lead"></select></label>
       <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Guardar tarea <span>→</span></button></div>
+    </form>
+  </dialog>
+
+  <dialog id="case-record-dialog" class="modal wide-modal">
+    <form method="dialog" id="case-record-form">
+      <div class="modal-head"><div><p class="kicker">Ficha interna</p><h2 id="case-record-title">Editar expediente</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <input id="case-record-id" type="hidden">
+      <div class="form-grid">
+        <label>Teléfono<input id="case-record-phone" type="tel" maxlength="30" required></label>
+        <label>Correo electrónico<input id="case-record-email" type="email" maxlength="254" required></label>
+        <label>Situación actual, escrita por Ratio<input id="case-record-phase" maxlength="120" placeholder="Ej. Pendiente de revisar la escritura"></label>
+        <label>Estado general<select id="case-record-lifecycle"><option value="open">Abierto</option><option value="not_contracted">No contratado</option><option value="archived">Archivado</option></select></label>
+        <label>Importe presupuestado (€)<input id="case-record-amount" type="number" min="0" step="0.01"></label>
+      </div>
+      <label>Nueva nota interna<textarea id="case-record-note" rows="4" maxlength="2000" placeholder="Se añadirá a la cronología con fecha y autor"></textarea></label>
+      <div id="case-record-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Guardar en el historial <span>→</span></button></div>
+    </form>
+  </dialog>
+
+  <dialog id="working-document-dialog" class="modal">
+    <form method="dialog" id="working-document-form">
+      <div class="modal-head"><div><p class="kicker">Documento de trabajo</p><h2>Crear documento</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <input id="working-document-case" type="hidden">
+      <label>Título<input id="working-document-title" required maxlength="180" placeholder="Ej. Demanda frente a la entidad"></label>
+      <label>Tipo libre<input id="working-document-type" maxlength="120" placeholder="Demanda, recurso, alegaciones, contrato…"></label>
+      <label>Anotación inicial libre<input id="working-document-status" maxlength="120" placeholder="Ej. Pendiente de primera redacción"></label>
+      <div id="working-document-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Crear documento <span>→</span></button></div>
+    </form>
+  </dialog>
+
+  <dialog id="contract-dialog" class="modal wide-modal">
+    <form method="dialog" id="contract-form">
+      <div class="modal-head"><div><p class="kicker">Contrato estándar</p><h2>Preparar contrato de servicios</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <input id="contract-case" type="hidden">
+      <p class="upload-warning">Esta ficha prepara el contrato interno. No acredita la firma ni activa el portal del cliente.</p>
+      <label>Anotación libre de Ratio<input id="contract-note" maxlength="200" placeholder="Escribe lo que corresponda, sin opciones prefijadas"></label>
+      <div class="form-grid">
+        <label>Nombre completo del firmante<input id="contract-signer-name" required maxlength="160" autocomplete="name"></label>
+        <label>DNI, NIE o identificación<input id="contract-signer-id" required maxlength="30"></label>
+      </div>
+      <label>Domicilio del firmante<input id="contract-signer-address" required maxlength="300" autocomplete="street-address"></label>
+      <label>Causa o asunto del encargo<textarea id="contract-cause" rows="3" required maxlength="600" placeholder="Describe el asunto que origina la contratación"></textarea></label>
+      <label>Trabajo concreto que realizará Ratio<textarea id="contract-work-scope" rows="6" required maxlength="4000" placeholder="Redacción manual del alcance, actuaciones incluidas y límites del encargo"></textarea></label>
+      <label>Precio cerrado (€)<input id="contract-price" type="number" min="0" step="0.01" required></label>
+      <div class="privacy-preview"><small>Plantilla versionada</small><p>Las demás cláusulas serán comunes y no podrán alterarse silenciosamente. Antes del primer uso deberán revisarse jurídicamente.</p></div>
+      <div id="contract-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Guardar ficha contractual <span>→</span></button></div>
+    </form>
+  </dialog>
+
+  <dialog id="document-version-dialog" class="modal wide-modal">
+    <form method="dialog" id="document-version-form">
+      <div class="modal-head"><div><p class="kicker">Nueva versión</p><h2 id="document-version-title">Añadir versión</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <input id="document-version-id" type="hidden">
+      <label>Anotación de esta versión<input id="document-version-status" maxlength="120" placeholder="Ej. Tercera redacción revisada por el profesional"></label>
+      <label>Qué ha cambiado<textarea id="document-version-summary" rows="3" maxlength="800"></textarea></label>
+      <label>Contenido del borrador<textarea id="document-version-content" rows="12" maxlength="100000" placeholder="Texto editable. Más adelante podrá generarse desde el análisis del expediente."></textarea></label>
+      <div id="document-version-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Guardar nueva versión <span>→</span></button></div>
     </form>
   </dialog>
 
@@ -204,7 +292,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <script defer src="config.js"></script>
-  <script defer src="platform-api.js?v=17"></script>
-  <script defer src="app.js?v=17"></script>
+  <script defer src="platform-api.js?v=18"></script>
+  <script defer src="app.js?v=18"></script>
 </body>
 </html>

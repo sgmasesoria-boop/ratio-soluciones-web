@@ -4,7 +4,7 @@ import {sendCaseConfirmation} from '../_shared/case-email.ts';
 
 const statuses=['new','review','waiting','viable','proposal','contract','won','lost'];
 const statusLabels:Record<string,string>={new:'Nueva',review:'En estudio',waiting:'Falta información',viable:'Viable',proposal:'Propuesta enviada',contract:'Contrato pendiente',won:'Contratada',lost:'No viable / cerrada'};
-const categories=['Banca y financiación','Deudas y negociación','Vivienda','Familia','Seguros e indemnizaciones','Consumo','Otro asunto'];
+const categories=['Banca y financiación','Deudas y negociación','Vivienda','Hacienda e impuestos','Familia','Seguros e indemnizaciones','Consumo','Otro asunto'];
 const clean=(value:unknown,max:number)=>String(value??'').trim().slice(0,max);
 const validEmail=(value:string)=>!value||/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 const validPhone=(value:string)=>!value||/^[0-9+() .-]{7,30}$/.test(value);
@@ -30,6 +30,115 @@ Deno.serve(async request=>{
   try{
     const admin=await requireAdmin(request);
     const body=await request.json();
+    if(body.action==='create_case'){
+      const fullName=clean(body.fullName,120),phone=clean(body.phone,30),email=clean(body.email,254).toLowerCase();
+      const province=clean(body.province,80),category=clean(body.category,80),source=clean(body.source,80),summary=clean(body.summary,1200);
+      if(fullName.length<2||!phone||!email||!validPhone(phone)||!validEmail(email)||summary.length<10||!categories.includes(category)||body.privacyNoticeAcknowledged!==true)return respond({error:'INVALID_FIELDS'},400);
+      const reference=`C-${new Date().getUTCFullYear()}-${crypto.randomUUID().slice(0,6).toUpperCase()}`;
+      const now=new Date().toISOString();
+      const {data,error}=await serviceClient.from('cases').insert({
+        reference,client_id:null,client_name:fullName,title:summary.slice(0,160),category,status:'open',summary,
+        created_by:admin.id,contact_phone:phone,contact_email:email,contact_province:province||null,source,
+        manual_phase:'',portal_status:'disabled',privacy_notice_at:now,privacy_version:'crm-v1',legal_basis:'precontractual_request'
+      }).select('id,reference').single();
+      if(error)throw error;
+      await serviceClient.from('case_members').insert({case_id:data.id,user_id:admin.id,membership_role:'owner',assigned_by:admin.id});
+      await serviceClient.from('case_events').insert({case_id:data.id,event_type:'consultation_received',title:'Consulta inicial recibida',description:summary,visibility:'internal',actor_id:admin.id,metadata:{source}});
+      await serviceClient.from('audit_events').insert({case_id:data.id,actor_id:admin.id,action:'case_created',object_type:'case',object_id:data.id,details:{source,contact_channels:['email','phone']}});
+      return respond(data,201);
+    }
+    if(body.action==='update_case_record'){
+      const caseId=clean(body.caseId,36),manualPhase=clean(body.manualPhase,120),note=clean(body.note,2000);
+      const lifecycle=clean(body.lifecycle,20),phone=clean(body.phone,30),email=clean(body.email,254).toLowerCase();
+      const amount=Number(body.amount||0);
+      if(!validUuid(caseId)||!['open','not_contracted','archived'].includes(lifecycle)||!phone||!email||!validPhone(phone)||!validEmail(email)||!Number.isFinite(amount)||amount<0)return respond({error:'INVALID_FIELDS'},400);
+      const {data:previous,error:previousError}=await serviceClient.from('cases').select('manual_phase,status').eq('id',caseId).single();
+      if(previousError||!previous)return respond({error:'CASE_NOT_FOUND'},404);
+      const {error}=await serviceClient.from('cases').update({manual_phase:manualPhase,status:lifecycle,contact_phone:phone,contact_email:email,quoted_amount:amount,closed_at:lifecycle==='open'?null:new Date().toISOString()}).eq('id',caseId);
+      if(error)throw error;
+      const events=[] as Array<Record<string,unknown>>;
+      if(previous.manual_phase!==manualPhase)events.push({case_id:caseId,event_type:'internal_phase_changed',title:manualPhase||'Situación interna sin indicación',description:'',visibility:'internal',actor_id:admin.id,metadata:{previous_label:previous.manual_phase||''}});
+      if(previous.status!==lifecycle)events.push({case_id:caseId,event_type:'case_lifecycle_changed',title:lifecycle==='open'?'Expediente abierto':lifecycle==='not_contracted'?'Expediente cerrado sin contratación':'Expediente archivado tras su terminación',description:'',visibility:'internal',actor_id:admin.id,metadata:{previous_lifecycle:previous.status}});
+      if(note)events.push({case_id:caseId,event_type:'internal_note',title:'Nota interna',description:note,visibility:'internal',actor_id:admin.id});
+      if(events.length){const {error:eventError}=await serviceClient.from('case_events').insert(events);if(eventError)throw eventError;}
+      await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:admin.id,action:'case_record_updated',object_type:'case',object_id:caseId,details:{manual_phase:manualPhase,lifecycle,phase_changed:previous.manual_phase!==manualPhase}});
+      return respond({ok:true});
+    }
+    if(body.action==='activate_case_portal'){
+      const caseId=clean(body.caseId,36);
+      if(!validUuid(caseId))return respond({error:'INVALID_FIELDS'},400);
+      const {data:caseRecord,error:caseError}=await serviceClient.from('cases').select('id,reference,client_name,contact_email,portal_status').eq('id',caseId).single();
+      if(caseError||!caseRecord)return respond({error:'CASE_NOT_FOUND'},404);
+      if(!caseRecord.contact_email||!validEmail(caseRecord.contact_email))return respond({error:'EMAIL_REQUIRED_FOR_PORTAL'},409);
+      if(['invited','active'].includes(caseRecord.portal_status))return respond({error:'PORTAL_ALREADY_ENABLED'},409);
+      const {data:signedContract,error:contractError}=await serviceClient.from('case_contracts').select('id,signed_at').eq('case_id',caseId).not('signed_at','is',null).is('invalidated_at',null).order('signed_at',{ascending:false}).limit(1).maybeSingle();
+      if(contractError)throw contractError;
+      if(!signedContract)return respond({error:'SIGNED_CONTRACT_REQUIRED'},409);
+      const existingUser=await findAuthUserByEmail(caseRecord.contact_email);
+      if(existingUser){
+        const {data:profile,error:profileError}=await serviceClient.from('profiles').select('internal_role').eq('id',existingUser.id).maybeSingle();
+        if(profileError)throw profileError;
+        if(profile?.internal_role&&profile.internal_role!=='client')return respond({error:'EMAIL_BELONGS_TO_INTERNAL_USER'},409);
+      }
+      let clientId=existingUser?.id||'',invitedUserId='';
+      if(!existingUser){
+        const {data:invite,error:inviteError}=await serviceClient.auth.admin.inviteUserByEmail(caseRecord.contact_email,{redirectTo:'https://clientes.ratiosoluciones.es',data:{display_name:caseRecord.client_name}});
+        if(inviteError)throw inviteError;
+        clientId=invite.user.id;invitedUserId=invite.user.id;
+      }
+      const {error:profileError}=await serviceClient.from('profiles').upsert({id:clientId,display_name:caseRecord.client_name,internal_role:'client',active:true},{onConflict:'id'});
+      if(profileError){if(invitedUserId)await serviceClient.auth.admin.deleteUser(invitedUserId);throw profileError;}
+      const {error:updateError}=await serviceClient.from('cases').update({client_id:clientId,contract_confirmed_at:signedContract.signed_at,portal_status:existingUser?'active':'invited',legal_basis:'contractual_relationship'}).eq('id',caseId);
+      if(updateError){if(invitedUserId)await serviceClient.auth.admin.deleteUser(invitedUserId);throw updateError;}
+      await serviceClient.from('case_events').insert({case_id:caseId,event_type:'portal_enabled',title:'Acceso privado activado',description:'El acceso del cliente se ha habilitado tras confirmar la contratación.',visibility:'client',actor_id:admin.id});
+      await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:admin.id,action:'case_portal_enabled',object_type:'case',object_id:caseId,details:{invitation_sent:Boolean(invitedUserId),existing_user:Boolean(existingUser)}});
+      const confirmationSent=await sendCaseConfirmation({caseId,reference:caseRecord.reference,fullName:caseRecord.client_name,email:caseRecord.contact_email,firstAccess:Boolean(invitedUserId)});
+      return respond({caseId,reference:caseRecord.reference,invitationSent:Boolean(invitedUserId),existingAccess:Boolean(existingUser),confirmationSent});
+    }
+    if(body.action==='save_contract_record'){
+      const caseId=clean(body.caseId,36),contractNote=clean(body.contractNote,200),signerFullName=clean(body.signerFullName,160),signerIdentifier=clean(body.signerIdentifier,30),signerAddress=clean(body.signerAddress,300),cause=clean(body.cause,600),workScope=clean(body.workScope,4000);
+      const priceAmount=Number(body.priceAmount);
+      if(!validUuid(caseId)||signerFullName.length<2||signerIdentifier.length<5||signerAddress.length<5||cause.length<3||workScope.length<3||!Number.isFinite(priceAmount)||priceAmount<0)return respond({error:'INVALID_FIELDS'},400);
+      const {data:caseRecord,error:caseError}=await serviceClient.from('cases').select('id,status').eq('id',caseId).single();
+      if(caseError||!caseRecord)return respond({error:'CASE_NOT_FOUND'},404);
+      if(caseRecord.status!=='open')return respond({error:'CASE_NOT_OPEN'},409);
+      const {data:existing,error:existingError}=await serviceClient.from('case_contracts').select('id').eq('case_id',caseId).is('provider_request_id',null).is('signed_at',null).is('invalidated_at',null).order('created_at',{ascending:false}).limit(1).maybeSingle();
+      if(existingError)throw existingError;
+      const payload={case_id:caseId,template_key:'ratio-servicios',template_version:1,contract_note:contractNote,signer_full_name:signerFullName,signer_identifier:signerIdentifier,signer_address:signerAddress,cause,work_scope:workScope,price_amount:priceAmount,currency:'EUR',created_by:admin.id};
+      const result=existing
+        ? await serviceClient.from('case_contracts').update({contract_note:contractNote,signer_full_name:signerFullName,signer_identifier:signerIdentifier,signer_address:signerAddress,cause,work_scope:workScope,price_amount:priceAmount}).eq('id',existing.id).select('id,contract_note').single()
+        : await serviceClient.from('case_contracts').insert(payload).select('id,contract_note').single();
+      if(result.error)throw result.error;
+      await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:admin.id,action:existing?'contract_record_updated':'contract_record_created',object_type:'case_contract',object_id:result.data.id,details:{template_key:'ratio-servicios',template_version:1,price_amount:priceAmount,currency:'EUR'}});
+      return respond(result.data,existing?200:201);
+    }
+    if(body.action==='resend_case_confirmation_by_case'){
+      const caseId=clean(body.caseId,36);
+      if(!validUuid(caseId))return respond({error:'INVALID_FIELDS'},400);
+      const {data:caseRecord,error}=await serviceClient.from('cases').select('reference,client_name,contact_email,portal_status').eq('id',caseId).single();
+      if(error||!caseRecord)return respond({error:'CASE_NOT_FOUND'},404);
+      if(!['invited','active'].includes(caseRecord.portal_status)||!caseRecord.contact_email)return respond({error:'CASE_CONFIRMATION_UNAVAILABLE'},409);
+      const confirmationSent=await sendCaseConfirmation({caseId,reference:caseRecord.reference,fullName:caseRecord.client_name,email:caseRecord.contact_email,firstAccess:false});
+      if(!confirmationSent)return respond({error:'EMAIL_DELIVERY_FAILED'},502);
+      return respond({ok:true,confirmationSent:true});
+    }
+    if(body.action==='create_working_document'){
+      const caseId=clean(body.caseId,36),title=clean(body.title,180),documentType=clean(body.documentType,120),statusLabel=clean(body.statusLabel,120);
+      if(!validUuid(caseId)||title.length<3)return respond({error:'INVALID_FIELDS'},400);
+      const {data,error}=await serviceClient.from('case_working_documents').insert({case_id:caseId,title,document_type:documentType,current_status_label:statusLabel,visibility:'internal',created_by:admin.id}).select('id').single();
+      if(error)throw error;
+      await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:admin.id,action:'working_document_created',object_type:'case_working_document',object_id:data.id,details:{title,document_type:documentType,status_label:statusLabel}});
+      return respond(data,201);
+    }
+    if(body.action==='add_working_document_version'){
+      const documentId=clean(body.documentId,36),statusLabel=clean(body.statusLabel,120),changeSummary=clean(body.changeSummary,800);
+      const draftContent=typeof body.draftContent==='string'?body.draftContent.slice(0,100000):'';
+      const sourceAiRunId=clean(body.sourceAiRunId,36)||null;
+      if(!validUuid(documentId)||(sourceAiRunId&&!validUuid(sourceAiRunId)))return respond({error:'INVALID_FIELDS'},400);
+      const {data,error}=await serviceClient.rpc('server_add_case_document_version',{p_working_document_id:documentId,p_admin_id:admin.id,p_status_label:statusLabel,p_change_summary:changeSummary,p_draft_content:draftContent||null,p_source_ai_run_id:sourceAiRunId});
+      if(error)throw error;
+      return respond(data?.[0]||{},201);
+    }
     if(body.action==='create_lead'){
       const fullName=clean(body.fullName,120),phone=clean(body.phone,30),email=clean(body.email,254).toLowerCase();
       const province=clean(body.province,80),category=clean(body.category,80),source=clean(body.source,80),summary=clean(body.summary,800);
@@ -63,9 +172,9 @@ Deno.serve(async request=>{
       return respond({ok:true});
     }
     if(body.action==='create_task'){
-      const title=clean(body.title,180),dueDate=clean(body.dueDate,10),priority=body.priority==='high'?'high':'normal',leadId=clean(body.leadId,36);
-      if(title.length<3||!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)||!validUuid(leadId))return respond({error:'INVALID_FIELDS'},400);
-      const {data,error}=await serviceClient.from('crm_tasks').insert({lead_id:leadId,title,due_on:dueDate,priority,assigned_to:admin.id,created_by:admin.id}).select('id').single();
+      const title=clean(body.title,180),dueDate=clean(body.dueDate,10),priority=body.priority==='high'?'high':'normal',caseId=clean(body.caseId,36);
+      if(title.length<3||!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)||!validUuid(caseId))return respond({error:'INVALID_FIELDS'},400);
+      const {data,error}=await serviceClient.from('crm_tasks').insert({case_id:caseId,title,due_on:dueDate,priority,assigned_to:admin.id,created_by:admin.id}).select('id').single();
       if(error)throw error;
       return respond(data,201);
     }

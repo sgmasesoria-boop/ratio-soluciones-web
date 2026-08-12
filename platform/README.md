@@ -1,62 +1,49 @@
 # Ratio Soluciones · CRM y plataforma privada
 
-Portal separado de la web pública para que cada cliente consulte el estado real de su expediente. Esta versión no admite, almacena ni descarga documentos.
+Sistema único de expedientes. El primer contacto crea un expediente interno; no existe una entidad separada de «consulta» ni una conversión posterior. El portal del cliente permanece desactivado hasta que el sistema recibe y valida las evidencias de firma.
 
-La zona interna incorpora un CRM operativo para registrar cada consulta, controlar el seguimiento y convertir una contratación en expediente sin duplicar datos.
+## Modelo operativo
 
-## Funciones incluidas
+- Un expediente desde el primer contacto hasta el cierre.
+- Situación actual escrita libremente por Ratio, sin fases comerciales o procesales premarcadas.
+- Estado general mínimo: abierto, no contratado o archivado. La contratación se registra aparte y no cierra el expediente.
+- Cronología inmutable de notas, avances, solicitudes, entregas y accesos.
+- Contrato sin estados prefijados: Ratio escribe una anotación libre y el sistema conserva por separado los hechos verificables de envío y firma.
+- Portal privado activado expresamente solo después de acreditar la firma.
+- Solicitudes de documentación o aclaraciones dentro del portal.
+- Solicitudes de aclaración o llamada iniciadas por el cliente, con respuesta trazable y coordinación desde Ratio.
+- Documentos de trabajo con tipo y anotación libres.
+- Versiones ilimitadas por documento: cada borrador se conserva y nunca sustituye al anterior.
+- Solo las versiones publicadas expresamente pueden ser visibles para el cliente.
+- Análisis interno por expediente, siempre manual, con revisión humana y auditoría.
 
-- Alta únicamente por invitación después de aceptar el estudio inicial.
-- Confirmación de correo, contraseña y recuperación de acceso.
-- Vista de cliente y gestión interna.
-- Estado del expediente mediante seis etapas, sin fechas estimadas.
-- Cronología de actuaciones ya realizadas.
-- Indicación clara de lo que necesita hacer el cliente.
-- Identidad, profesión y acreditación del profesional una vez asignado.
-- Avisos vinculados a cada avance.
-- Registro de auditoría para las operaciones administrativas.
-- Permisos por expediente mediante RLS.
-- Embudo de consultas desde la entrada hasta la contratación o cierre.
-- Registro de origen, información de privacidad entregada, base jurídica, provincia, categoría y próxima actuación.
-- Agenda interna de tareas, importes presupuestados y control económico inicial.
-- Conversión controlada de una consulta en expediente e invitación al cliente.
+## Seguridad y privacidad
 
-## Exclusiones deliberadas
+- Supabase Auth con MFA AAL2 obligatorio para el equipo interno.
+- RLS por expediente y escritura administrativa exclusivamente mediante funciones Edge.
+- Archivos en almacenamiento privado y enlaces temporales.
+- El navegador no recibe la clave de servicio.
+- Las notificaciones externas no incluyen información sensible.
+- La identidad profesional se muestra al cliente únicamente después de su asignación.
 
-- No existe registro público.
-- No se aceptan archivos.
-- No hay almacenamiento documental.
-- No se envían detalles sensibles en las notificaciones externas.
-- La identidad de los profesionales no se publica en la web; aparece en el expediente después de su asignación.
-
-## Arquitectura prevista
+## Arquitectura
 
 - `clientes.ratiosoluciones.es`: portal privado del cliente.
-- `crm.ratiosoluciones.es`: aplicación interna separada.
-- Supabase Auth: invitación, confirmación, recuperación y sesiones.
-- PostgreSQL: consultas, tareas, perfiles, expedientes, miembros, avances, avisos y auditoría.
-- Edge Functions: alta controlada y actualización atómica del expediente.
-- SMTP propio: mensajes de acceso y avisos genéricos.
+- `crm.ratiosoluciones.es`: aplicación interna.
+- PostgreSQL: perfiles, expedientes, miembros, cronología, solicitudes, archivos, documentos de trabajo, versiones y auditoría.
+- Edge Functions: alta, actualización, activación del portal, documentos, análisis y notificaciones.
+- SMTP corporativo: acceso y avisos genéricos.
 
-## Pruebas
+## Pruebas locales
 
 ```powershell
 npm run build
-npm run test:ui
-npm run test:api
-npm run test:production
+npm run test:unified-cases
+npm run test:contract-signature
+npm run test:communications
 npm run test:security
+npm run test:documents
+npm run test:ai
 ```
 
-El modo de demostración utiliza únicamente datos ficticios guardados en `localStorage`.
-
-## Pasos externos antes de producción
-
-1. Crear un proyecto Supabase en región europea.
-2. Aplicar las migraciones en orden.
-3. Crear el primer perfil administrador de forma controlada.
-4. Configurar SMTP, dominios, URL de redirección y `ALLOWED_WEB_ORIGINS`.
-5. Desplegar `invite-client`, `update-case` y `manage-crm`.
-6. Activar MFA para administradores.
-7. Ejecutar las pruebas con cuentas ficticias reales.
-8. Revisar privacidad, contratos y texto legal antes del primer cliente.
+El modo de demostración utiliza datos ficticios. Las pruebas locales no sustituyen la comprobación autenticada y pública tras desplegar.
