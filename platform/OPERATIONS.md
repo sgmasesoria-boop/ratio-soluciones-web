@@ -72,6 +72,15 @@ No se introducen fechas previstas que no puedan garantizarse.
 5. Las versiones son internas por defecto. La futura publicación al cliente será una acción expresa y auditada.
 6. El análisis API puede usar la versión más reciente de cada documento dentro de límites de coste; nunca guarda automáticamente su propuesta como versión definitiva.
 
+## Documentación interna de Ratio
+
+1. Los documentos creados o recibidos por Ratio se adjuntan desde «Documentación interna» en el expediente.
+2. Este archivo es distinto de las solicitudes y entregas del cliente y nunca se muestra en su portal por defecto.
+3. Se admiten PDF, DOCX, JPG y PNG de hasta 15 MB; se rechazan extensiones ejecutables y contenidos cuya firma no coincide con el formato declarado.
+4. Cada archivo conserva título, nota, autor, fecha, tamaño y huella SHA-256.
+5. La subida y cada descarga exigen cuenta administrativa con AAL2 y quedan auditadas. Los enlaces de descarga caducan a los 60 segundos.
+6. Los archivos no deben abrirse fuera de equipos protegidos. La validación de formato no sustituye un sistema antimalware; antes de ampliar el uso a archivos de terceros deberá incorporarse escaneo de malware.
+
 ## Documentación
 
 La documentación se solicita y entrega exclusivamente dentro del portal privado:

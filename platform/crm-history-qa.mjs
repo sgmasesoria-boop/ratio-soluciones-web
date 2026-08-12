@@ -20,7 +20,7 @@ await page.route('https://ratio-test.supabase.co/**',async route=>{
   if(url.includes('/rest/v1/case_events?'))return fulfill([{id:'event-1',case_id:'case-1',event_type:'case_update',title:'Notificación recibida',description:'Notificación recibida',visibility:'client',stage:'open',occurred_at:'2026-08-10T08:00:00Z'}]);
   if(url.includes('/rest/v1/crm_leads?'))return fulfill([...(createdLead?[createdLead]:[]),convertedLead]);
   if(url.includes('/rest/v1/crm_lead_notes?'))return fulfill([{id:'note-1',lead_id:'lead-converted',body:'Contrato firmado y comprobado.',author_id:'admin-1',created_at:'2026-08-09T11:00:00Z'}]);
-  if(url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?'))return fulfill([]);
+  if(url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?')||url.includes('/rest/v1/case_internal_documents?'))return fulfill([]);
   if(url.endsWith('/functions/v1/manage-crm')){
     const payload=JSON.parse(route.request().postData()||'{}');
     if(payload.action==='create_lead'){

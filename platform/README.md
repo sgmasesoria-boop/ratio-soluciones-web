@@ -11,6 +11,7 @@ Sistema único de expedientes. El primer contacto crea un expediente interno; no
 - Contrato sin estados prefijados: Ratio escribe una anotación libre y el sistema conserva por separado los hechos verificables de envío y firma.
 - Portal privado activado expresamente solo después de acreditar la firma.
 - Solicitudes de documentación o aclaraciones dentro del portal.
+- Archivo documental interno separado, invisible para el cliente, con huella y descargas auditadas.
 - Solicitudes de aclaración o llamada iniciadas por el cliente, con respuesta trazable y coordinación desde Ratio.
 - Documentos de trabajo con tipo y anotación libres.
 - Versiones ilimitadas por documento: cada borrador se conserva y nunca sustituye al anterior.
@@ -22,6 +23,7 @@ Sistema único de expedientes. El primer contacto crea un expediente interno; no
 - Supabase Auth con MFA AAL2 obligatorio para el equipo interno.
 - RLS por expediente y escritura administrativa exclusivamente mediante funciones Edge.
 - Archivos en almacenamiento privado y enlaces temporales.
+- Los documentos del cliente y los documentos internos usan depósitos privados separados.
 - El navegador no recibe la clave de servicio.
 - Las notificaciones externas no incluyen información sensible.
 - La identidad profesional se muestra al cliente únicamente después de su asignación.

@@ -45,3 +45,6 @@ verify_jwt = false
 
 [functions.case-communications]
 verify_jwt = false
+
+[functions.internal-document-workflow]
+verify_jwt = false

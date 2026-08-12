@@ -16,7 +16,7 @@ for(const mode of ['portal','crm']){
     const expectedVisible=await page.locator(`[data-demo-role="${expectedRole}"]`).isVisible();
     const forbiddenHidden=!(await page.locator(`[data-demo-role="${forbiddenRole}"]`).isVisible());
     await page.locator(`[data-demo-role="${expectedRole}"]`).click();
-    const crmNavigation=await page.getByRole('button',{name:'Consultas',exact:true}).count()>0;
+    const crmNavigation=await page.getByRole('button',{name:'Expedientes',exact:true}).count()>0;
     const correctNavigation=mode==='crm'?crmNavigation:!crmNavigation;
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);
     await page.screenshot({path:`preview-${mode}-separated-${viewport.name}.png`,fullPage:true});
