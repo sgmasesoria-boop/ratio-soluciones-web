@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+
+const migration=await readFile(new URL('./supabase/migrations/20260812130000_unify_cases_and_document_versions.sql',import.meta.url),'utf8');
+const manager=await readFile(new URL('./supabase/functions/contract-signature/index.ts',import.meta.url),'utf8');
+const webhook=await readFile(new URL('./supabase/functions/signaturit-webhook/index.ts',import.meta.url),'utf8');
+const app=await readFile(new URL('./app.js',import.meta.url),'utf8');
+const config=await readFile(new URL('./supabase/config.toml',import.meta.url),'utf8');
+
+assert.match(migration,/contract_note text not null default ''/);
+assert.doesNotMatch(migration,/manual_status|contract_status/);
+assert.match(migration,/provider_document_id text/);
+assert.match(migration,/case_contract_signature_events_no_changes/);
+assert.match(migration,/PORTAL_VERIFIED_SIGNATURE_REQUIRED/);
+assert.match(manager,/requireAdmin\(request\)/);
+assert.match(manager,/npm:pdf-lib@1\.17\.1/);
+assert.match(manager,/crypto\.subtle\.digest\('SHA-256'/);
+assert.match(manager,/CONTRACT_TEMPLATE_VALIDATED/);
+assert.match(manager,/SIGNATURIT_MODE/);
+assert.match(manager,/SIGNATURIT_ACCESS_TOKEN/);
+assert.match(manager,/SIGNATURIT_EVENTS_URL/);
+assert.doesNotMatch(manager,/SIGNATURIT_ACCESS_TOKEN\s*=\s*['"][^'"]+['"]/);
+assert.match(webhook,/SIGNATURIT_WEBHOOK_TOKEN/);
+assert.match(webhook,/webhookToken\.length<32/);
+assert.match(webhook,/consulta autenticada a Signaturit/);
+assert.match(webhook,/\/download\/signed/);
+assert.match(webhook,/\/download\/audit_trail/);
+assert.match(webhook,/signed_sha256:signedHash/);
+assert.match(webhook,/evidence_sha256:evidenceHash/);
+assert.match(webhook,/eventError&&eventError\.code!=='23505'/);
+assert.doesNotMatch(webhook,/portal_status/,'La firma no debe activar automáticamente el portal');
+assert.match(app,/id="generate-contract-pdf"/);
+assert.match(app,/id="send-contract-signature"/);
+assert.match(config,/\[functions\.contract-signature\]/);
+assert.match(config,/\[functions\.signaturit-webhook\]/);
+
+console.log(JSON.stringify({passed:true,freeContractNote:true,pdfHashed:true,aal2AdminRequired:true,webhookIsOnlyAHint:true,providerRechecked:true,signedAndEvidenceArchived:true,portalNotAutomatic:true},null,2));
