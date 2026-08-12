@@ -46,6 +46,7 @@ export function errorJson(request:Request,error:unknown){
   if(message==='COMMUNICATION_ALREADY_RESPONDED')return json(request,{error:'COMMUNICATION_ALREADY_RESPONDED'},409);
   if(message==='CLIENT_REQUEST_ACCESS_DENIED')return json(request,{error:'CLIENT_REQUEST_ACCESS_DENIED'},403);
   if(message==='INVALID_DOCUMENT_FILE')return json(request,{error:'INVALID_DOCUMENT_FILE'},400);
+  if(message==='INVALID_ADMIN_CLIENT_DOCUMENT')return json(request,{error:'INVALID_ADMIN_CLIENT_DOCUMENT'},400);
   if(message==='INVALID_DOCUMENT_STATUS')return json(request,{error:'INVALID_DOCUMENT_STATUS'},400);
   if(message==='CONTRACT_NOT_FOUND')return json(request,{error:'CONTRACT_NOT_FOUND'},404);
   if(message==='CONTRACT_NOT_EDITABLE')return json(request,{error:'CONTRACT_NOT_EDITABLE'},409);

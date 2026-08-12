@@ -36,6 +36,7 @@ const result={
   noStorage:edge.includes('store:false'),
   documentContentControlled:edge.includes('MAX_DOCUMENTS=3')&&edge.includes('MAX_DOCUMENT_BYTES=5*1024*1024')&&edge.includes('MAX_DOCUMENT_TOTAL_BYTES=10*1024*1024')&&edge.includes("action:'ai_document_content_processed'"),
   workingDocumentsIncluded:edge.includes("from('case_working_documents')")&&edge.includes("from('case_document_versions')"),
+  internalDocumentsIncluded:edge.includes("from('case_internal_documents')")&&edge.includes("storage_bucket:INTERNAL_DOCUMENT_BUCKET")&&edge.includes("internal_document:${document.id}")&&edge.includes("prompt_version:'ratio-case-v5'"),
   clientDraftSanitized:edge.includes('sanitizeClientDraft(result.draft_client_update)')&&!safeDraft.includes('[case:')&&!safeDraft.includes('[event:')&&!/\b(?:won|open|metadatos?)\b/i.test(safeDraft),
   internalStatusesHumanized:humanizeInternalStatus('open','case')==='expediente abierto'&&edge.includes("lifecycle:humanizeInternalStatus(c.status,'case')"),
   caseMemoryAudited:migration.includes('create table public.case_ai_runs')&&migration.includes('automatic_write boolean not null default false')&&migration.includes('revoke all privileges on public.case_ai_runs from public, anon, authenticated'),

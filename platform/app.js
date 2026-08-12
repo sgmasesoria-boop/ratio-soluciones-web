@@ -166,7 +166,7 @@ function mapProductionWorkspace(workspace, authUser) {
     leads:[],
     tasks:(workspace.tasks || []).map(item => ({ id:item.id, caseId:item.case_id, title:item.title, dueDate:item.due_on, priority:item.priority, completed:Boolean(item.completed_at), createdAt:item.created_at })),
     documentRequests:(workspace.documentRequests || []).map(item => ({id:item.id,caseId:item.case_id,requestType:item.request_type||'document',title:item.title,instructions:item.instructions||'',status:item.status,responseText:item.response_text||'',responseAt:item.response_at||'',requestedBy:item.requested_by,requestedAt:item.requested_at,fulfilledAt:item.fulfilled_at||''})),
-    caseDocuments:(workspace.caseDocuments || []).map(item => ({id:item.id,caseId:item.case_id,requestId:item.request_id,originalName:item.original_name,mimeType:item.mime_type,sizeBytes:Number(item.size_bytes||0),status:item.status,uploadedBy:item.uploaded_by,privacyNoticeAt:item.privacy_notice_at,createdAt:item.created_at,reviewedAt:item.reviewed_at||''})),
+    caseDocuments:(workspace.caseDocuments || []).map(item => ({id:item.id,caseId:item.case_id,requestId:item.request_id||'',originalName:item.original_name,mimeType:item.mime_type,sizeBytes:Number(item.size_bytes||0),status:item.status,visibility:item.visibility||'client',intakeChannel:item.intake_channel||'client_portal',uploadedBy:item.uploaded_by,privacyNoticeAt:item.privacy_notice_at,createdAt:item.created_at,reviewedAt:item.reviewed_at||''})),
     internalDocuments:(workspace.internalDocuments||[]).map(item=>({id:item.id,caseId:item.case_id,title:item.title,note:item.note||'',originalName:item.original_name,mimeType:item.mime_type,sizeBytes:Number(item.size_bytes||0),sha256:item.sha256,uploadedBy:item.uploaded_by,createdAt:item.created_at})),
     communicationRequests:(workspace.communicationRequests||[]).map(item=>({id:item.id,caseId:item.case_id,requestedBy:item.requested_by,subject:item.subject,message:item.message,deadlineContext:item.deadline_context||'',availabilityNote:item.availability_note||'',responseText:item.response_text||'',respondedBy:item.responded_by||'',respondedAt:item.responded_at||'',createdAt:item.created_at})),
     workingDocuments:(workspace.workingDocuments||[]).map(item=>({id:item.id,caseId:item.case_id,title:item.title,documentType:item.document_type||'',statusLabel:item.current_status_label||'',visibility:item.visibility,publishedAt:item.published_at||'',createdAt:item.created_at,updatedAt:item.updated_at})),
@@ -487,10 +487,13 @@ function formatFileSize(bytes) {
 function caseDocumentsPanel(caseItem,isAdmin) {
   const requests=state.documentRequests.filter(item=>item.caseId===caseItem.id);
   const documents=state.caseDocuments.filter(item=>item.caseId===caseItem.id);
+  const directDocuments=documents.filter(item=>!item.requestId);
   const statusText={pending:'Pendiente de entrega',submitted:'Entregada · pendiente de revisión',accepted:'Revisada',cancelled:'Cancelada',uploaded:'Recibido',rejected:'Rechazado'};
-  const content=requests.length?requests.map(request=>{
+  const fileType=document=>document.mimeType==='application/pdf'?'PDF':document.mimeType?.includes('wordprocessingml')?'DOCX':'IMG';
+  const directContent=directDocuments.length?`<article class="document-request"><div class="document-request-head"><div><span class="history-source">Documentación del cliente</span><h3>Documentos incorporados al expediente</h3></div></div><ul class="document-list">${directDocuments.map(document=>`<li><span>${fileType(document)}</span><div><strong>${escapeHtml(document.originalName)}</strong><small>${escapeHtml(formatFileSize(document.sizeBytes))} · ${escapeHtml(formatDate(document.createdAt))} · ${document.intakeChannel==='received_by_ratio'?'Recibido por Ratio':'Entregado en el portal'}</small></div><div class="document-actions"><em>${escapeHtml(statusText[document.status]||document.status)}</em><button type="button" class="document-download" data-download-document="${escapeHtml(document.id)}">Descargar</button></div></li>`).join('')}</ul></article>`:'';
+  const requestContent=requests.length?requests.map(request=>{
     const files=documents.filter(document=>document.requestId===request.id);
-    const fileList=files.length?`<ul class="document-list">${files.map(document=>`<li><span>${document.mimeType==='application/pdf'?'PDF':'IMG'}</span><div><strong>${escapeHtml(document.originalName)}</strong><small>${escapeHtml(formatFileSize(document.sizeBytes))} · ${escapeHtml(formatDate(document.createdAt))}</small></div><div class="document-actions"><em>${escapeHtml(statusText[document.status]||document.status)}</em><button type="button" class="document-download" data-download-document="${escapeHtml(document.id)}">Descargar</button>${isAdmin&&document.status==='uploaded'?`<button type="button" class="document-download" data-review-document="${escapeHtml(document.id)}" data-review-status="accepted">Validar</button>`:''}</div></li>`).join('')}</ul>`:'<p class="document-empty">Todavía no se ha entregado ningún archivo.</p>';
+    const fileList=files.length?`<ul class="document-list">${files.map(document=>`<li><span>${fileType(document)}</span><div><strong>${escapeHtml(document.originalName)}</strong><small>${escapeHtml(formatFileSize(document.sizeBytes))} · ${escapeHtml(formatDate(document.createdAt))}</small></div><div class="document-actions"><em>${escapeHtml(statusText[document.status]||document.status)}</em><button type="button" class="document-download" data-download-document="${escapeHtml(document.id)}">Descargar</button>${isAdmin&&document.status==='uploaded'?`<button type="button" class="document-download" data-review-document="${escapeHtml(document.id)}" data-review-status="accepted">Validar</button>`:''}</div></li>`).join('')}</ul>`:'<p class="document-empty">Todavía no se ha entregado ningún archivo.</p>';
     if(request.requestType==='clarification'){
       const clarificationStatus={pending:'Pendiente de respuesta',submitted:'Respondida',accepted:'Revisada',cancelled:'Cancelada'};
       const response=request.responseText?`<div class="clarification-response"><small>Respuesta del cliente${request.responseAt?` · ${escapeHtml(formatDate(request.responseAt))}`:''}</small><p>${escapeHtml(request.responseText)}</p></div>`:'<p class="document-empty">Todavía no se ha recibido la aclaración.</p>';
@@ -499,8 +502,10 @@ function caseDocumentsPanel(caseItem,isAdmin) {
     }
     const adminAction=isAdmin&&request.status==='pending'?`<button type="button" class="document-download" data-cancel-request="${escapeHtml(request.id)}">Retirar solicitud</button>`:'';
     return `<article class="document-request"><div class="document-request-head"><div><span class="history-source">Documentación · ${escapeHtml(statusText[request.status]||request.status)}</span><h3>${escapeHtml(request.title)}</h3></div>${adminAction}</div>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${fileList}</article>`;
-  }).join(''):'<div class="empty">No hay solicitudes al cliente en este expediente.</div>';
-  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Canal privado</p><h2>Solicitudes y respuestas</h2><p>Las aclaraciones y los archivos permanecen vinculados al expediente y dejan registro cronológico.</p></div><small>${requests.length} ${requests.length===1?'solicitud':'solicitudes'}</small></div>${content}</section>`;
+  }).join(''):'';
+  const empty=!directContent&&!requestContent?'<div class="empty">Todavía no hay documentación ni solicitudes en este expediente.</div>':'';
+  const adminAction=isAdmin?'<button class="secondary-button" id="add-client-document" type="button">Incorporar documento recibido</button>':`<small>${requests.length} ${requests.length===1?'solicitud':'solicitudes'}</small>`;
+  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Documentación del cliente</p><h2>Documentos, solicitudes y respuestas</h2><p>Incluye lo entregado en el portal y lo recibido por Ratio en papel o por otra vía autorizada. Todo queda vinculado y auditado.</p></div>${adminAction}</div>${directContent}${requestContent}${empty}</section>`;
 }
 
 function openDocumentRequestDialog() {
@@ -694,6 +699,10 @@ function openInternalDocumentDialog(caseItem){
   $('#internal-document-form').reset();$('#internal-document-case').value=caseItem.id;$('#internal-document-file-name').textContent='Ningún archivo seleccionado';setModalFeedback('#internal-document-feedback');$('#internal-document-dialog').showModal();
 }
 
+function openClientDocumentIntakeDialog(caseItem){
+  $('#client-document-intake-form').reset();$('#client-document-intake-case').value=caseItem.id;$('#client-document-intake-file-name').textContent='Ningún archivo seleccionado';setModalFeedback('#client-document-intake-feedback');$('#client-document-intake-dialog').showModal();
+}
+
 function openContractDialog(caseItem){
   const contract=(state.contracts||[]).filter(item=>item.caseId===caseItem.id&&!item.signedAt&&!item.providerRequestId).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt))[0];
   $('#contract-form').reset();$('#contract-case').value=caseItem.id;$('#contract-note').value=contract?.contractNote||'';$('#contract-signer-name').value=contract?.signerFullName||caseItem.client||'';$('#contract-signer-id').value=contract?.signerIdentifier||'';$('#contract-signer-address').value=contract?.signerAddress||'';$('#contract-cause').value=contract?.cause||caseItem.title||'';$('#contract-price').value=contract?.priceAmount||caseItem.amount||'';$('#contract-work-scope').value=contract?.workScope||'';setModalFeedback('#contract-feedback');$('#contract-dialog').showModal();
@@ -711,6 +720,7 @@ document.addEventListener('click',event=>{
   else if(target.id==='resend-case-confirmation'){const item=currentCase();if(item)resendCaseConfirmation(item);}
   else if(target.id==='new-working-document'){const item=currentCase();if(item)openWorkingDocumentDialog(item);}
   else if(target.id==='add-internal-document'){const item=currentCase();if(item)openInternalDocumentDialog(item);}
+  else if(target.id==='add-client-document'){const item=currentCase();if(item)openClientDocumentIntakeDialog(item);}
   else if(target.id==='prepare-contract'){const item=currentCase();if(item)openContractDialog(item);}
   else if(target.id==='generate-contract-pdf'){const item=currentCase();if(item)generateContractPdf(item,target);}
   else if(target.id==='download-contract-pdf'){const item=currentCase();if(item)downloadContractPdf(item,target);}
@@ -833,7 +843,7 @@ function renderAiAssistant(result) {
 }
 
 function caseAiPanel() {
-  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente interno · revisión humana</p><h3>Analizar el expediente completo</h3><p>Revisa la ficha, la información inicial, notas, cronología, solicitudes, respuestas, documentos de trabajo y hasta tres PDF validados.</p></div><div class="ai-result-actions"><button class="secondary-button" id="test-document-ai" type="button">Probar PDF ficticio</button><button class="secondary-button" id="analyze-case-ai" type="button">Analizar expediente</button></div></div><p class="ai-data-scope">Privacidad: solo procesa PDF aceptados, con un máximo de 5 MB por archivo y 10 MB combinados. Los borradores se limitan para controlar coste y contexto. El análisis se inicia manualmente, no realiza cambios ni envía comunicaciones, registra cada archivo procesado y exige revisión humana.</p><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
+  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente interno · revisión humana</p><h3>Analizar el expediente completo</h3><p>Revisa la ficha, notas, cronología, solicitudes, respuestas, documentos de trabajo y hasta tres PDF, tanto del cliente como internos.</p></div><div class="ai-result-actions"><button class="secondary-button" id="test-document-ai" type="button">Probar PDF ficticio</button><button class="secondary-button" id="analyze-case-ai" type="button">Analizar expediente</button></div></div><p class="ai-data-scope">Privacidad: procesa únicamente PDF validados del cliente o incorporados por el equipo, con un máximo de 5 MB por archivo y 10 MB combinados. Los DOCX e imágenes se conservan y aparecen como fuentes, pero su contenido no se lee todavía. El análisis se inicia manualmente, no realiza cambios ni envía comunicaciones, registra cada archivo procesado y exige revisión humana.</p><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
 }
 
 function renderCaseAiAssistant(result) {
@@ -854,7 +864,7 @@ function renderCaseAiAssistant(result) {
       <section><small>Próximas acciones sugeridas</small>${sourcedList(result.suggested_next_actions)}</section>
     </div>
     <section class="ai-draft"><small>Borrador de actualización al cliente</small><p>${escapeHtml(result.draft_client_update)}</p></section>
-    <p class="ai-caution">${escapeHtml(result.caution)} ${result.document_content_analyzed?'':'El contenido de los archivos no ha sido analizado.'}</p>
+    <p class="ai-caution">${escapeHtml(result.caution)} ${result.document_content_analyzed?`PDF leídos en esta ejecución: ${Number(result.analyzed_document_count||0)}. Archivos omitidos por formato, validación o límite: ${Number(result.skipped_document_count||0)+Number(result.failed_document_count||0)}.`:'El contenido de los archivos no ha sido analizado.'}</p>
     <div class="ai-result-actions"><button class="secondary-button" id="copy-case-ai-draft" type="button">Copiar borrador</button></div>`;
   $('#case-ai-result').hidden=false;
   $('#copy-case-ai-draft').addEventListener('click',async()=>{
@@ -1202,6 +1212,25 @@ $('#internal-document-file').addEventListener('change',event=>{
   const file=event.target.files?.[0];
   $('#internal-document-file-name').textContent=file?`${file.name} · ${formatFileSize(file.size)}`:'Ningún archivo seleccionado';
 });
+$('#client-document-intake-file').addEventListener('change',event=>{
+  const file=event.target.files?.[0];
+  $('#client-document-intake-file-name').textContent=file?`${file.name} · ${formatFileSize(file.size)}`:'Ningún archivo seleccionado';
+});
+$('#client-document-intake-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(event.submitter?.value==='cancel'){$('#client-document-intake-dialog').close();return;}
+  const file=$('#client-document-intake-file').files?.[0],allowed=['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'];
+  if(!$('#client-document-intake-privacy').checked){setModalFeedback('#client-document-intake-feedback','Confirma que se ha facilitado la información de privacidad.');return;}
+  if(!file||file.size<1||file.size>5*1024*1024||!allowed.includes(file.type)){setModalFeedback('#client-document-intake-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 5 MB.');return;}
+  const button=event.submitter||$('#client-document-intake-form .primary-button'),original=button.innerHTML,caseId=$('#client-document-intake-case').value;
+  button.disabled=true;button.textContent='Incorporando documento…';setModalFeedback('#client-document-intake-feedback','Guardando el archivo, su procedencia y su huella de integridad…','info');
+  try{
+    if(productionMode&&platformApi){await platformApi.invokeMultipart('document-workflow',new FormData(event.currentTarget));await enterProduction();activeCaseId=caseId;activeSection='cases';renderShell();}
+    else{const at=new Date().toISOString();state.caseDocuments.unshift({id:crypto.randomUUID(),caseId,requestId:'',originalName:file.name,mimeType:file.type,sizeBytes:file.size,status:'accepted',visibility:'client',intakeChannel:'received_by_ratio',uploadedBy:currentUser().id,privacyNoticeAt:at,createdAt:at,reviewedAt:at});state.events.push({id:crypto.randomUUID(),caseId,kind:'document_uploaded',title:'Documentación incorporada al expediente',description:file.name,at,current:true});state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId,title:'Documento incorporado a tu expediente',body:file.name,at,read:false});log('client_document_received_by_ratio','case_document',state.caseDocuments[0].id);saveState();renderShell();}
+    $('#client-document-intake-form').reset();$('#client-document-intake-dialog').close();toast('Documento del cliente incorporado y registrado correctamente.');
+  }catch(error){const messages={PRIVACY_NOTICE_REQUIRED:'Confirma que se ha facilitado la información de privacidad.',INVALID_DOCUMENT_FILE:'El archivo no es válido, no coincide con su formato o supera 5 MB.',INVALID_ADMIN_CLIENT_DOCUMENT:'No se ha podido registrar la procedencia del documento.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.'};setModalFeedback('#client-document-intake-feedback',messages[error?.code]||'No se ha podido incorporar el documento del cliente.');}
+  finally{button.disabled=false;button.innerHTML=original;}
+});
 $('#internal-document-form').addEventListener('submit',async event=>{
   event.preventDefault();
   if(event.submitter?.value==='cancel'){$('#internal-document-dialog').close();return;}
@@ -1232,7 +1261,7 @@ $('#document-upload-form').addEventListener('submit',async event=>{
   if(event.submitter?.value==='cancel'){$('#document-upload-dialog').close();return;}
   const file=$('#document-file').files?.[0];
   if(!$('#document-privacy-notice').checked){setModalFeedback('#document-upload-feedback','Lee y acepta la información de privacidad antes de continuar.');return;}
-  if(!file||file.size<1||file.size>5*1024*1024||!['application/pdf','image/jpeg','image/png'].includes(file.type)){setModalFeedback('#document-upload-feedback','Selecciona un PDF, JPG o PNG de hasta 5 MB.');return;}
+  if(!file||file.size<1||file.size>5*1024*1024||!['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'].includes(file.type)){setModalFeedback('#document-upload-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 5 MB.');return;}
   const button=event.submitter||$('#document-upload-form .primary-button');const original=button.innerHTML;button.disabled=true;button.textContent='Entregando archivo…';
   setModalFeedback('#document-upload-feedback','Cifrando la conexión y entregando el archivo…','info');
   try{

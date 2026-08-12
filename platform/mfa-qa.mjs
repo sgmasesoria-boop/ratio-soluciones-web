@@ -26,7 +26,7 @@ await page.route('https://ratio-test.supabase.co/**',async route=>{
     mfaVerified=true;return fulfill({access_token:jwt({aal:'aal2'}),refresh_token:'mfa-refresh',expires_in:3600});
   }
   if(url.includes('/rest/v1/profiles?'))return fulfill([{id:'admin-1',display_name:'Gestor Prueba',internal_role:'admin',active:true}]);
-  if(url.includes('/rest/v1/cases?')||url.includes('/rest/v1/case_events?')||url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_leads?')||url.includes('/rest/v1/crm_lead_notes?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?')||url.includes('/rest/v1/case_internal_documents?'))return fulfill([]);
+  if(url.includes('/rest/v1/cases?')||url.includes('/rest/v1/case_events?')||url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?')||url.includes('/rest/v1/case_internal_documents?')||url.includes('/rest/v1/case_working_documents?')||url.includes('/rest/v1/case_contracts?')||url.includes('/rest/v1/case_communication_requests?'))return fulfill([]);
   return route.fulfill({status:404,contentType:'application/json',body:'{"error":"NOT_FOUND"}'});
 });
 

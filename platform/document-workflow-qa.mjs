@@ -5,9 +5,11 @@ import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
 const migration=await readFile('supabase/migrations/20260810134257_case_document_workflow.sql','utf8');
+const intakeMigration=await readFile('supabase/migrations/20260812232733_admin_client_documents_and_ai_internal_sources.sql','utf8');
 const clientActionMigration=await readFile('supabase/migrations/20260811213000_client_action_requests.sql','utf8');
 const edge=await readFile('supabase/functions/document-workflow/index.ts','utf8');
 const uploadEmail=await readFile('supabase/functions/_shared/document-upload-email.ts','utf8');
+const http=await readFile('supabase/functions/_shared/http.ts','utf8');
 const api=await readFile('platform-api.js','utf8');
 const staticChecks={
   privateBucket:/\'case-documents\',\r?\n\s*\'case-documents\',\r?\n\s*false/.test(migration),
@@ -17,7 +19,12 @@ const staticChecks={
   serviceOnlyRpc:migration.includes('to service_role')&&migration.includes('from public,anon,authenticated'),
   privacyRecorded:migration.includes('privacy_notice_version')&&migration.includes('privacy_notice_at'),
   appendOnlyAccess:migration.includes('document_access_no_update'),
-  sizeAndMimeLimits:edge.includes('MAX_BYTES=5*1024*1024')&&edge.includes("'application/pdf','image/jpeg','image/png'"),
+  sizeAndMimeLimits:edge.includes('MAX_BYTES=5*1024*1024')&&edge.includes("'application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'"),
+  adminClientIntake:edge.includes('uploadClientDocumentByAdmin')&&edge.includes("action')==='upload_client_document_by_admin")&&intakeMigration.includes('server_register_admin_client_document'),
+  intakeAttribution:intakeMigration.includes("intake_channel in ('client_portal','received_by_ratio')")&&intakeMigration.includes("'client_document_received_by_ratio'")&&intakeMigration.includes("'received_by_ratio'"),
+  adminIntakeServiceOnly:intakeMigration.includes('server_register_admin_client_document')&&intakeMigration.includes('from public,anon,authenticated')&&intakeMigration.includes('to service_role'),
+  adminIntakeSafeError:http.includes("message==='INVALID_ADMIN_CLIENT_DOCUMENT'")&&http.includes("{error:'INVALID_ADMIN_CLIENT_DOCUMENT'},400"),
+  fileSignatureValidation:edge.includes('hasExpectedSignature(bytes,file.type)'),
   internalSessionValidation:edge.includes('requireAdmin(request)')&&edge.includes('requireUser(request)'),
   uploadRollback:edge.includes("storage.from(BUCKET).remove([storagePath])"),
   temporaryDownload:edge.includes("createSignedUrl(document.storage_path,60"),
@@ -77,12 +84,23 @@ await page.locator('#document-request-form .primary-button').click();
 const escapedRequestVisible=await page.getByText('<img src=x onerror="window.__documentXss=1">',{exact:true}).first().isVisible();
 const xssSafe=await page.evaluate(()=>window.__documentXss===undefined);
 const requestInTimeline=await page.getByText('Documentación solicitada: <img src=x onerror="window.__documentXss=1">',{exact:true}).isVisible();
+await page.locator('#add-client-document').click();
+await page.locator('#client-document-intake-file').setInputFiles({name:'escritura-recibida.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 documento entregado en mano')});
+await page.locator('#client-document-intake-privacy').check();
+await page.locator('#client-document-intake-form .primary-button').click();
+const receivedByRatioVisible=await page.getByRole('strong').filter({hasText:'escritura-recibida.pdf'}).first().isVisible();
+const receivedByRatioLabel=await page.locator('small').filter({hasText:'Recibido por Ratio'}).first().isVisible();
+const receivedByRatioTimeline=await page.getByText('Documentación incorporada al expediente',{exact:true}).isVisible();
+await page.locator('#logout').click();
+await page.locator('[data-demo-role="client"]').click();
+const receivedDocumentVisibleToClient=await page.getByRole('strong').filter({hasText:'escritura-recibida.pdf'}).first().isVisible();
+const internalPanelHiddenFromClient=await page.getByRole('heading',{name:'Documentación interna',exact:true}).count()===0;
 const noOverflow=await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth);
 await browser.close();
 
 const result={
-  passed:Object.values(staticChecks).every(Boolean)&&privacyTextVisible&&blockedUntilPrivacy&&uploadVisible&&uploadInTimeline&&clarificationVisible&&clarificationInTimeline&&noPendingAction&&escapedRequestVisible&&xssSafe&&requestInTimeline&&noOverflow&&!errors.length,
-  staticChecks,privacyTextVisible,blockedUntilPrivacy,uploadVisible,uploadInTimeline,clarificationVisible,clarificationInTimeline,noPendingAction,escapedRequestVisible,xssSafe,requestInTimeline,noOverflow,errors
+  passed:Object.values(staticChecks).every(Boolean)&&privacyTextVisible&&blockedUntilPrivacy&&uploadVisible&&uploadInTimeline&&clarificationVisible&&clarificationInTimeline&&noPendingAction&&escapedRequestVisible&&xssSafe&&requestInTimeline&&receivedByRatioVisible&&receivedByRatioLabel&&receivedByRatioTimeline&&receivedDocumentVisibleToClient&&internalPanelHiddenFromClient&&noOverflow&&!errors.length,
+  staticChecks,privacyTextVisible,blockedUntilPrivacy,uploadVisible,uploadInTimeline,clarificationVisible,clarificationInTimeline,noPendingAction,escapedRequestVisible,xssSafe,requestInTimeline,receivedByRatioVisible,receivedByRatioLabel,receivedByRatioTimeline,receivedDocumentVisibleToClient,internalPanelHiddenFromClient,noOverflow,errors
 };
 console.log(JSON.stringify(result,null,2));
 if(!result.passed)process.exitCode=1;
