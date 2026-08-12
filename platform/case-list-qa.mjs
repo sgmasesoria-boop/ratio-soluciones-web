@@ -8,10 +8,9 @@ const errors=[];
 const jwt=payload=>`header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;
 const token=jwt({aal:'aal2'});
 const cases=[
-  {id:'case-active',reference:'RS-2026-ACTIVO',client_id:'client-a',client_name:'Ana Activa',title:'Reclamación activa',category:'Banca',status:'study',summary:'En estudio',client_next_step:'',professional_name:'',professional_title:'',professional_registration:'',professional_region:'',opened_at:'2026-08-01T09:00:00Z'},
-  {id:'case-closed',reference:'RS-2026-CERRADO',client_id:'client-c',client_name:'Carlos Cerrado',title:'Expediente finalizado',category:'Vivienda',status:'closed',summary:'Finalizado',client_next_step:'',professional_name:'',professional_title:'',professional_registration:'',professional_region:'',opened_at:'2026-07-01T09:00:00Z',closed_at:'2026-08-01T09:00:00Z'}
+  {id:'case-active',reference:'RS-2026-ACTIVO',client_id:'client-a',client_name:'Ana Activa',title:'Reclamación activa',category:'Banca',status:'open',summary:'En estudio',client_next_step:'',contact_phone:'600000001',contact_email:'ana@example.es',professional_name:'',professional_title:'',professional_registration:'',professional_region:'',opened_at:'2026-08-01T09:00:00Z'},
+  {id:'case-closed',reference:'RS-2026-CERRADO',client_id:'client-c',client_name:'Carlos Cerrado',title:'Expediente finalizado',category:'Vivienda',status:'archived',summary:'Finalizado',client_next_step:'',contact_phone:'699123456',contact_email:'carlos@example.es',professional_name:'',professional_title:'',professional_registration:'',professional_region:'',opened_at:'2026-07-01T09:00:00Z',closed_at:'2026-08-01T09:00:00Z'}
 ];
-const leads=[{id:'lead-closed',reference:'C-2026-099',full_name:'Carlos Cerrado',phone:'699123456',email:'carlos@example.es',province:'Madrid',category:'Vivienda',source:'Web',summary:'Consulta previa',status:'won',next_action:'',follow_up_on:null,quoted_amount:0,privacy_notice_at:'2026-07-01T09:00:00Z',legal_basis:'precontractual_request',converted_case_id:'case-closed',created_at:'2026-07-01T09:00:00Z',updated_at:'2026-07-01T09:00:00Z'}];
 page.on('pageerror',error=>errors.push(error.message));
 await page.route('**/config.js',route=>route.fulfill({contentType:'text/javascript',body:"window.RATIO_CONFIG={mode:'production',supabaseUrl:'https://ratio-test.supabase.co',supabaseAnonKey:'public-anon-key',allowDemoAccess:false,appMode:'crm'};"}));
 await page.route('https://ratio-test.supabase.co/**',route=>{
@@ -20,8 +19,7 @@ await page.route('https://ratio-test.supabase.co/**',route=>{
   if(url.endsWith('/auth/v1/user'))return fulfill({id:'admin-1',email:'admin@example.es'});
   if(url.includes('/rest/v1/profiles?'))return fulfill([{id:'admin-1',display_name:'Gestor de prueba',internal_role:'admin',active:true}]);
   if(url.includes('/rest/v1/cases?'))return fulfill(cases);
-  if(url.includes('/rest/v1/crm_leads?'))return fulfill(leads);
-  if(url.includes('/rest/v1/case_events?')||url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_lead_notes?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?')||url.includes('/rest/v1/case_internal_documents?'))return fulfill([]);
+  if(url.includes('/rest/v1/case_events?')||url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?')||url.includes('/rest/v1/case_internal_documents?')||url.includes('/rest/v1/case_working_documents?')||url.includes('/rest/v1/case_contracts?')||url.includes('/rest/v1/case_communication_requests?'))return fulfill([]);
   return route.fulfill({status:404,contentType:'application/json',body:'{"error":"NOT_FOUND"}'});
 });
 

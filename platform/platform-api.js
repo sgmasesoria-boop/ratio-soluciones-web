@@ -278,7 +278,7 @@
         this.select('notifications', 'select=id,user_id,case_id,notification_type,title,body,read_at,created_at&order=created_at.desc'),
         includeCrm ? this.select('crm_tasks', 'select=id,case_id,title,due_on,priority,assigned_to,completed_at,created_at&order=due_on.asc') : Promise.resolve([]),
         this.select('document_requests', 'select=id,case_id,request_type,title,instructions,status,response_text,response_at,requested_by,requested_at,fulfilled_at&order=requested_at.desc'),
-        this.select('case_documents', 'select=id,case_id,request_id,original_name,mime_type,size_bytes,status,uploaded_by,privacy_notice_at,created_at,reviewed_at&order=created_at.desc'),
+        this.select('case_documents', 'select=id,case_id,request_id,original_name,mime_type,size_bytes,status,visibility,intake_channel,uploaded_by,privacy_notice_at,created_at,reviewed_at&order=created_at.desc'),
         includeCrm ? this.select('case_internal_documents', 'select=id,case_id,title,note,original_name,mime_type,size_bytes,sha256,uploaded_by,created_at&order=created_at.desc') : Promise.resolve([]),
         includeCrm ? this.select('case_working_documents', 'select=id,case_id,title,document_type,current_status_label,visibility,published_at,created_by,created_at,updated_at&order=updated_at.desc') : Promise.resolve([]),
         includeCrm ? this.select('case_contracts', 'select=id,case_id,template_key,template_version,contract_note,signer_full_name,signer_identifier,signer_address,cause,work_scope,price_amount,currency,provider,provider_request_id,provider_document_id,unsigned_storage_path,unsigned_sha256,sent_at,signed_at,invalidated_at,created_at,updated_at&order=created_at.desc') : Promise.resolve([]),

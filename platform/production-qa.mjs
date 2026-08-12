@@ -15,6 +15,7 @@ await page.route('https://ratio-test.supabase.co/**',async route=>{
   if(url.includes('/rest/v1/notifications?'))return fulfill([]);
   if(url.includes('/rest/v1/document_requests?'))return fulfill([]);
   if(url.includes('/rest/v1/case_documents?'))return fulfill([]);
+  if(url.includes('/rest/v1/case_communication_requests?'))return fulfill([]);
   if(url.endsWith('/auth/v1/logout'))return fulfill({});
   return route.fulfill({status:404,contentType:'application/json',body:'{"error":"NOT_FOUND"}'});
 });

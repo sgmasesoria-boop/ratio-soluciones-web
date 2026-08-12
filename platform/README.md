@@ -11,7 +11,8 @@ Sistema único de expedientes. El primer contacto crea un expediente interno; no
 - Contrato sin estados prefijados: Ratio escribe una anotación libre y el sistema conserva por separado los hechos verificables de envío y firma.
 - Portal privado activado expresamente solo después de acreditar la firma.
 - Solicitudes de documentación o aclaraciones dentro del portal.
-- Archivo documental interno separado, invisible para el cliente, con huella y descargas auditadas.
+- Documentación aportada por el cliente, tanto desde su portal como incorporada por Ratio cuando se recibe en papel o en mano, con procedencia y accesos auditados.
+- Archivo documental interno separado, reservado al trabajo de Ratio e invisible para el cliente, con huella y descargas auditadas.
 - Solicitudes de aclaración o llamada iniciadas por el cliente, con respuesta trazable y coordinación desde Ratio.
 - Documentos de trabajo con tipo y anotación libres.
 - Versiones ilimitadas por documento: cada borrador se conserva y nunca sustituye al anterior.

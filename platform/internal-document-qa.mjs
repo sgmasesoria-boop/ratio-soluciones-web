@@ -13,7 +13,7 @@ const app=await readFile('app.js','utf8');
 const config=await readFile('supabase/config.toml','utf8');
 
 const staticChecks={
-  separatePrivateBucket:migration.includes("'case-internal-documents',\n  'case-internal-documents',\n  false"),
+  separatePrivateBucket:/\'case-internal-documents\',\r?\n\s*\'case-internal-documents\',\r?\n\s*false/.test(migration),
   rlsEnabled:migration.includes('alter table public.case_internal_documents enable row level security'),
   adminReadOnly:migration.includes('private.can_manage_case(case_id)')&&migration.includes('grant select on public.case_internal_documents to authenticated'),
   noDirectStoragePolicy:!migration.includes('on storage.objects'),

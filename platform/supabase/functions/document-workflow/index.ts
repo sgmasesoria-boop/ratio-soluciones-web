@@ -6,10 +6,19 @@ import {sendDocumentUploadEmail} from '../_shared/document-upload-email.ts';
 const BUCKET='case-documents';
 const MAX_BYTES=5*1024*1024;
 const PRIVACY_VERSION='portal-documents-v1';
-const allowedMimeTypes=new Set(['application/pdf','image/jpeg','image/png']);
-const extensions:Record<string,string>={'application/pdf':'pdf','image/jpeg':'jpg','image/png':'png'};
+const allowedMimeTypes=new Set(['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png']);
+const extensions:Record<string,string>={'application/pdf':'pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx','image/jpeg':'jpg','image/png':'png'};
 const clean=(value:unknown,max:number)=>String(value??'').trim().slice(0,max);
 const validUuid=(value:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+async function sha256(bytes:Uint8Array){const digest=await crypto.subtle.digest('SHA-256',bytes);return [...new Uint8Array(digest)].map(value=>value.toString(16).padStart(2,'0')).join('');}
+function hasExpectedSignature(bytes:Uint8Array,mimeType:string){
+  if(mimeType==='application/pdf')return new TextDecoder().decode(bytes.slice(0,5))==='%PDF-';
+  if(mimeType==='image/jpeg')return bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff;
+  if(mimeType==='image/png')return [0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a].every((value,index)=>bytes[index]===value);
+  if(mimeType==='application/vnd.openxmlformats-officedocument.wordprocessingml.document')return bytes[0]===0x50&&bytes[1]===0x4b;
+  return false;
+}
 
 async function requireCaseAccess(request:Request,userId:string,caseId:string){
   if(!validUuid(caseId)||!await canAccessCase(userId,caseId))throw new Error('DOCUMENT_ACCESS_DENIED');
@@ -67,13 +76,15 @@ async function uploadDocument(request:Request,form:FormData){
   if(!validUuid(requestId)||form.get('privacyNoticeAcknowledged')!=='true')throw new Error('PRIVACY_NOTICE_REQUIRED');
   const file=form.get('file');
   if(!(file instanceof File)||file.size<1||file.size>MAX_BYTES||!allowedMimeTypes.has(file.type))throw new Error('INVALID_DOCUMENT_FILE');
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  if(!hasExpectedSignature(bytes,file.type))throw new Error('INVALID_DOCUMENT_FILE');
   const {data:documentRequest,error:requestError}=await serviceClient.from('document_requests')
     .select('id,status').eq('id',requestId).eq('case_id',caseId).single();
   if(requestError||!documentRequest||!['pending','submitted'].includes(documentRequest.status))throw new Error('DOCUMENT_REQUEST_UNAVAILABLE');
 
   const safeOriginalName=clean(file.name.replace(/[\r\n\\/]+/g,' '),180)||`documento.${extensions[file.type]}`;
   const storagePath=`${caseId}/${requestId}/${crypto.randomUUID()}.${extensions[file.type]}`;
-  const {error:uploadError}=await serviceClient.storage.from(BUCKET).upload(storagePath,file,{
+  const {error:uploadError}=await serviceClient.storage.from(BUCKET).upload(storagePath,bytes,{
     contentType:file.type,cacheControl:'0',upsert:false
   });
   if(uploadError)throw uploadError;
@@ -91,6 +102,29 @@ async function uploadDocument(request:Request,form:FormData){
     await serviceClient.storage.from(BUCKET).remove([storagePath]);
     throw error;
   }
+}
+
+async function uploadClientDocumentByAdmin(request:Request,form:FormData){
+  const admin=await requireAdmin(request);
+  const caseId=clean(form.get('caseId'),36);
+  if(!validUuid(caseId)||form.get('privacyNoticeAcknowledged')!=='true')throw new Error('PRIVACY_NOTICE_REQUIRED');
+  const file=form.get('file');
+  if(!(file instanceof File)||file.size<1||file.size>MAX_BYTES||!allowedMimeTypes.has(file.type))throw new Error('INVALID_DOCUMENT_FILE');
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  if(!hasExpectedSignature(bytes,file.type))throw new Error('INVALID_DOCUMENT_FILE');
+  const safeOriginalName=clean(file.name.replace(/[\r\n\\/]+/g,' '),180)||`documento.${extensions[file.type]}`;
+  const hash=await sha256(bytes);
+  const storagePath=`${caseId}/received-by-ratio/${crypto.randomUUID()}.${extensions[file.type]}`;
+  const {error:uploadError}=await serviceClient.storage.from(BUCKET).upload(storagePath,bytes,{contentType:file.type,cacheControl:'0',upsert:false});
+  if(uploadError)throw uploadError;
+  try{
+    const {data:documentId,error}=await serviceClient.rpc('server_register_admin_client_document',{
+      p_case_id:caseId,p_admin_id:admin.id,p_storage_path:storagePath,p_original_name:safeOriginalName,
+      p_mime_type:file.type,p_size_bytes:file.size,p_sha256:hash,p_privacy_notice_version:PRIVACY_VERSION
+    });
+    if(error)throw error;
+    return {documentId,status:'accepted',intakeChannel:'received_by_ratio',sha256:hash};
+  }catch(error){await serviceClient.storage.from(BUCKET).remove([storagePath]);throw error;}
 }
 
 async function downloadDocument(request:Request,input:Record<string,unknown>){
@@ -135,8 +169,9 @@ Deno.serve(async request=>{
     const contentType=request.headers.get('content-type')||'';
     if(contentType.includes('multipart/form-data')){
       const form=await request.formData();
-      if(form.get('action')!=='upload_document')return json(request,{error:'UNKNOWN_ACTION'},400);
-      return json(request,await uploadDocument(request,form),201);
+      if(form.get('action')==='upload_document')return json(request,await uploadDocument(request,form),201);
+      if(form.get('action')==='upload_client_document_by_admin')return json(request,await uploadClientDocumentByAdmin(request,form),201);
+      return json(request,{error:'UNKNOWN_ACTION'},400);
     }
     const input=await request.json();
     if(input.action==='request_document')return json(request,await createRequest(request,input),201);
