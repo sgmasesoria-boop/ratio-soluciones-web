@@ -21,7 +21,7 @@ await page.route('https://ratio-test.supabase.co/**',route=>{
   if(url.includes('/rest/v1/profiles?'))return fulfill([{id:'admin-1',display_name:'Gestor de prueba',internal_role:'admin',active:true}]);
   if(url.includes('/rest/v1/cases?'))return fulfill(cases);
   if(url.includes('/rest/v1/crm_leads?'))return fulfill(leads);
-  if(url.includes('/rest/v1/case_events?')||url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_lead_notes?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?'))return fulfill([]);
+  if(url.includes('/rest/v1/case_events?')||url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_lead_notes?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?')||url.includes('/rest/v1/case_internal_documents?'))return fulfill([]);
   return route.fulfill({status:404,contentType:'application/json',body:'{"error":"NOT_FOUND"}'});
 });
 

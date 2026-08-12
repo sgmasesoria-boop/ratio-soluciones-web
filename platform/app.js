@@ -78,6 +78,7 @@ const seed = {
     {id:'req_01',caseId:'case_01',requestType:'document',title:'Contrato de la tarjeta',instructions:'Sube el contrato o la copia más completa que tengas.',status:'pending',responseText:'',responseAt:'',requestedAt:iso(60)}
   ],
   caseDocuments: [],
+  internalDocuments: [],
   communicationRequests: [
     {id:'com_01',caseId:'case_01',requestedBy:'usr_client_01',subject:'Quiero aclarar el siguiente paso',message:'Necesito confirmar si debo conservar los recibos nuevos.',deadlineContext:'No tengo ninguna notificación con plazo.',availabilityNote:'Preferiblemente por la tarde.',responseText:'Conserva los recibos. No necesitas enviarlos hasta que te lo pidamos desde la plataforma.',respondedAt:iso(30),createdAt:iso(90)}
   ],
@@ -119,7 +120,7 @@ function loadState() {
     const storedEvents=stored.events || [];
     const newDemoCases=seed.cases.filter(item=>!storedCases.some(saved=>saved.id===item.id));
     const newDemoEvents=seed.events.filter(item=>!storedEvents.some(saved=>saved.id===item.id));
-    return { ...structuredClone(seed), ...stored, cases:[...storedCases,...structuredClone(newDemoCases)], events:[...storedEvents,...structuredClone(newDemoEvents)], leads, tasks:stored.tasks || [], documentRequests:stored.documentRequests || structuredClone(seed.documentRequests), caseDocuments:stored.caseDocuments || [], communicationRequests:stored.communicationRequests||structuredClone(seed.communicationRequests), workingDocuments:stored.workingDocuments||[], documentVersions:stored.documentVersions||[], contracts:stored.contracts||[], audit:stored.audit || [] };
+    return { ...structuredClone(seed), ...stored, cases:[...storedCases,...structuredClone(newDemoCases)], events:[...storedEvents,...structuredClone(newDemoEvents)], leads, tasks:stored.tasks || [], documentRequests:stored.documentRequests || structuredClone(seed.documentRequests), caseDocuments:stored.caseDocuments || [], internalDocuments:stored.internalDocuments||[], communicationRequests:stored.communicationRequests||structuredClone(seed.communicationRequests), workingDocuments:stored.workingDocuments||[], documentVersions:stored.documentVersions||[], contracts:stored.contracts||[], audit:stored.audit || [] };
   }
   catch { return structuredClone(seed); }
 }
@@ -166,6 +167,7 @@ function mapProductionWorkspace(workspace, authUser) {
     tasks:(workspace.tasks || []).map(item => ({ id:item.id, caseId:item.case_id, title:item.title, dueDate:item.due_on, priority:item.priority, completed:Boolean(item.completed_at), createdAt:item.created_at })),
     documentRequests:(workspace.documentRequests || []).map(item => ({id:item.id,caseId:item.case_id,requestType:item.request_type||'document',title:item.title,instructions:item.instructions||'',status:item.status,responseText:item.response_text||'',responseAt:item.response_at||'',requestedBy:item.requested_by,requestedAt:item.requested_at,fulfilledAt:item.fulfilled_at||''})),
     caseDocuments:(workspace.caseDocuments || []).map(item => ({id:item.id,caseId:item.case_id,requestId:item.request_id,originalName:item.original_name,mimeType:item.mime_type,sizeBytes:Number(item.size_bytes||0),status:item.status,uploadedBy:item.uploaded_by,privacyNoticeAt:item.privacy_notice_at,createdAt:item.created_at,reviewedAt:item.reviewed_at||''})),
+    internalDocuments:(workspace.internalDocuments||[]).map(item=>({id:item.id,caseId:item.case_id,title:item.title,note:item.note||'',originalName:item.original_name,mimeType:item.mime_type,sizeBytes:Number(item.size_bytes||0),sha256:item.sha256,uploadedBy:item.uploaded_by,createdAt:item.created_at})),
     communicationRequests:(workspace.communicationRequests||[]).map(item=>({id:item.id,caseId:item.case_id,requestedBy:item.requested_by,subject:item.subject,message:item.message,deadlineContext:item.deadline_context||'',availabilityNote:item.availability_note||'',responseText:item.response_text||'',respondedBy:item.responded_by||'',respondedAt:item.responded_at||'',createdAt:item.created_at})),
     workingDocuments:(workspace.workingDocuments||[]).map(item=>({id:item.id,caseId:item.case_id,title:item.title,documentType:item.document_type||'',statusLabel:item.current_status_label||'',visibility:item.visibility,publishedAt:item.published_at||'',createdAt:item.created_at,updatedAt:item.updated_at})),
     documentVersions:(workspace.documentVersions||[]).map(item=>({id:item.id,documentId:item.working_document_id,versionNumber:item.version_number,statusLabel:item.status_label||'',changeSummary:item.change_summary||'',draftContent:item.draft_content||'',originalName:item.original_name||'',mimeType:item.mime_type||'',sizeBytes:Number(item.size_bytes||0),sourceAiRunId:item.source_ai_run_id||'',createdAt:item.created_at})),
@@ -372,7 +374,7 @@ function renderAdmin() {
       const signedContract=(state.contracts||[]).find(item=>item.caseId===c.id&&item.signedAt&&!item.invalidatedAt);
       const portalAction=['invited','active'].includes(c.portalStatus)?'<button class="secondary-button" id="resend-case-confirmation">Reenviar acceso</button>':signedContract?'<button class="secondary-button" id="activate-case-portal">Activar portal</button>':'';
       const requestAction=['invited','active'].includes(c.portalStatus)?'<button class="secondary-button" id="request-document">Solicitar al cliente</button>':'';
-      $('#main').innerHTML = `${pageHead('Expedientes',c.reference+' · '+c.client,c.title,`<button class="secondary-button" id="back-to-cases">← Todos los expedientes</button><button class="secondary-button" id="edit-case-record">Editar ficha</button>${portalAction}${requestAction}<button class="primary-button" id="new-update">Registrar avance →</button>`)}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Cronología única</h2><span class="status-pill">${escapeHtml(c.manualPhase||statusLabels[c.statusCode]||'Sin indicación')}</span></div>${timeline(true)}</section><aside>${portalAccessCard(c)}${nextStepCard(c)}${professionalCard(c)}</aside></div>${communicationPanel(c,true)}${contractPanel(c)}${caseAiPanel()}${workingDocumentsPanel(c)}${caseDocumentsPanel(c,true)}`;
+      $('#main').innerHTML = `${pageHead('Expedientes',c.reference+' · '+c.client,c.title,`<button class="secondary-button" id="back-to-cases">← Todos los expedientes</button><button class="secondary-button" id="edit-case-record">Editar ficha</button>${portalAction}${requestAction}<button class="primary-button" id="new-update">Registrar avance →</button>`)}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Cronología única</h2><span class="status-pill">${escapeHtml(c.manualPhase||statusLabels[c.statusCode]||'Sin indicación')}</span></div>${timeline(true)}</section><aside>${portalAccessCard(c)}${nextStepCard(c)}${professionalCard(c)}</aside></div>${communicationPanel(c,true)}${contractPanel(c)}${caseAiPanel()}${workingDocumentsPanel(c)}${internalDocumentsPanel(c)}${caseDocumentsPanel(c,true)}`;
       $('#back-to-cases').addEventListener('click',()=>{activeCaseId=null;renderShell();});
       $('#new-update').addEventListener('click',openUpdateDialog);
       $('#request-document')?.addEventListener('click',openDocumentRequestDialog);
@@ -567,9 +569,17 @@ function contractPanel(c){
   const actions=[
     !contract||(!contract.signedAt&&!contract.providerRequestId)?'<button class="secondary-button" id="prepare-contract" type="button">Editar ficha contractual</button>':'',
     contract&&!contract.signedAt&&!contract.providerRequestId?'<button class="secondary-button" id="generate-contract-pdf" type="button">Generar PDF</button>':'',
+    contract?.unsignedStoragePath?'<button class="secondary-button" id="download-contract-pdf" type="button">Descargar PDF</button>':'',
     contract?.unsignedStoragePath&&!contract.signedAt&&!contract.providerRequestId?'<button class="primary-button" id="send-contract-signature" type="button">Enviar a firma →</button>':''
   ].filter(Boolean).join('');
   return `<section class="panel"><div class="panel-head"><div><p class="kicker">Contratación separada del expediente</p><h2>Contrato de servicios</h2><p>La causa, el precio, el trabajo y cualquier anotación se escriben libremente. No existe un recorrido de estados premarcado.</p></div><div class="panel-actions">${actions}</div></div>${content}${contract?.unsignedSha256?`<p class="ai-data-scope">PDF preparado y protegido con huella SHA-256: ${escapeHtml(contract.unsignedSha256.slice(0,16))}…</p>`:''}${contract&&!contract.signedAt?'<p class="ai-data-scope">La anotación manual no acredita envío ni firma. El portal solo se habilita cuando existen el documento firmado y sus evidencias.</p>':''}</section>`;
+}
+
+function internalDocumentsPanel(c){
+  const documents=(state.internalDocuments||[]).filter(item=>item.caseId===c.id);
+  const fileType=item=>item.mimeType==='application/pdf'?'PDF':item.mimeType.includes('wordprocessingml')?'DOCX':'IMG';
+  const content=documents.length?`<ul class="document-list">${documents.map(item=>`<li><span>${fileType(item)}</span><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.originalName)} · ${escapeHtml(formatFileSize(item.sizeBytes))} · ${escapeHtml(formatDate(item.createdAt))}</small>${item.note?`<small>${escapeHtml(item.note)}</small>`:''}</div><div class="document-actions"><em>Interno · ${escapeHtml(String(item.sha256||'').slice(0,10))}…</em><button type="button" class="document-download" data-download-internal-document="${escapeHtml(item.id)}">Descargar</button></div></li>`).join('')}</ul>`:'<div class="empty">Todavía no hay archivos internos adjuntos.</div>';
+  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Archivo privado de Ratio</p><h2>Documentación interna</h2><p>Archivos creados o recibidos por el equipo. Nunca se muestran al cliente por defecto.</p></div><button class="secondary-button" id="add-internal-document" type="button">Adjuntar archivo</button></div>${content}</section>`;
 }
 
 function workingDocumentsPanel(c){
@@ -680,6 +690,10 @@ function openWorkingDocumentDialog(caseItem){
   $('#working-document-form').reset();$('#working-document-case').value=caseItem.id;setModalFeedback('#working-document-feedback');$('#working-document-dialog').showModal();
 }
 
+function openInternalDocumentDialog(caseItem){
+  $('#internal-document-form').reset();$('#internal-document-case').value=caseItem.id;$('#internal-document-file-name').textContent='Ningún archivo seleccionado';setModalFeedback('#internal-document-feedback');$('#internal-document-dialog').showModal();
+}
+
 function openContractDialog(caseItem){
   const contract=(state.contracts||[]).filter(item=>item.caseId===caseItem.id&&!item.signedAt&&!item.providerRequestId).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt))[0];
   $('#contract-form').reset();$('#contract-case').value=caseItem.id;$('#contract-note').value=contract?.contractNote||'';$('#contract-signer-name').value=contract?.signerFullName||caseItem.client||'';$('#contract-signer-id').value=contract?.signerIdentifier||'';$('#contract-signer-address').value=contract?.signerAddress||'';$('#contract-cause').value=contract?.cause||caseItem.title||'';$('#contract-price').value=contract?.priceAmount||caseItem.amount||'';$('#contract-work-scope').value=contract?.workScope||'';setModalFeedback('#contract-feedback');$('#contract-dialog').showModal();
@@ -696,9 +710,12 @@ document.addEventListener('click',event=>{
   else if(target.id==='activate-case-portal'){const item=currentCase();if(item)activateCasePortal(item);}
   else if(target.id==='resend-case-confirmation'){const item=currentCase();if(item)resendCaseConfirmation(item);}
   else if(target.id==='new-working-document'){const item=currentCase();if(item)openWorkingDocumentDialog(item);}
+  else if(target.id==='add-internal-document'){const item=currentCase();if(item)openInternalDocumentDialog(item);}
   else if(target.id==='prepare-contract'){const item=currentCase();if(item)openContractDialog(item);}
   else if(target.id==='generate-contract-pdf'){const item=currentCase();if(item)generateContractPdf(item,target);}
+  else if(target.id==='download-contract-pdf'){const item=currentCase();if(item)downloadContractPdf(item,target);}
   else if(target.id==='send-contract-signature'){const item=currentCase();if(item)sendContractSignature(item,target);}
+  else if(target.dataset.downloadInternalDocument)downloadInternalDocument(target.dataset.downloadInternalDocument,target);
   else if(target.classList.contains('add-document-version'))openDocumentVersionDialog(target.dataset.workingDocumentId);
 });
 
@@ -707,11 +724,31 @@ async function generateContractPdf(caseItem,button){
   if(!contract)return toast('Prepara primero la ficha contractual.');
   button.disabled=true;
   try{
-    if(productionMode&&platformApi){await platformApi.invoke('contract-signature',{action:'generate_contract_pdf',contractId:contract.id});await enterProduction();}
+    if(productionMode&&platformApi){await platformApi.invoke('contract-signature',{action:'generate_contract_pdf',contractId:contract.id});await downloadContractPdfById(contract.id);await enterProduction();}
     else{contract.unsignedStoragePath=`demo/${contract.id}/unsigned.pdf`;contract.unsignedSha256='a'.repeat(64);contract.updatedAt=new Date().toISOString();saveState();}
     activeCaseId=caseItem.id;activeSection='cases';renderShell();toast('PDF contractual generado. Revisa el documento antes de enviarlo.');
   }catch(error){const message=error?.code==='CONTRACT_NOT_EDITABLE'?'Este contrato ya no puede modificarse.':error?.code==='MFA_REQUIRED'?'Confirma el segundo factor para generar el contrato.':'No se ha podido generar el PDF contractual.';toast(message);}
   finally{button.disabled=false;}
+}
+
+function openSecureDownload(rawUrl){
+  const url=new URL(rawUrl);
+  if(url.protocol!=='https:'||!url.hostname.endsWith('.supabase.co'))throw new Error('INVALID_DOWNLOAD_URL');
+  const link=document.createElement('a');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';document.body.appendChild(link);link.click();link.remove();
+}
+
+async function downloadContractPdfById(contractId){
+  const result=await platformApi.invoke('contract-signature',{action:'download_contract_pdf',contractId});
+  openSecureDownload(result.url);
+}
+
+async function downloadContractPdf(caseItem,button){
+  const contract=(state.contracts||[]).filter(item=>item.caseId===caseItem.id&&item.unsignedStoragePath).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt))[0];
+  if(!contract)return toast('Todavía no existe un PDF preparado.');
+  const original=button.textContent;button.disabled=true;button.textContent='Preparando…';
+  try{if(productionMode&&platformApi)await downloadContractPdfById(contract.id);else toast('En modo de prueba no existe un archivo binario.');}
+  catch{toast('No se ha podido descargar el PDF contractual.');}
+  finally{button.disabled=false;button.textContent=original;}
 }
 
 async function sendContractSignature(caseItem,button){
@@ -1161,6 +1198,31 @@ $('#clarification-response-form').addEventListener('submit',async event=>{
     setModalFeedback('#clarification-response-feedback',messages[error?.code]||'No se ha podido guardar la aclaración. Vuelve a intentarlo.');
   }finally{button.disabled=false;button.innerHTML=original;}
 });
+$('#internal-document-file').addEventListener('change',event=>{
+  const file=event.target.files?.[0];
+  $('#internal-document-file-name').textContent=file?`${file.name} · ${formatFileSize(file.size)}`:'Ningún archivo seleccionado';
+});
+$('#internal-document-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(event.submitter?.value==='cancel'){$('#internal-document-dialog').close();return;}
+  const file=$('#internal-document-file').files?.[0],allowed=['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'];
+  if(!file||file.size<1||file.size>15*1024*1024||!allowed.includes(file.type)){setModalFeedback('#internal-document-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 15 MB.');return;}
+  if($('#internal-document-title').value.trim().length<2){setModalFeedback('#internal-document-feedback','Indica un título para identificar el documento.');return;}
+  const button=event.submitter||$('#internal-document-form .primary-button'),original=button.innerHTML,caseId=$('#internal-document-case').value;
+  button.disabled=true;button.textContent='Adjuntando archivo…';setModalFeedback('#internal-document-feedback','Guardando en el archivo privado y calculando su huella…','info');
+  try{
+    if(productionMode&&platformApi){await platformApi.invokeMultipart('internal-document-workflow',new FormData(event.currentTarget));await enterProduction();activeCaseId=caseId;activeSection='cases';renderShell();}
+    else{const at=new Date().toISOString();state.internalDocuments.unshift({id:crypto.randomUUID(),caseId,title:$('#internal-document-title').value.trim(),note:$('#internal-document-note').value.trim(),originalName:file.name,mimeType:file.type,sizeBytes:file.size,sha256:'d'.repeat(64),uploadedBy:currentUser().id,createdAt:at});log('internal_document_uploaded','case_internal_document',state.internalDocuments[0].id);saveState();renderShell();}
+    $('#internal-document-form').reset();$('#internal-document-dialog').close();toast('Documento interno adjuntado al expediente.');
+  }catch(error){const messages={INVALID_INTERNAL_DOCUMENT:'Revisa el título y el expediente.',INVALID_INTERNAL_DOCUMENT_FILE:'El archivo no es válido, su contenido no coincide con el formato o supera 15 MB.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.'};setModalFeedback('#internal-document-feedback',messages[error?.code]||'No se ha podido adjuntar el documento interno.');}
+  finally{button.disabled=false;button.innerHTML=original;}
+});
+async function downloadInternalDocument(documentId,button){
+  const original=button.textContent;button.disabled=true;button.textContent='Preparando…';
+  try{if(!productionMode||!platformApi){toast('En modo de prueba no existe un archivo binario.');return;}const result=await platformApi.invoke('internal-document-workflow',{action:'download_internal_document',documentId});openSecureDownload(result.url);toast('Enlace privado creado durante 60 segundos.');}
+  catch{toast('No se ha podido descargar el documento interno.');}
+  finally{button.disabled=false;button.textContent=original;}
+}
 $('#document-file').addEventListener('change',event=>{
   const file=event.target.files?.[0];
   $('#document-file-name').textContent=file?`${file.name} · ${formatFileSize(file.size)}`:'Ningún archivo seleccionado';

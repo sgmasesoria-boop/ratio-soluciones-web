@@ -119,6 +119,18 @@ async function generateContractPdf(request:Request,input:Record<string,unknown>)
   return {contractId:contract.id,unsignedSha256:hash,templateValidated:validated};
 }
 
+async function downloadContractPdf(request:Request,input:Record<string,unknown>){
+  const admin=await requireAdmin(request),contractId=clean(input.contractId,36);
+  if(!validUuid(contractId))throw new Error('INVALID_FIELDS');
+  const contract=await getContract(contractId);
+  if(!contract.unsigned_storage_path||!contract.unsigned_sha256)throw new Error('CONTRACT_PDF_REQUIRED');
+  const filename=`Contrato-${clean(contract.cases.reference,80).replace(/[^A-Za-z0-9_-]+/g,'-')}.pdf`;
+  const {data:signed,error}=await serviceClient.storage.from(BUCKET).createSignedUrl(contract.unsigned_storage_path,60,{download:filename});
+  if(error||!signed?.signedUrl)throw error||new Error('CONTRACT_PDF_REQUIRED');
+  await serviceClient.from('audit_events').insert({case_id:contract.case_id,actor_id:admin.id,action:'contract_pdf_download_link_created',object_type:'case_contract',object_id:contract.id,details:{expires_in_seconds:60,sha256:contract.unsigned_sha256}});
+  return {url:signed.signedUrl,expiresIn:60};
+}
+
 async function sendForSignature(request:Request,input:Record<string,unknown>){
   const admin=await requireAdmin(request),contractId=clean(input.contractId,36);
   if(!validUuid(contractId))throw new Error('INVALID_FIELDS');
@@ -164,6 +176,7 @@ Deno.serve(async request=>{
   try{
     const input=await request.json();
     if(input.action==='generate_contract_pdf')return json(request,await generateContractPdf(request,input),201);
+    if(input.action==='download_contract_pdf')return json(request,await downloadContractPdf(request,input));
     if(input.action==='send_contract_signature')return json(request,await sendForSignature(request,input),201);
     return json(request,{error:'UNKNOWN_ACTION'},400);
   }catch(error){return errorJson(request,error);}

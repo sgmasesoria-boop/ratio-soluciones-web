@@ -23,6 +23,7 @@
     "test:unified-cases": "node unified-case-qa.mjs",
     "test:unified-schema": "node unified-case-schema-qa.mjs",
     "test:contract-signature": "node contract-signature-qa.mjs",
-    "test:communications": "node communication-workflow-qa.mjs"
+    "test:communications": "node communication-workflow-qa.mjs",
+    "test:internal-documents": "node internal-document-qa.mjs"
   }
 }

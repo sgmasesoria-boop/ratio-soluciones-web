@@ -18,7 +18,7 @@ await page.route('https://ratio-test.supabase.co/**',async route=>{
   if(url.includes('/rest/v1/profiles?'))return fulfill([{id:'admin-1',display_name:'Gestor de prueba',internal_role:'admin',active:true}]);
   if(url.includes('/rest/v1/crm_leads?'))return fulfill([lead('active',activeStatus,'Consulta activa'),lead('contracted','won','Consulta contratada'),lead('converted','won','Consulta con expediente','case-1'),lead('closed','lost','Consulta archivada')]);
   if(url.includes('/rest/v1/crm_lead_notes?'))return fulfill([{id:'note-1',lead_id:'active',body:'Primera nota cronológica',author_id:'admin-1',created_at:'2026-08-09T10:00:00Z'}]);
-  if(url.includes('/rest/v1/cases?')||url.includes('/rest/v1/case_events?')||url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?'))return fulfill([]);
+  if(url.includes('/rest/v1/cases?')||url.includes('/rest/v1/case_events?')||url.includes('/rest/v1/notifications?')||url.includes('/rest/v1/crm_tasks?')||url.includes('/rest/v1/document_requests?')||url.includes('/rest/v1/case_documents?')||url.includes('/rest/v1/case_internal_documents?'))return fulfill([]);
   if(url.endsWith('/functions/v1/manage-crm')&&!rejectedOnce){rejectedOnce=true;return route.fulfill({status:401,contentType:'application/json',body:'{"error":"UNAUTHORIZED"}'});}
   if(url.endsWith('/functions/v1/manage-crm')){const payload=JSON.parse(route.request().postData()||'{}');if(payload.action==='update_lead')activeStatus=payload.status;return fulfill({ok:true,confirmationSent:true});}
   return route.fulfill({status:404,contentType:'application/json',body:'{"error":"NOT_FOUND"}'});

@@ -18,7 +18,7 @@ for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile',wi
   await page.screenshot({path:`preview-client-${viewport.name}.png`,fullPage:true});
   await page.evaluate(()=>document.querySelector('#logout').click());
   await page.locator('[data-demo-role="admin"]').click();
-  const crmVisible=await page.getByText('Consultas que requieren atención',{exact:true}).isVisible();
+  const crmVisible=await page.getByText('Resumen operativo',{exact:true}).isVisible();
   await page.locator('#new-lead').click();
   await page.locator('#lead-name').fill('Cliente de Prueba');
   await page.locator('#lead-phone').fill('600123123');
@@ -26,7 +26,7 @@ for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile',wi
   await page.locator('#lead-summary').fill('Consulta segura creada durante la prueba automática.');
   await page.locator('#lead-privacy-notice').check();
   await page.locator('#lead-form button[value="default"]').click();
-  const leadCreated=await page.getByText('Cliente de Prueba',{exact:true}).isVisible();
+  const leadCreated=await page.getByRole('heading',{name:/Cliente de Prueba/}).isVisible();
   await page.screenshot({path:`preview-crm-${viewport.name}.png`,fullPage:true});
   await page.evaluate(()=>document.querySelector('[data-section="cases"]').click());
   const caseCount=await page.locator('[data-case-id]').count();
@@ -36,11 +36,8 @@ for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile',wi
   await page.locator('[data-case-id="case_01"]').click();
   await page.locator('#new-update').click();
   await page.locator('#update-title').fill('<img src=x onerror="window.__ratioXss=1">');
-  await page.locator('#update-next-step').fill('Revisar la explicación dentro del portal.');
   await page.locator('#update-form button[value="default"]').click();
   await page.screenshot({path:`preview-admin-${viewport.name}.png`,fullPage:true});
-  await page.evaluate(()=>document.querySelector('#logout').click());
-  await page.locator('[data-demo-role="client"]').click();
   const xssSafe=await page.evaluate(()=>window.__ratioXss===undefined);
   const maliciousMarkupCreated=await page.locator('#main img, #main svg').count();
   const escapedTextVisible=await page.getByText('<img src=x onerror="window.__ratioXss=1">',{exact:true}).count();

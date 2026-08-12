@@ -24,6 +24,7 @@ const mockFetch=async(url,options={})=>{
   if(url.includes('/rest/v1/crm_tasks?'))return json([{id:'task-1',lead_id:'lead-1',title:'Contactar',due_on:'2026-01-02',priority:'normal',completed_at:null,created_at:'2026-01-01T00:00:00Z'}]);
   if(url.includes('/rest/v1/document_requests?'))return json([{id:'request-1',case_id:'case-1',title:'Contrato',instructions:'Subir copia',status:'pending',requested_by:'admin-1',requested_at:'2026-01-01T00:00:00Z'}]);
   if(url.includes('/rest/v1/case_documents?'))return json([]);
+  if(url.includes('/rest/v1/case_internal_documents?'))return json([]);
   if(url.endsWith('/functions/v1/update-case'))return json({eventId:'event-1'});
   return json({error:'NOT_FOUND'},404);
 };
