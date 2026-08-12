@@ -1,5 +1,7 @@
 # Operativa mínima
 
+Las supresiones, bloqueos y limpiezas se ejecutan conforme a `DATA_ERASURE_PROTOCOL.md`. No se improvisan borrados desde el CRM, SQL Editor ni Storage.
+
 ## Alta
 
 1. Ratio acepta realizar el estudio inicial.
