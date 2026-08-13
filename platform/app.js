@@ -894,6 +894,16 @@ function renderCaseAiAssistant(result) {
   $('#save-case-ai-deliverable')?.addEventListener('click',()=>saveAiDeliverable(result));
 }
 
+function renderCaseAiFallback(result){
+  const deliverable=result?.deliverable||{};
+  $('#case-ai-result').innerHTML=`<div class="ai-result-head"><strong>Análisis recuperado para revisión</strong><span>${escapeHtml(result?.model||'Modelo configurado')}</span></div><section class="ai-conclusion"><small>Conclusión</small><p>${escapeHtml(result?.conclusion||result?.executive_summary||'El análisis terminó, pero no contiene una conclusión visible.')}</p></section><section class="ai-draft"><small>Resumen ejecutivo</small><p>${escapeHtml(result?.executive_summary||'')}</p></section>${deliverable.content?`<section class="ai-deliverable"><small>Borrador generado</small><h4>${escapeHtml(deliverable.title||'Documento preparado')}</h4><pre>${escapeHtml(deliverable.content)}</pre></section>`:''}<p class="ai-caution">Se muestra una vista simplificada porque el navegador no pudo componer el informe completo. El análisis permanece guardado en el expediente.</p>`;
+  $('#case-ai-result').hidden=false;
+}
+
+function displayCaseAiResult(result){
+  try{renderCaseAiAssistant(result);return true;}catch(error){console.error('No se pudo componer el análisis completo',error);renderCaseAiFallback(result);return false;}
+}
+
 async function saveAiDeliverable(result){
   const caseItem=currentCase(),deliverable=result.deliverable;if(!caseItem||!deliverable?.content)return;
   const button=$('#save-case-ai-deliverable'),original=button.textContent;button.disabled=true;button.textContent='Guardando…';
@@ -909,13 +919,21 @@ async function saveAiDeliverable(result){
 async function analyzeCurrentCase(caseItem) {
   const button=$('#analyze-case-ai');if(!button)return;
   const original=button.textContent;button.disabled=true;button.textContent='Analizando…';
+  const startedAt=new Date().toISOString();
   setModalFeedback('#case-ai-feedback','Analizando el expediente y comprobando sus fuentes. Puede tardar unos segundos…','info');
   try{
     const demo={model:'Piloto demostrativo',analyzed_at:new Date().toISOString(),executive_summary:'El expediente está en curso y contiene una solicitud pendiente al cliente.',current_position:'Debe revisarse la documentación solicitada antes de proponer nuevas actuaciones.',confirmed_facts:[{statement:'Existe una solicitud pendiente.',source_ids:['request:req_01']}],pending_client_requests:[{statement:'Contrato de la tarjeta pendiente de entrega.',source_ids:['request:req_01']}],missing_information:['Contenido del contrato solicitado'],urgency_flags:[],contradictions:[],suggested_next_actions:[{action:'Esperar la entrega solicitada y revisarla.',rationale:'La decisión debe basarse en el documento.',source_ids:['request:req_01'],requires_human_review:true}],draft_client_update:'Hemos revisado el expediente. Para continuar necesitamos que entregues el documento solicitado desde tu plataforma privada.',caution:'Análisis orientativo sujeto a revisión humana.',source_catalog:[{id:'request:req_01',label:'Contrato de la tarjeta',type:'client_request',at:new Date().toISOString()}],document_content_analyzed:false};
     const request=$('#case-ai-request')?.value?.trim()||'';
     const result=productionMode&&platformApi?await platformApi.invoke('ai-assist',{action:'analyze_case',caseId:caseItem.id,request}):demo;
-    renderCaseAiAssistant(result);setModalFeedback('#case-ai-feedback');
+    const completeView=displayCaseAiResult(result);
+    setModalFeedback('#case-ai-feedback',completeView?'':'El análisis terminó y se muestra en vista simplificada. Permanece guardado en el expediente.',completeView?'':'info');
   }catch(error){
+    try{
+      if(productionMode&&platformApi){
+        const recovered=await platformApi.invoke('ai-assist',{action:'latest_case_analysis',caseId:caseItem.id,after:startedAt});
+        if(recovered?.found){displayCaseAiResult(recovered);setModalFeedback('#case-ai-feedback','El análisis terminó correctamente y se ha recuperado desde el expediente.','info');return;}
+      }
+    }catch(recoveryError){console.error('No se pudo recuperar el análisis terminado',recoveryError);}
     const messages={AI_NOT_CONFIGURED:'Falta configurar la clave privada del servicio de análisis.',AI_BUDGET_EXCEEDED:'Se ha alcanzado el límite mensual configurado.',AI_KEY_INVALID:'La clave del servicio de análisis no es válida.',AI_QUOTA_EXCEEDED:'La cuenta del servicio de análisis no tiene cuota disponible.',AI_MODEL_UNAVAILABLE:'El modelo configurado no está disponible.',AI_REQUEST_INVALID:'El servicio rechazó la configuración del análisis.',AI_TEMPORARILY_UNAVAILABLE:'El servicio de análisis no está disponible temporalmente.',UNAUTHENTICATED:'Tu sesión ha caducado.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.',FORBIDDEN:'Tu usuario no tiene permiso para analizar expedientes.',CASE_NOT_FOUND:'El expediente ya no está disponible.'};
     setModalFeedback('#case-ai-feedback',messages[error?.code]||`No se ha podido analizar el expediente${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
   }finally{button.disabled=false;button.textContent=original;}

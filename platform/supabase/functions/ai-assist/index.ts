@@ -355,6 +355,19 @@ async function analyzeCase(apiKey:string,adminId:string,caseId:string,userReques
   return {...result,model:professionalModel,run_id:run.id,analyzed_at:run.created_at,source_catalog:sourceCatalog,document_content_analyzed:preparedDocuments.analyzed.length>0,analyzed_document_count:preparedDocuments.analyzed.length,skipped_document_count:preparedDocuments.skipped.length,failed_document_count:preparedDocuments.failures.length,document_analysis_enabled:preparedDocuments.enabled};
 }
 
+async function latestCaseAnalysis(adminId:string,caseId:string,afterValue:unknown){
+  const requestedAfter=Date.parse(String(afterValue||''));
+  const recoveryFloor=Date.now()-15*60*1000;
+  const after=new Date(Math.max(Number.isFinite(requestedAfter)?requestedAfter:recoveryFloor,recoveryFloor)).toISOString();
+  const {data,error}=await serviceClient.from('case_ai_runs').select('id,created_at,model,result,source_refs')
+    .eq('case_id',caseId).eq('status','completed').gte('created_at',after)
+    .order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(error)throw error;
+  if(!data)return {found:false};
+  await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:adminId,action:'ai_case_result_recovered',object_type:'case',object_id:caseId,details:{run_id:data.id,automatic_write:false}});
+  return {found:true,...data.result,model:data.model,run_id:data.id,analyzed_at:data.created_at,source_catalog:data.source_refs||[],recovered:true};
+}
+
 Deno.serve(async request=>{
   const options=handleOptions(request);if(options)return options;
   const respond=(body:unknown,status=200)=>json(request,body,status);
@@ -371,6 +384,10 @@ Deno.serve(async request=>{
     if(body.action==='analyze_case'){
       const caseId=clean(body.caseId,36);if(!validUuid(caseId))return respond({error:'INVALID_FIELDS'},400);
       return respond(await analyzeCase(apiKey,admin.id,caseId,clean(body.request,4000)));
+    }
+    if(body.action==='latest_case_analysis'){
+      const caseId=clean(body.caseId,36);if(!validUuid(caseId))return respond({error:'INVALID_FIELDS'},400);
+      return respond(await latestCaseAnalysis(admin.id,caseId,body.after));
     }
     if(body.action==='test_document_pipeline')return respond(await testSyntheticDocument(apiKey,admin.id));
     return respond({error:'INVALID_FIELDS'},400);
