@@ -43,6 +43,13 @@ for(let version=1;version<=5;version+=1){
   await page.locator('#document-version-form button[value="default"]').click();
 }
 const fiveVersionsVisible=await page.getByText('Borrador 5 · 5 versiones',{exact:true}).isVisible();
+await page.getByRole('button',{name:'Abrir documento',exact:true}).click();
+const latestVersionVisible=await page.locator('#working-document-view-content').textContent()==='Contenido independiente de la versión 5.';
+await page.locator('#working-document-view-version').selectOption({index:4});
+const firstVersionAccessible=await page.locator('#working-document-view-content').textContent()==='Contenido independiente de la versión 1.';
+await page.locator('#create-working-document-version-from-current').click();
+const sourceVersionPrefilled=await page.locator('#document-version-content').inputValue()==='Contenido independiente de la versión 1.';
+await page.getByRole('button',{name:'Cancelar',exact:true}).click();
 const clientRequestHiddenBeforeContract=await page.locator('#request-document').count()===0;
 const portalActivationHiddenBeforeSignature=await page.locator('#activate-case-portal').count()===0;
 await page.locator('#prepare-contract').click();
@@ -72,7 +79,7 @@ await page.locator('#activate-case-portal').click();
 const portalActivated=await page.getByText('Activo',{exact:true}).first().isVisible();
 const clientRequestVisibleAfterContract=await page.locator('#request-document').isVisible();
 
-const result={passed:consultationNavigationRemoved&&manualPhaseVisible&&noteVisible&&fiveVersionsVisible&&clientRequestHiddenBeforeContract&&portalActivationHiddenBeforeSignature&&contractNoteVisible&&contractPdfGenerated&&sendActionVisible&&signatureRequestRecorded&&portalStillHiddenWithoutSignature&&portalActivated&&clientRequestVisibleAfterContract&&!errors.length,consultationNavigationRemoved,manualPhaseVisible,noteVisible,fiveVersionsVisible,clientRequestHiddenBeforeContract,portalActivationHiddenBeforeSignature,contractNoteVisible,contractPdfGenerated,sendActionVisible,signatureRequestRecorded,portalStillHiddenWithoutSignature,portalActivated,clientRequestVisibleAfterContract,errors};
+const result={passed:consultationNavigationRemoved&&manualPhaseVisible&&noteVisible&&fiveVersionsVisible&&latestVersionVisible&&firstVersionAccessible&&sourceVersionPrefilled&&clientRequestHiddenBeforeContract&&portalActivationHiddenBeforeSignature&&contractNoteVisible&&contractPdfGenerated&&sendActionVisible&&signatureRequestRecorded&&portalStillHiddenWithoutSignature&&portalActivated&&clientRequestVisibleAfterContract&&!errors.length,consultationNavigationRemoved,manualPhaseVisible,noteVisible,fiveVersionsVisible,latestVersionVisible,firstVersionAccessible,sourceVersionPrefilled,clientRequestHiddenBeforeContract,portalActivationHiddenBeforeSignature,contractNoteVisible,contractPdfGenerated,sendActionVisible,signatureRequestRecorded,portalStillHiddenWithoutSignature,portalActivated,clientRequestVisibleAfterContract,errors};
 console.log(JSON.stringify(result,null,2));
 await browser.close();
 if(!result.passed)process.exitCode=1;

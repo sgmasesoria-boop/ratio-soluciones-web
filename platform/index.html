@@ -305,6 +305,21 @@
     </form>
   </dialog>
 
+  <dialog id="working-document-view-dialog" class="modal wide-modal">
+    <form method="dialog" id="working-document-view-form">
+      <div class="modal-head"><div><p class="kicker">Documento de trabajo</p><h2 id="working-document-view-title">Consultar borrador</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <input id="working-document-view-id" type="hidden">
+      <label>Versión conservada<select id="working-document-view-version"></select></label>
+      <div id="working-document-view-meta" class="privacy-preview working-document-meta"></div>
+      <section class="working-version-content" aria-labelledby="working-document-view-content-title">
+        <small id="working-document-view-content-title">Contenido del borrador</small>
+        <pre id="working-document-view-content" tabindex="0"></pre>
+      </section>
+      <div id="working-document-view-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions working-document-view-actions"><button class="secondary-button" value="cancel">Cerrar</button><button class="secondary-button" id="copy-working-document-version" type="button">Copiar texto</button><button class="primary-button" id="create-working-document-version-from-current" type="button">Crear nueva versión desde esta <span>→</span></button></div>
+    </form>
+  </dialog>
+
   <dialog id="password-dialog" class="modal onboarding-modal" aria-labelledby="password-dialog-title" aria-describedby="password-dialog-description">
     <form method="dialog" id="password-form">
       <div class="activation-step" aria-hidden="true"><span>✓</span><strong>Invitación aceptada</strong><i></i><span>2</span><strong>Crear contraseña</strong></div>
