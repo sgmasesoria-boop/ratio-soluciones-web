@@ -357,7 +357,7 @@ async function analyzeCase(apiKey:string,adminId:string,caseId:string,userReques
 
 async function latestCaseAnalysis(adminId:string,caseId:string,afterValue:unknown){
   const requestedAfter=Date.parse(String(afterValue||''));
-  const recoveryFloor=Date.now()-15*60*1000;
+  const recoveryFloor=Date.now()-(Number.isFinite(requestedAfter)?15*60*1000:24*60*60*1000);
   const after=new Date(Math.max(Number.isFinite(requestedAfter)?requestedAfter:recoveryFloor,recoveryFloor)).toISOString();
   const {data,error}=await serviceClient.from('case_ai_runs').select('id,created_at,model,result,source_refs')
     .eq('case_id',caseId).eq('status','completed').gte('created_at',after)

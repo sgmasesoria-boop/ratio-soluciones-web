@@ -379,6 +379,7 @@ function renderAdmin() {
       $('#new-update').addEventListener('click',openUpdateDialog);
       $('#request-document')?.addEventListener('click',openDocumentRequestDialog);
       $('#analyze-case-ai')?.addEventListener('click',()=>analyzeCurrentCase(c));
+      $('#load-latest-case-ai')?.addEventListener('click',()=>loadLatestCaseAnalysis(c));
       $('#add-ai-context')?.addEventListener('click',()=>openAiContextDialog(c));
       $('#test-document-ai')?.addEventListener('click',testSyntheticDocumentPipeline);
       bindDocumentActions();
@@ -853,7 +854,7 @@ function renderAiAssistant(result) {
 }
 
 function caseAiPanel() {
-  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente integral del expediente · revisión profesional</p><h3>Analizar, resolver o redactar</h3><p>Conoce la ficha, cronología, aclaraciones, solicitudes, documentos del cliente, archivos internos y borradores anteriores.</p></div><button class="secondary-button" id="add-ai-context" type="button">Añadir o corregir un dato</button></div><label class="ai-request-label">¿Qué necesitas hacer?<textarea id="case-ai-request" rows="4" maxlength="4000" placeholder="Déjalo vacío para una revisión completa, o escribe por ejemplo: calcula el reparto; comprueba la legislación; redacta una reclamación; prepara la demanda; revisa el último borrador…"></textarea></label><div class="ai-submit-row"><p class="ai-data-scope">La investigación jurídica se realiza con consultas anónimas en fuentes oficiales. El resultado no modifica ni envía nada y queda listo para una única revisión profesional.</p><button class="primary-button" id="analyze-case-ai" type="button">Trabajar con el expediente <span>→</span></button></div><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
+  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente integral del expediente · revisión profesional</p><h3>Analizar, resolver o redactar</h3><p>Conoce la ficha, cronología, aclaraciones, solicitudes, documentos del cliente, archivos internos y borradores anteriores.</p></div><div class="ai-result-actions"><button class="secondary-button" id="load-latest-case-ai" type="button">Ver último análisis guardado</button><button class="secondary-button" id="add-ai-context" type="button">Añadir o corregir un dato</button></div></div><label class="ai-request-label">¿Qué necesitas hacer?<textarea id="case-ai-request" rows="4" maxlength="4000" placeholder="Déjalo vacío para una revisión completa, o escribe por ejemplo: calcula el reparto; comprueba la legislación; redacta una reclamación; prepara la demanda; revisa el último borrador…"></textarea></label><div class="ai-submit-row"><p class="ai-data-scope">La investigación jurídica se realiza con consultas anónimas en fuentes oficiales. El resultado no modifica ni envía nada y queda listo para una única revisión profesional.</p><button class="primary-button" id="analyze-case-ai" type="button">Trabajar con el expediente <span>→</span></button></div><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
 }
 
 function renderCaseAiAssistant(result) {
@@ -902,6 +903,17 @@ function renderCaseAiFallback(result){
 
 function displayCaseAiResult(result){
   try{renderCaseAiAssistant(result);return true;}catch(error){console.error('No se pudo componer el análisis completo',error);renderCaseAiFallback(result);return false;}
+}
+
+async function loadLatestCaseAnalysis(caseItem){
+  const button=$('#load-latest-case-ai');if(!button||!productionMode||!platformApi)return;
+  const original=button.textContent;button.disabled=true;button.textContent='Recuperando…';
+  try{
+    const recovered=await platformApi.invoke('ai-assist',{action:'latest_case_analysis',caseId:caseItem.id});
+    if(!recovered?.found){setModalFeedback('#case-ai-feedback','No hay ningún análisis guardado durante las últimas 24 horas.','info');return;}
+    displayCaseAiResult(recovered);setModalFeedback('#case-ai-feedback','Último análisis guardado recuperado sin realizar una nueva ejecución.','info');
+  }catch{setModalFeedback('#case-ai-feedback','No se ha podido recuperar el último análisis guardado.');}
+  finally{button.disabled=false;button.textContent=original;}
 }
 
 async function saveAiDeliverable(result){
