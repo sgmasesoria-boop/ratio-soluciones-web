@@ -375,7 +375,7 @@ function renderAdmin() {
       const signedContract=(state.contracts||[]).find(item=>item.caseId===c.id&&item.signedAt&&!item.invalidatedAt);
       const portalAction=['invited','active'].includes(c.portalStatus)?'<button class="secondary-button" id="resend-case-confirmation">Reenviar acceso</button>':signedContract?'<button class="secondary-button" id="activate-case-portal">Activar portal</button>':'';
       const requestAction=['invited','active'].includes(c.portalStatus)?'<button class="secondary-button" id="request-document">Solicitar al cliente</button>':'';
-      $('#main').innerHTML = `${pageHead('Expedientes',c.reference+' · '+c.client,c.title,`<button class="secondary-button" id="back-to-cases">← Todos los expedientes</button><button class="secondary-button" id="edit-case-record">Editar ficha</button>${portalAction}${requestAction}<button class="primary-button" id="new-update">Registrar avance →</button>`)}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Cronología única</h2><span class="status-pill">${escapeHtml(c.manualPhase||statusLabels[c.statusCode]||'Sin indicación')}</span></div>${timeline(true)}</section><aside>${portalAccessCard(c)}${nextStepCard(c)}${professionalCard(c)}</aside></div>${communicationPanel(c,true)}${contractPanel(c)}${caseAiPanel()}${workingDocumentsPanel(c)}${internalDocumentsPanel(c)}${caseDocumentsPanel(c,true)}`;
+      $('#main').innerHTML = `${pageHead('Expedientes',c.reference+' · '+c.client,c.title,`<button class="secondary-button" id="back-to-cases">← Todos los expedientes</button><button class="secondary-button" id="edit-case-record">Editar ficha</button>${portalAction}${requestAction}<button class="primary-button" id="new-update">Registrar avance →</button>`)}${caseAiPanel()}${workingDocumentsPanel(c)}${internalDocumentsPanel(c)}${caseDocumentsPanel(c,true)}${contractPanel(c)}${communicationPanel(c,true)}<section class="case-secondary-group" aria-labelledby="case-secondary-title"><div class="secondary-group-head"><p class="kicker">Información complementaria</p><h2 id="case-secondary-title">Seguimiento y coordinación</h2><p>Datos útiles para consultar después del trabajo principal del expediente.</p></div><div class="case-layout"><section class="panel"><div class="panel-head"><h2>Cronología</h2><span class="status-pill">${escapeHtml(c.manualPhase||statusLabels[c.statusCode]||'Sin indicación')}</span></div>${timeline(true)}</section><aside>${portalAccessCard(c)}${nextStepCard(c)}${professionalCard(c)}</aside></div></section>`;
       $('#back-to-cases').addEventListener('click',()=>{activeCaseId=null;renderShell();});
       $('#new-update').addEventListener('click',openUpdateDialog);
       $('#request-document')?.addEventListener('click',openDocumentRequestDialog);
@@ -454,7 +454,7 @@ function nextStepCard(c) {
       :`<button type="button" class="secondary-button" data-upload-request="${escapeHtml(request.id)}">Entregar archivo</button>`):'';
     return `<article class="client-action"><small>${escapeHtml(typeLabel)}</small><strong>${escapeHtml(request.title)}</strong>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${action}</article>`;
   }).join('')}</div>`:'<p><strong>Por ahora, nada.</strong></p><p>Te avisaremos cuando necesitemos documentación, una aclaración o una decisión.</p>';
-  return `<section class="panel next-step-card"><div class="panel-head"><h2>Qué necesitamos de ti</h2><small>${pending.length?`${pending.length} pendiente${pending.length===1?'':'s'}`:'Sin peticiones pendientes'}</small></div>${content}</section>`;
+  return `<section class="panel next-step-card"><div class="panel-head"><h2>Peticiones de Ratio</h2><small>${pending.length?`${pending.length} pendiente${pending.length===1?'':'s'}`:'Sin peticiones pendientes'}</small></div>${content}</section>`;
 }
 function professionalCard(c) {
   const assigned=Boolean(c.professionalName);
@@ -465,7 +465,10 @@ function communicationPanel(caseItem,isAdmin){
   const requests=(state.communicationRequests||[]).filter(item=>item.caseId===caseItem.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   const items=requests.length?requests.map(item=>`<article class="communication-item"><div class="communication-head"><div><small>${escapeHtml(formatDate(item.createdAt))}</small><strong>${escapeHtml(item.subject)}</strong></div>${item.respondedAt?'<span class="status-pill">Respondida</span>':'<span class="status-pill">Pendiente de respuesta</span>'}</div><p>${escapeHtml(item.message)}</p>${item.deadlineContext?`<div class="communication-context"><small>Notificación o plazo indicado</small><p>${escapeHtml(item.deadlineContext)}</p></div>`:''}${item.availabilityNote?`<div class="communication-context"><small>Disponibilidad orientativa</small><p>${escapeHtml(item.availabilityNote)}</p></div>`:''}${item.responseText?`<div class="clarification-response"><small>Respuesta de Ratio · ${escapeHtml(formatDate(item.respondedAt))}</small><p>${escapeHtml(item.responseText)}</p></div>`:isAdmin?`<button type="button" class="secondary-button" data-respond-communication="${escapeHtml(item.id)}">Responder desde Ratio</button>`:''}</article>`).join(''):'<div class="empty">Todavía no hay solicitudes de comunicación.</div>';
   const action=!isAdmin&&caseItem.statusCode==='open'?'<button type="button" class="primary-button" id="request-communication">Solicitar aclaración o llamada →</button>':'';
-  return `<section class="panel communication-panel"><div class="panel-head"><div><p class="kicker">Canal ordinario</p><h2>Hablar sobre tu expediente</h2><p>Escribe aquí tu consulta. Ratio la revisará y coordinará la respuesta o el contacto con el profesional cuando sea necesario.</p></div>${action}</div><div class="communication-notice"><strong>Si tienes una notificación, cita o plazo, indícalo expresamente.</strong><span>El portal deja constancia, pero no sustituye los canales de urgencia que se te hayan comunicado para tu asunto.</span></div><div class="communication-list">${items}</div></section>`;
+  const heading=isAdmin?'Peticiones del cliente':'Tus peticiones a Ratio';
+  const kicker=isAdmin?'Solicitudes recibidas':'Solicitudes enviadas';
+  const description=isAdmin?'Consultas, aclaraciones o solicitudes de contacto enviadas por el cliente desde su portal.':'Consulta una petición anterior o solicita una aclaración o llamada sobre tu expediente.';
+  return `<section class="panel communication-panel"><div class="panel-head"><div><p class="kicker">${kicker}</p><h2>${heading}</h2><p>${description}</p></div>${action}</div><div class="communication-notice"><strong>Si existe una notificación, cita o plazo, debe indicarse expresamente.</strong><span>El portal deja constancia, pero no sustituye los canales de urgencia comunicados para el asunto.</span></div><div class="communication-list">${items}</div></section>`;
 }
 
 function openCommunicationDialog(){
@@ -735,6 +738,7 @@ function renderWorkingDocumentVersion(documentId,versionId){
   const content=String(version.draftContent||'');
   $('#working-document-view-content').textContent=content||'Esta versión no contiene texto editable.';
   $('#copy-working-document-version').disabled=!content;
+  $('#download-working-document-version').disabled=!content;
   setModalFeedback('#working-document-view-feedback');
 }
 
@@ -777,6 +781,24 @@ $('#copy-working-document-version').addEventListener('click',async()=>{
   const version=workingDocumentVersions($('#working-document-view-id').value).find(item=>item.id===activeWorkingDocumentVersionId);
   const copied=version?.draftContent&&await copyTextSafely(version.draftContent);
   setModalFeedback('#working-document-view-feedback',copied?'Texto copiado al portapapeles.':'No se ha podido copiar el texto.',copied?'info':'');
+});
+$('#download-working-document-version').addEventListener('click',async event=>{
+  const version=workingDocumentVersions($('#working-document-view-id').value).find(item=>item.id===activeWorkingDocumentVersionId);
+  if(!version?.draftContent)return setModalFeedback('#working-document-view-feedback','Esta versión no contiene texto para exportar.');
+  const button=event.currentTarget,original=button.textContent;button.disabled=true;button.textContent='Preparando Word…';
+  try{
+    if(!productionMode||!platformApi){setModalFeedback('#working-document-view-feedback','La exportación profesional está disponible en el CRM protegido.','info');return;}
+    const result=await platformApi.invoke('document-export',{versionId:version.id});
+    if(result?.mimeType!=='application/vnd.openxmlformats-officedocument.wordprocessingml.document'||!result?.base64||!result?.filename)throw new Error('INVALID_DOCUMENT_EXPORT');
+    const binary=atob(result.base64),bytes=new Uint8Array(binary.length);
+    for(let index=0;index<binary.length;index++)bytes[index]=binary.charCodeAt(index);
+    const blob=new Blob([bytes],{type:result.mimeType}),url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download=result.filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    setModalFeedback('#working-document-view-feedback','Word profesional generado con identidad Ratio. Revísalo antes de utilizarlo.','info');
+  }catch(error){
+    const messages={DOCUMENT_CONTENT_EMPTY:'Esta versión no contiene texto para exportar.',DOCUMENT_NOT_FOUND:'La versión ya no está disponible.',MFA_REQUIRED:'Confirma de nuevo el segundo factor para exportar.'};
+    setModalFeedback('#working-document-view-feedback',messages[error?.code]||'No se ha podido generar el Word profesional.');
+  }finally{button.disabled=false;button.textContent=original;}
 });
 $('#create-working-document-version-from-current').addEventListener('click',()=>{
   const documentId=$('#working-document-view-id').value;
