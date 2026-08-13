@@ -379,6 +379,7 @@ function renderAdmin() {
       $('#new-update').addEventListener('click',openUpdateDialog);
       $('#request-document')?.addEventListener('click',openDocumentRequestDialog);
       $('#analyze-case-ai')?.addEventListener('click',()=>analyzeCurrentCase(c));
+      $('#add-ai-context')?.addEventListener('click',()=>openAiContextDialog(c));
       $('#test-document-ai')?.addEventListener('click',testSyntheticDocumentPipeline);
       bindDocumentActions();
       bindCommunicationActions();
@@ -675,6 +676,15 @@ function openCaseRecordDialog(caseItem){
   $('#case-record-dialog').showModal();
 }
 
+function openAiContextDialog(caseItem){
+  $('#ai-context-form').reset();
+  $('#ai-context-case').value=caseItem.id;
+  $('#ai-context-title').value='Aclaración para el análisis';
+  setModalFeedback('#ai-context-feedback');
+  $('#ai-context-dialog').showModal();
+  $('#ai-context-content').focus();
+}
+
 async function activateCasePortal(caseItem){
   const signedContract=(state.contracts||[]).find(item=>item.caseId===caseItem.id&&item.signedAt&&!item.invalidatedAt);
   if(!signedContract){toast('El portal solo puede activarse después de recibir el contrato firmado.');return;}
@@ -843,7 +853,7 @@ function renderAiAssistant(result) {
 }
 
 function caseAiPanel() {
-  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente interno · revisión humana</p><h3>Analizar el expediente completo</h3><p>Revisa la ficha, notas, cronología, solicitudes, respuestas, documentos de trabajo y hasta tres PDF, tanto del cliente como internos.</p></div><div class="ai-result-actions"><button class="secondary-button" id="test-document-ai" type="button">Probar PDF ficticio</button><button class="secondary-button" id="analyze-case-ai" type="button">Analizar expediente</button></div></div><p class="ai-data-scope">Privacidad: procesa únicamente PDF validados del cliente o incorporados por el equipo, con un máximo de 5 MB por archivo y 10 MB combinados. Los DOCX e imágenes se conservan y aparecen como fuentes, pero su contenido no se lee todavía. El análisis se inicia manualmente, no realiza cambios ni envía comunicaciones, registra cada archivo procesado y exige revisión humana.</p><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
+  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente interno · revisión humana</p><h3>Analizar el expediente completo</h3><p>Revisa la ficha, aclaraciones internas, cronología, solicitudes, respuestas, documentos de trabajo y hasta tres PDF, tanto del cliente como internos.</p></div><div class="ai-result-actions"><button class="secondary-button" id="add-ai-context" type="button">Aportar información al análisis</button><button class="secondary-button" id="test-document-ai" type="button">Probar PDF ficticio</button><button class="secondary-button" id="analyze-case-ai" type="button">Analizar expediente</button></div></div><p class="ai-data-scope">Las aclaraciones y correcciones se guardan en la cronología interna con fecha y autor y se incorporan al análisis siguiente. Privacidad: procesa únicamente PDF validados del cliente o incorporados por el equipo, con un máximo de 5 MB por archivo y 10 MB combinados. Los DOCX e imágenes se conservan y aparecen como fuentes, pero su contenido no se lee todavía. El análisis se inicia manualmente, no realiza cambios ni envía comunicaciones, registra cada archivo procesado y exige revisión humana.</p><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
 }
 
 function renderCaseAiAssistant(result) {
@@ -1117,6 +1127,17 @@ $('#case-record-form').addEventListener('submit',async event=>{
     else{const item=state.cases.find(c=>c.id===payload.caseId);if(item){Object.assign(item,{phone:payload.phone,email:payload.email,manualPhase:payload.manualPhase,status:payload.manualPhase||statusLabels[payload.lifecycle],statusCode:payload.lifecycle,amount:payload.amount});const at=new Date().toISOString();if(payload.manualPhase)state.events.push({id:crypto.randomUUID(),caseId:item.id,kind:'internal_phase_changed',title:payload.manualPhase,description:'',at,current:true});if(payload.note)state.events.push({id:crypto.randomUUID(),caseId:item.id,kind:'internal_note',title:'Nota interna',description:payload.note,at,current:true});saveState();}}
     $('#case-record-dialog').close();renderShell();toast('Ficha e historial actualizados.');
   }catch(error){setModalFeedback('#case-record-feedback',error?.code==='INVALID_FIELDS'?'Revisa teléfono, correo y datos introducidos.':'No se ha podido actualizar el expediente.');}
+  finally{button.disabled=false;}
+});
+$('#ai-context-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#ai-context-dialog').close();return;}
+  const payload={action:'add_case_context',caseId:$('#ai-context-case').value,title:$('#ai-context-title').value.trim(),content:$('#ai-context-content').value.trim()};
+  const button=event.submitter;button.disabled=true;setModalFeedback('#ai-context-feedback','Guardando la aclaración en la cronología interna…','info');
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',payload);await enterProduction();activeCaseId=payload.caseId;activeSection='cases';}
+    else{state.events.push({id:crypto.randomUUID(),caseId:payload.caseId,kind:'ai_context',title:payload.title,description:payload.content,at:new Date().toISOString(),current:true});saveState();}
+    $('#ai-context-dialog').close();renderShell();toast('Aclaración guardada. La API la usará en el próximo análisis.');
+  }catch(error){setModalFeedback('#ai-context-feedback',error?.code==='INVALID_FIELDS'?'Escribe un título y una aclaración de al menos 10 caracteres.':'No se ha podido guardar la aclaración.');}
   finally{button.disabled=false;}
 });
 $('#contract-form').addEventListener('submit',async event=>{

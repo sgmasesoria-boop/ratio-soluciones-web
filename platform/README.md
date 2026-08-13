@@ -14,6 +14,7 @@ Sistema único de expedientes. El primer contacto crea un expediente interno; no
 - Documentación aportada por el cliente, tanto desde su portal como incorporada por Ratio cuando se recibe en papel o en mano, con procedencia y accesos auditados.
 - Archivo documental interno separado, reservado al trabajo de Ratio e invisible para el cliente, con huella y descargas auditadas.
 - Solicitudes de aclaración o llamada iniciadas por el cliente, con respuesta trazable y coordinación desde Ratio.
+- Aclaraciones y correcciones internas para el análisis: se escriben desde el expediente, quedan fechadas en su cronología y se incorporan como fuentes en el siguiente análisis sin mostrarse al cliente.
 - Documentos de trabajo con tipo y anotación libres.
 - Versiones ilimitadas por documento: cada borrador se conserva y nunca sustituye al anterior.
 - Solo las versiones publicadas expresamente pueden ser visibles para el cliente.

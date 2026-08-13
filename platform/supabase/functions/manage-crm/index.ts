@@ -64,6 +64,20 @@ Deno.serve(async request=>{
       await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:admin.id,action:'case_record_updated',object_type:'case',object_id:caseId,details:{manual_phase:manualPhase,lifecycle,phase_changed:previous.manual_phase!==manualPhase}});
       return respond({ok:true});
     }
+    if(body.action==='add_case_context'){
+      const caseId=clean(body.caseId,36),title=clean(body.title,160),content=clean(body.content,4000);
+      if(!validUuid(caseId)||title.length<2||content.length<10)return respond({error:'INVALID_FIELDS'},400);
+      const {data:caseRecord,error:caseError}=await serviceClient.from('cases').select('id').eq('id',caseId).maybeSingle();
+      if(caseError)throw caseError;
+      if(!caseRecord)return respond({error:'CASE_NOT_FOUND'},404);
+      const {data:eventRecord,error:eventError}=await serviceClient.from('case_events').insert({
+        case_id:caseId,event_type:'ai_context',title,description:content,visibility:'internal',actor_id:admin.id,
+        metadata:{source:'manual_ai_context',automatic_write:false}
+      }).select('id,occurred_at').single();
+      if(eventError)throw eventError;
+      await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:admin.id,action:'ai_context_added',object_type:'case_event',object_id:eventRecord.id,details:{automatic_write:false,character_count:content.length}});
+      return respond({eventId:eventRecord.id,occurredAt:eventRecord.occurred_at},201);
+    }
     if(body.action==='activate_case_portal'){
       const caseId=clean(body.caseId,36);
       if(!validUuid(caseId))return respond({error:'INVALID_FIELDS'},400);
