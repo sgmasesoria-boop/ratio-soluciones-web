@@ -104,6 +104,7 @@ let caseFilter = 'active';
 let caseSearch = '';
 let mfaFactorId = '';
 let mfaEnrollment = false;
+let activeWorkingDocumentVersionId = '';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -594,9 +595,9 @@ function workingDocumentsPanel(c){
   const documents=(state.workingDocuments||[]).filter(item=>item.caseId===c.id);
   const content=documents.length?documents.map(document=>{
     const versions=(state.documentVersions||[]).filter(item=>item.documentId===document.id).sort((a,b)=>b.versionNumber-a.versionNumber);
-    return `<article class="document-request"><div><small>${escapeHtml(document.documentType||'Documento de trabajo')}</small><strong>${escapeHtml(document.title)}</strong><p>${escapeHtml(document.statusLabel||'Sin estado indicado')} · ${versions.length} ${versions.length===1?'versión':'versiones'}</p></div><button class="secondary-button add-document-version" type="button" data-working-document-id="${escapeHtml(document.id)}">Añadir versión</button></article>`;
+    return `<article class="document-request working-document-row"><div><small>${escapeHtml(document.documentType||'Documento de trabajo')}</small><strong>${escapeHtml(document.title)}</strong><p>${escapeHtml(document.statusLabel||'Sin estado indicado')} · ${versions.length} ${versions.length===1?'versión':'versiones'}</p></div><div class="working-document-actions">${versions.length?`<button class="primary-button open-working-document" type="button" data-working-document-id="${escapeHtml(document.id)}">Abrir documento</button>`:''}<button class="secondary-button add-document-version" type="button" data-working-document-id="${escapeHtml(document.id)}">Añadir versión</button></div></article>`;
   }).join(''):'<div class="empty">Todavía no hay documentos de trabajo.</div>';
-  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Trabajo interno versionado</p><h2>Escritos y documentos</h2><p>Cada borrador se conserva como una versión independiente con la etiqueta que indiquemos.</p></div><button class="secondary-button" id="new-working-document" type="button">Nuevo documento</button></div>${content}</section>`;
+  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Trabajo interno versionado</p><h2>Escritos y documentos</h2><p>Cada borrador se conserva, puede volver a abrirse y admite nuevas versiones sin perder las anteriores.</p></div><button class="secondary-button" id="new-working-document" type="button">Nuevo documento</button></div>${content}</section>`;
 }
 function refreshCaseList() {
   const visible=filteredCases();
@@ -720,9 +721,38 @@ function openContractDialog(caseItem){
   $('#contract-form').reset();$('#contract-case').value=caseItem.id;$('#contract-note').value=contract?.contractNote||'';$('#contract-signer-name').value=contract?.signerFullName||caseItem.client||'';$('#contract-signer-id').value=contract?.signerIdentifier||'';$('#contract-signer-address').value=contract?.signerAddress||'';$('#contract-cause').value=contract?.cause||caseItem.title||'';$('#contract-price').value=contract?.priceAmount||caseItem.amount||'';$('#contract-work-scope').value=contract?.workScope||'';setModalFeedback('#contract-feedback');$('#contract-dialog').showModal();
 }
 
-function openDocumentVersionDialog(documentId){
+function workingDocumentVersions(documentId){
+  return (state.documentVersions||[]).filter(item=>item.documentId===documentId).sort((a,b)=>b.versionNumber-a.versionNumber);
+}
+
+function renderWorkingDocumentVersion(documentId,versionId){
+  const versions=workingDocumentVersions(documentId);
+  const version=versions.find(item=>item.id===versionId)||versions[0];
+  if(!version)return;
+  activeWorkingDocumentVersionId=version.id;
+  $('#working-document-view-version').value=version.id;
+  $('#working-document-view-meta').innerHTML=`<small>Versión ${escapeHtml(version.versionNumber)} · ${escapeHtml(formatDate(version.createdAt))}</small><p><strong>${escapeHtml(version.statusLabel||'Sin anotación')}</strong>${version.changeSummary?`<br>${escapeHtml(version.changeSummary)}`:''}</p>`;
+  const content=String(version.draftContent||'');
+  $('#working-document-view-content').textContent=content||'Esta versión no contiene texto editable.';
+  $('#copy-working-document-version').disabled=!content;
+  setModalFeedback('#working-document-view-feedback');
+}
+
+function openWorkingDocumentViewer(documentId,versionId=''){
   const documentRecord=(state.workingDocuments||[]).find(item=>item.id===documentId);if(!documentRecord)return;
-  $('#document-version-form').reset();$('#document-version-id').value=documentId;$('#document-version-title').textContent=`Nueva versión · ${documentRecord.title}`;$('#document-version-status').value=documentRecord.statusLabel||'';setModalFeedback('#document-version-feedback');$('#document-version-dialog').showModal();
+  const versions=workingDocumentVersions(documentId);if(!versions.length)return toast('Este documento todavía no tiene versiones guardadas.');
+  $('#working-document-view-id').value=documentId;
+  $('#working-document-view-title').textContent=documentRecord.title;
+  const selector=$('#working-document-view-version');selector.innerHTML='';
+  versions.forEach(version=>{const option=document.createElement('option');option.value=version.id;option.textContent=`Versión ${version.versionNumber} · ${version.statusLabel||'Sin anotación'} · ${formatDate(version.createdAt)}`;selector.appendChild(option);});
+  renderWorkingDocumentVersion(documentId,versionId||versions[0].id);
+  $('#working-document-view-dialog').showModal();
+}
+
+function openDocumentVersionDialog(documentId,sourceVersionId=''){
+  const documentRecord=(state.workingDocuments||[]).find(item=>item.id===documentId);if(!documentRecord)return;
+  const source=workingDocumentVersions(documentId).find(item=>item.id===sourceVersionId);
+  $('#document-version-form').reset();$('#document-version-id').value=documentId;$('#document-version-title').textContent=`Nueva versión · ${documentRecord.title}`;$('#document-version-status').value=source?.statusLabel||documentRecord.statusLabel||'';$('#document-version-content').value=source?.draftContent||'';$('#document-version-summary').value=source?`Nueva versión basada en la versión ${source.versionNumber}.`:'';setModalFeedback('#document-version-feedback');$('#document-version-dialog').showModal();
 }
 
 document.addEventListener('click',event=>{
@@ -738,7 +768,20 @@ document.addEventListener('click',event=>{
   else if(target.id==='download-contract-pdf'){const item=currentCase();if(item)downloadContractPdf(item,target);}
   else if(target.id==='send-contract-signature'){const item=currentCase();if(item)sendContractSignature(item,target);}
   else if(target.dataset.downloadInternalDocument)downloadInternalDocument(target.dataset.downloadInternalDocument,target);
+  else if(target.classList.contains('open-working-document'))openWorkingDocumentViewer(target.dataset.workingDocumentId);
   else if(target.classList.contains('add-document-version'))openDocumentVersionDialog(target.dataset.workingDocumentId);
+});
+
+$('#working-document-view-version').addEventListener('change',event=>renderWorkingDocumentVersion($('#working-document-view-id').value,event.target.value));
+$('#copy-working-document-version').addEventListener('click',async()=>{
+  const version=workingDocumentVersions($('#working-document-view-id').value).find(item=>item.id===activeWorkingDocumentVersionId);
+  const copied=version?.draftContent&&await copyTextSafely(version.draftContent);
+  setModalFeedback('#working-document-view-feedback',copied?'Texto copiado al portapapeles.':'No se ha podido copiar el texto.',copied?'info':'');
+});
+$('#create-working-document-version-from-current').addEventListener('click',()=>{
+  const documentId=$('#working-document-view-id').value;
+  $('#working-document-view-dialog').close();
+  openDocumentVersionDialog(documentId,activeWorkingDocumentVersionId);
 });
 
 async function generateContractPdf(caseItem,button){
