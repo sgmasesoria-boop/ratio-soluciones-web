@@ -348,13 +348,18 @@ async function analyzeCase(apiKey:string,adminId:string,caseId:string,userReques
   for(const item of [...(result.legal_analysis||[]),...(result.calculations||[])]){item.source_ids=(item.source_ids||[]).filter((id:string)=>validIds.has(id));item.official_source_urls=(item.official_source_urls||[]).filter((url:string)=>verifiedUrls.has(url));}
   result.draft_client_update=sanitizeClientDraft(result.draft_client_update);
   result.request_text=requestText;result.official_sources=research.sources;
+  result.document_content_analyzed=preparedDocuments.analyzed.length>0;
+  result.analyzed_document_count=preparedDocuments.analyzed.length;
+  result.skipped_document_count=preparedDocuments.skipped.length;
+  result.failed_document_count=preparedDocuments.failures.length;
+  result.document_analysis_enabled=preparedDocuments.enabled;
   const firstUsage=usage(firstPass.response,model),researchUsage=research.response?usage(research.response,professionalModel):{inputTokens:0,outputTokens:0,estimatedCost:0},finalUsage=usage(finalPass.response,professionalModel);
   const inputTokens=firstUsage.inputTokens+researchUsage.inputTokens+finalUsage.inputTokens,outputTokens=firstUsage.outputTokens+researchUsage.outputTokens+finalUsage.outputTokens,estimatedCost=Number((firstUsage.estimatedCost+researchUsage.estimatedCost+finalUsage.estimatedCost).toFixed(6));
   const {data:run,error:runError}=await serviceClient.from('case_ai_runs').insert({case_id:caseId,requested_by:adminId,action:'analyze_case',model:professionalModel,prompt_version:'ratio-case-v7',status:'completed',result,source_refs:sourceCatalog,input_tokens:inputTokens,output_tokens:outputTokens,estimated_cost_usd:estimatedCost,automatic_write:false}).select('id,created_at').single();
   if(runError)throw runError;
   const auditRows=[{case_id:caseId,actor_id:adminId,action:'ai_case_analyzed',object_type:'case',object_id:caseId,details:{run_id:run.id,model:professionalModel,extraction_model:model,prompt_version:'ratio-case-v7',source_count:sources.length,official_source_count:research.sources.length,research_query_count:queries.length,working_document_count:(workingDocumentResult.data||[]).length,truncated_working_draft_count:truncatedWorkingDrafts,client_document_count:(documentResult.data||[]).length,internal_document_count:(internalDocumentResult.data||[]).length,analyzed_document_count:preparedDocuments.analyzed.length,input_tokens:inputTokens,output_tokens:outputTokens,estimated_cost_usd:estimatedCost,tool_cost_excluded:true,automatic_write:false}},...preparedDocuments.analyzed.map(sourceId=>{const internal=sourceId.startsWith('internal_document:');return {case_id:caseId,actor_id:adminId,action:'ai_document_content_processed',object_type:internal?'case_internal_document':'case_document',object_id:sourceId.split(':')[1],details:{run_id:run.id,model,source_kind:internal?'internal':'client',store:false,automatic_write:false}};})];
   await serviceClient.from('audit_events').insert(auditRows);
-  return {...result,model:professionalModel,run_id:run.id,analyzed_at:run.created_at,source_catalog:sourceCatalog,document_content_analyzed:preparedDocuments.analyzed.length>0,analyzed_document_count:preparedDocuments.analyzed.length,skipped_document_count:preparedDocuments.skipped.length,failed_document_count:preparedDocuments.failures.length,document_analysis_enabled:preparedDocuments.enabled};
+  return {...result,model:professionalModel,run_id:run.id,analyzed_at:run.created_at,source_catalog:sourceCatalog};
 }
 
 function safeAiJobError(error:unknown){
