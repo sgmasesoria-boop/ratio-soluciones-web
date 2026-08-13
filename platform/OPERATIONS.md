@@ -109,6 +109,7 @@ El gestor marca el expediente como cerrado y registra el último avance. La cuen
 
 - Existe un único botón de análisis dentro del expediente.
 - El análisis envía la ficha minimizada, información inicial, notas, cronología, solicitudes, respuestas, PDF autorizados del cliente, PDF internos y la versión más reciente de los documentos de trabajo. Excluye nombre, teléfono, correo, DNI y rutas de almacenamiento de los campos estructurados.
+- Para responder a una carencia del análisis o corregir un dato, usar «Aportar información al análisis». La aclaración se guarda como evento interno `ai_context`, con autor y fecha, y se incorpora automáticamente a los análisis posteriores. Si corrige un dato previo debe indicar expresamente qué dato sustituye.
 - Cada análisis del expediente se conserva en `case_ai_runs` con fuentes, modelo, versión del prompt, consumo y coste estimado. La tabla es de solo servicio y el historial es inmutable.
 - La función usa `store:false`, exige administrador con AAL2 y nunca modifica el expediente ni envía comunicaciones.
 - El piloto comenzó con un PDF ficticio y continuó con un único expediente autorizado. Tras verificar la lectura y los eventos de auditoría, el 12 de agosto de 2026 se autorizó la lectura documental para todos los expedientes.

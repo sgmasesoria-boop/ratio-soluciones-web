@@ -220,6 +220,19 @@
     </form>
   </dialog>
 
+  <dialog id="ai-context-dialog" class="modal wide-modal">
+    <form method="dialog" id="ai-context-form">
+      <div class="modal-head"><div><p class="kicker">Memoria interna del expediente</p><h2>Aportar información al análisis</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <input id="ai-context-case" type="hidden">
+      <p class="upload-warning">Utiliza este campo para añadir un dato, responder a una carencia detectada o corregir información anterior. Se guardará con fecha y autor en la cronología interna y la API lo tendrá en cuenta en los análisis siguientes.</p>
+      <label>Título de la aclaración<input id="ai-context-title" required minlength="2" maxlength="160" value="Aclaración para el análisis" placeholder="Ej. Corrección sobre la fecha de notificación"></label>
+      <label>Información que debe tener en cuenta<textarea id="ai-context-content" rows="8" required minlength="10" maxlength="4000" placeholder="Explica el dato completo. Si corrige información anterior, indica claramente qué dato queda sustituido y cuál es el correcto."></textarea></label>
+      <div class="privacy-preview"><small>Solo para Ratio</small><p>No se enviará al cliente ni modificará automáticamente el expediente. Permanecerá como una fuente interna y trazable para revisión humana.</p></div>
+      <div id="ai-context-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Guardar aclaración <span>→</span></button></div>
+    </form>
+  </dialog>
+
   <dialog id="working-document-dialog" class="modal">
     <form method="dialog" id="working-document-form">
       <div class="modal-head"><div><p class="kicker">Documento de trabajo</p><h2>Crear documento</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
