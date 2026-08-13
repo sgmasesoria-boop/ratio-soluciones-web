@@ -380,6 +380,7 @@ function renderAdmin() {
       $('#request-document')?.addEventListener('click',openDocumentRequestDialog);
       $('#analyze-case-ai')?.addEventListener('click',()=>analyzeCurrentCase(c));
       $('#load-latest-case-ai')?.addEventListener('click',()=>loadLatestCaseAnalysis(c));
+      resumePendingCaseAnalysis(c);
       $('#add-ai-context')?.addEventListener('click',()=>openAiContextDialog(c));
       $('#test-document-ai')?.addEventListener('click',testSyntheticDocumentPipeline);
       bindDocumentActions();
@@ -928,26 +929,87 @@ async function saveAiDeliverable(result){
   }catch{setModalFeedback('#case-ai-feedback','No se ha podido guardar el borrador. El análisis sigue visible para poder copiarlo.');button.disabled=false;button.textContent=original;}
 }
 
+const caseAiPolls=new Set();
+const caseAiJobKey=caseId=>`ratio-case-ai-job:${caseId}`;
+const wait=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds));
+
+function caseAiErrorMessage(code,requestId=''){
+  const messages={AI_NOT_CONFIGURED:'Falta configurar la clave privada del servicio de análisis.',AI_BUDGET_EXCEEDED:'Se ha alcanzado el límite mensual configurado.',AI_KEY_INVALID:'La clave del servicio de análisis no es válida.',AI_QUOTA_EXCEEDED:'La cuenta del servicio de análisis no tiene cuota disponible.',AI_MODEL_UNAVAILABLE:'El modelo configurado no está disponible.',AI_REQUEST_INVALID:'El servicio rechazó la configuración del análisis.',AI_TEMPORARILY_UNAVAILABLE:'El servicio de análisis no está disponible temporalmente.',AI_TIMEOUT:'El análisis ha superado el tiempo máximo y se ha detenido sin realizar cambios.',UNAUTHENTICATED:'Tu sesión ha caducado.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.',FORBIDDEN:'Tu usuario no tiene permiso para analizar expedientes.',CASE_NOT_FOUND:'El expediente ya no está disponible.'};
+  return messages[code]||`No se ha podido analizar el expediente${requestId?` (referencia ${requestId})`:''}.`;
+}
+
+function rememberCaseAiJob(caseId,jobId){try{sessionStorage.setItem(caseAiJobKey(caseId),jobId);}catch{/* El seguimiento en pantalla sigue funcionando. */}}
+function forgetCaseAiJob(caseId){try{sessionStorage.removeItem(caseAiJobKey(caseId));}catch{/* Sin almacenamiento de sesión. */}}
+function rememberedCaseAiJob(caseId){try{return sessionStorage.getItem(caseAiJobKey(caseId))||'';}catch{return '';}}
+
+async function pollCaseAnalysis(caseItem,jobId,{resumed=false}={}){
+  if(caseAiPolls.has(jobId))return;
+  caseAiPolls.add(jobId);
+  const button=$('#analyze-case-ai'),original=button?.textContent||'Trabajar con el expediente →';
+  if(button){button.disabled=true;button.textContent='Análisis en curso…';}
+  setModalFeedback('#case-ai-feedback',resumed?'Retomando el seguimiento del análisis. Puedes permanecer aquí o volver más tarde.':'El análisis se está realizando en segundo plano. Puedes cambiar de pantalla o cerrar el móvil sin perderlo.','info');
+  let transientFailures=0;
+  try{
+    for(let attempt=0;attempt<110;attempt++){
+      await wait(attempt===0?1200:4000);
+      if(!button||!document.body.contains(button))return;
+      let status;
+      try{
+        status=await platformApi.invoke('ai-assist',{action:'case_analysis_status',caseId:caseItem.id,jobId});
+        transientFailures=0;
+      }catch(error){
+        if(['UNAUTHENTICATED','MFA_REQUIRED','FORBIDDEN'].includes(error?.code))throw error;
+        transientFailures++;
+        if(transientFailures>=4)throw error;
+        setModalFeedback('#case-ai-feedback','La conexión se ha interrumpido momentáneamente. El análisis continúa y estamos intentando recuperar el resultado…','info');
+        continue;
+      }
+      if(status?.status==='completed'){
+        forgetCaseAiJob(caseItem.id);
+        const completeView=displayCaseAiResult(status);
+        setModalFeedback('#case-ai-feedback',completeView?'Análisis completado y guardado en el expediente.':'El análisis terminó y se muestra en vista simplificada. Permanece guardado en el expediente.','info');
+        return;
+      }
+      if(status?.status==='failed'){
+        forgetCaseAiJob(caseItem.id);
+        setModalFeedback('#case-ai-feedback',caseAiErrorMessage(status.error_code));
+        return;
+      }
+      button.textContent=status?.status==='processing'?'Analizando expediente…':'Preparando análisis…';
+    }
+    setModalFeedback('#case-ai-feedback','El análisis sigue sin resultado. No inicies otro: utiliza «Ver último análisis guardado» dentro de unos minutos.','info');
+  }catch(error){
+    setModalFeedback('#case-ai-feedback',caseAiErrorMessage(error?.code,error?.details?.requestId));
+  }finally{
+    caseAiPolls.delete(jobId);
+    if(button&&document.body.contains(button)){button.disabled=false;button.textContent=original;}
+  }
+}
+
+function resumePendingCaseAnalysis(caseItem){
+  if(!productionMode||!platformApi)return;
+  const jobId=rememberedCaseAiJob(caseItem.id);
+  if(jobId)pollCaseAnalysis(caseItem,jobId,{resumed:true});
+}
+
 async function analyzeCurrentCase(caseItem) {
   const button=$('#analyze-case-ai');if(!button)return;
   const original=button.textContent;button.disabled=true;button.textContent='Analizando…';
-  const startedAt=new Date().toISOString();
-  setModalFeedback('#case-ai-feedback','Analizando el expediente y comprobando sus fuentes. Puede tardar unos segundos…','info');
+  setModalFeedback('#case-ai-feedback','Preparando el análisis seguro del expediente…','info');
   try{
     const demo={model:'Piloto demostrativo',analyzed_at:new Date().toISOString(),executive_summary:'El expediente está en curso y contiene una solicitud pendiente al cliente.',current_position:'Debe revisarse la documentación solicitada antes de proponer nuevas actuaciones.',confirmed_facts:[{statement:'Existe una solicitud pendiente.',source_ids:['request:req_01']}],pending_client_requests:[{statement:'Contrato de la tarjeta pendiente de entrega.',source_ids:['request:req_01']}],missing_information:['Contenido del contrato solicitado'],urgency_flags:[],contradictions:[],suggested_next_actions:[{action:'Esperar la entrega solicitada y revisarla.',rationale:'La decisión debe basarse en el documento.',source_ids:['request:req_01'],requires_human_review:true}],draft_client_update:'Hemos revisado el expediente. Para continuar necesitamos que entregues el documento solicitado desde tu plataforma privada.',caution:'Análisis orientativo sujeto a revisión humana.',source_catalog:[{id:'request:req_01',label:'Contrato de la tarjeta',type:'client_request',at:new Date().toISOString()}],document_content_analyzed:false};
     const request=$('#case-ai-request')?.value?.trim()||'';
-    const result=productionMode&&platformApi?await platformApi.invoke('ai-assist',{action:'analyze_case',caseId:caseItem.id,request}):demo;
-    const completeView=displayCaseAiResult(result);
-    setModalFeedback('#case-ai-feedback',completeView?'':'El análisis terminó y se muestra en vista simplificada. Permanece guardado en el expediente.',completeView?'':'info');
+    if(productionMode&&platformApi){
+      const job=await platformApi.invoke('ai-assist',{action:'start_case_analysis',caseId:caseItem.id,request});
+      rememberCaseAiJob(caseItem.id,job.job_id);
+      button.disabled=false;button.textContent=original;
+      await pollCaseAnalysis(caseItem,job.job_id);
+      return;
+    }
+    const completeView=displayCaseAiResult(demo);
+    setModalFeedback('#case-ai-feedback',completeView?'Análisis demostrativo completado.':'El análisis se muestra en vista simplificada.','info');
   }catch(error){
-    try{
-      if(productionMode&&platformApi){
-        const recovered=await platformApi.invoke('ai-assist',{action:'latest_case_analysis',caseId:caseItem.id,after:startedAt});
-        if(recovered?.found){displayCaseAiResult(recovered);setModalFeedback('#case-ai-feedback','El análisis terminó correctamente y se ha recuperado desde el expediente.','info');return;}
-      }
-    }catch(recoveryError){console.error('No se pudo recuperar el análisis terminado',recoveryError);}
-    const messages={AI_NOT_CONFIGURED:'Falta configurar la clave privada del servicio de análisis.',AI_BUDGET_EXCEEDED:'Se ha alcanzado el límite mensual configurado.',AI_KEY_INVALID:'La clave del servicio de análisis no es válida.',AI_QUOTA_EXCEEDED:'La cuenta del servicio de análisis no tiene cuota disponible.',AI_MODEL_UNAVAILABLE:'El modelo configurado no está disponible.',AI_REQUEST_INVALID:'El servicio rechazó la configuración del análisis.',AI_TEMPORARILY_UNAVAILABLE:'El servicio de análisis no está disponible temporalmente.',UNAUTHENTICATED:'Tu sesión ha caducado.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.',FORBIDDEN:'Tu usuario no tiene permiso para analizar expedientes.',CASE_NOT_FOUND:'El expediente ya no está disponible.'};
-    setModalFeedback('#case-ai-feedback',messages[error?.code]||`No se ha podido analizar el expediente${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
+    setModalFeedback('#case-ai-feedback',caseAiErrorMessage(error?.code,error?.details?.requestId));
   }finally{button.disabled=false;button.textContent=original;}
 }
 async function testSyntheticDocumentPipeline(){

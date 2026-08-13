@@ -1,10 +1,11 @@
 import {readFile} from 'node:fs/promises';
 
-const [app,assistant,manager,styles]=await Promise.all([
+const [app,assistant,manager,styles,asyncMigration]=await Promise.all([
   readFile(new URL('./app.js',import.meta.url),'utf8'),
   readFile(new URL('./supabase/functions/ai-assist/index.ts',import.meta.url),'utf8'),
   readFile(new URL('./supabase/functions/manage-crm/index.ts',import.meta.url),'utf8'),
-  readFile(new URL('./styles.css',import.meta.url),'utf8')
+  readFile(new URL('./styles.css',import.meta.url),'utf8'),
+  readFile(new URL('./supabase/migrations/20260813170000_async_case_ai_jobs.sql',import.meta.url),'utf8')
 ]);
 
 const checks={
@@ -20,6 +21,10 @@ const checks={
   oneHumanReview:assistant.includes('una única revisión profesional')&&app.includes('pendiente de revisión profesional'),
   versionedSave:app.includes("action:'create_working_document'")&&app.includes("action:'add_working_document_version'")&&app.includes('sourceAiRunId:result.run_id')&&manager.includes('p_source_ai_run_id:sourceAiRunId'),
   completedResultRecovery:assistant.includes("body.action==='latest_case_analysis'")&&assistant.includes("action:'ai_case_result_recovered'")&&app.includes("action:'latest_case_analysis'")&&app.includes('renderCaseAiFallback')&&app.includes('Ver último análisis guardado'),
+  asynchronousMobileSafe:assistant.includes('EdgeRuntime')&&assistant.includes("body.action==='start_case_analysis'")&&assistant.includes("body.action==='case_analysis_status'")&&app.includes("action:'start_case_analysis'")&&app.includes("action:'case_analysis_status'")&&app.includes('cerrar el móvil sin perderlo'),
+  oneActiveAnalysisPerCase:asyncMigration.includes('case_ai_jobs_one_active_per_case_idx')&&asyncMigration.includes("where status in ('queued','processing')")&&assistant.includes("jobError.code==='23505'"),
+  immutableFinalAuditPreserved:asyncMigration.includes('references public.case_ai_runs')&&assistant.includes("status:'completed',result_run_id:result.run_id")&&assistant.includes("from('case_ai_runs').insert"),
+  privateJobQueue:asyncMigration.includes('enable row level security')&&asyncMigration.includes('revoke all privileges on public.case_ai_jobs from public, anon, authenticated'),
   noAutomaticSubmission:!assistant.includes('enviar al juzgado')&&!assistant.includes('presentar automáticamente'),
   citationsAreClickable:app.includes('ai-official-source')&&app.includes('target="_blank"')&&styles.includes('.ai-official-source'),
   auditTrail:assistant.includes("prompt_version:'ratio-case-v7'")&&assistant.includes('official_source_count')&&assistant.includes('research_query_count')&&assistant.includes('tool_cost_excluded:true')

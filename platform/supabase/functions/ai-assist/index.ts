@@ -21,6 +21,8 @@ const MAX_DOCUMENT_TOTAL_BYTES=10*1024*1024;
 const MAX_WORKING_DOCUMENTS=12;
 const MAX_WORKING_DRAFT_TOTAL_CHARS=60000;
 const OFFICIAL_DOMAINS=['boe.es','hacienda.gob.es','agenciatributaria.es','poderjudicial.es','fiscal.es','aepd.es','bde.es','cnmv.es','dgsfp.mineco.es','consumo.gob.es','administracion.gob.es','seg-social.es','juntadeandalucia.es','comunidad.madrid','europa.eu','eur-lex.europa.eu','curia.europa.eu'];
+const CASE_JOB_TIMEOUT_MS=7*60*1000;
+const SAFE_AI_JOB_ERRORS=new Set(['AI_NOT_CONFIGURED','AI_BUDGET_EXCEEDED','AI_KEY_INVALID','AI_QUOTA_EXCEEDED','AI_MODEL_UNAVAILABLE','AI_REQUEST_INVALID','AI_TEMPORARILY_UNAVAILABLE','CASE_NOT_FOUND']);
 
 const leadSchema={
   type:'object',additionalProperties:false,
@@ -355,6 +357,78 @@ async function analyzeCase(apiKey:string,adminId:string,caseId:string,userReques
   return {...result,model:professionalModel,run_id:run.id,analyzed_at:run.created_at,source_catalog:sourceCatalog,document_content_analyzed:preparedDocuments.analyzed.length>0,analyzed_document_count:preparedDocuments.analyzed.length,skipped_document_count:preparedDocuments.skipped.length,failed_document_count:preparedDocuments.failures.length,document_analysis_enabled:preparedDocuments.enabled};
 }
 
+function safeAiJobError(error:unknown){
+  const raw=error instanceof Error?error.message:'AI_TEMPORARILY_UNAVAILABLE';
+  if(raw==='AI_UPSTREAM_ERROR'||raw==='AI_INVALID_RESPONSE')return 'AI_TEMPORARILY_UNAVAILABLE';
+  return SAFE_AI_JOB_ERRORS.has(raw)?raw:'AI_TEMPORARILY_UNAVAILABLE';
+}
+
+async function runCaseAnalysisBackground(apiKey:string,adminId:string,caseId:string,userRequest:string,jobId:string){
+  const startedAt=new Date().toISOString();
+  try{
+    await serviceClient.from('case_ai_jobs').update({status:'processing',started_at:startedAt,updated_at:startedAt}).eq('id',jobId).eq('status','queued');
+    const result=await analyzeCase(apiKey,adminId,caseId,userRequest);
+    const finishedAt=new Date().toISOString();
+    const {error}=await serviceClient.from('case_ai_jobs').update({status:'completed',result_run_id:result.run_id,error_code:null,finished_at:finishedAt,updated_at:finishedAt}).eq('id',jobId);
+    if(error)console.error('AI job completion update failed',{jobId,code:error.code});
+  }catch(error){
+    const errorCode=safeAiJobError(error),finishedAt=new Date().toISOString();
+    const {error:updateError}=await serviceClient.from('case_ai_jobs').update({status:'failed',error_code:errorCode,finished_at:finishedAt,updated_at:finishedAt}).eq('id',jobId);
+    if(updateError)console.error('AI job failure update failed',{jobId,code:updateError.code});
+    await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:adminId,action:'ai_case_analysis_failed',object_type:'case',object_id:caseId,details:{job_id:jobId,error_code:errorCode,automatic_write:false}});
+  }
+}
+
+async function startCaseAnalysis(apiKey:string,adminId:string,caseId:string,userRequest:string){
+  const {data:caseItem,error:caseError}=await serviceClient.from('cases').select('id').eq('id',caseId).maybeSingle();
+  if(caseError||!caseItem)throw new Error('CASE_NOT_FOUND');
+
+  const now=new Date(),staleBefore=new Date(now.getTime()-CASE_JOB_TIMEOUT_MS).toISOString();
+  await serviceClient.from('case_ai_jobs').update({status:'failed',error_code:'AI_TIMEOUT',finished_at:now.toISOString(),updated_at:now.toISOString()})
+    .eq('case_id',caseId).in('status',['queued','processing']).lt('created_at',staleBefore);
+
+  const {data:active,error:activeError}=await serviceClient.from('case_ai_jobs').select('id,status,created_at').eq('case_id',caseId).in('status',['queued','processing']).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(activeError)throw activeError;
+  if(active)return {accepted:true,reused:true,job_id:active.id,status:active.status,created_at:active.created_at};
+
+  const {data:job,error:jobError}=await serviceClient.from('case_ai_jobs').insert({case_id:caseId,requested_by:adminId,status:'queued'}).select('id,status,created_at').single();
+  if(jobError){
+    if(jobError.code==='23505'){
+      const {data:concurrent,error:concurrentError}=await serviceClient.from('case_ai_jobs').select('id,status,created_at').eq('case_id',caseId).in('status',['queued','processing']).order('created_at',{ascending:false}).limit(1).single();
+      if(concurrentError)throw concurrentError;
+      return {accepted:true,reused:true,job_id:concurrent.id,status:concurrent.status,created_at:concurrent.created_at};
+    }
+    throw jobError;
+  }
+
+  const edgeRuntime=(globalThis as unknown as {EdgeRuntime?:{waitUntil:(promise:Promise<unknown>)=>void}}).EdgeRuntime;
+  if(!edgeRuntime?.waitUntil){
+    await serviceClient.from('case_ai_jobs').update({status:'failed',error_code:'AI_TEMPORARILY_UNAVAILABLE',finished_at:now.toISOString(),updated_at:now.toISOString()}).eq('id',job.id);
+    throw new Error('AI_UPSTREAM_ERROR');
+  }
+  edgeRuntime.waitUntil(runCaseAnalysisBackground(apiKey,adminId,caseId,userRequest,job.id));
+  return {accepted:true,reused:false,job_id:job.id,status:job.status,created_at:job.created_at};
+}
+
+async function caseAnalysisStatus(adminId:string,caseId:string,jobId:string){
+  const {data:job,error}=await serviceClient.from('case_ai_jobs').select('id,status,result_run_id,error_code,created_at,started_at,finished_at').eq('id',jobId).eq('case_id',caseId).maybeSingle();
+  if(error)throw error;
+  if(!job)throw new Error('CASE_NOT_FOUND');
+
+  if((job.status==='queued'||job.status==='processing')&&Date.now()-new Date(job.created_at).getTime()>CASE_JOB_TIMEOUT_MS){
+    const finishedAt=new Date().toISOString();
+    await serviceClient.from('case_ai_jobs').update({status:'failed',error_code:'AI_TIMEOUT',finished_at:finishedAt,updated_at:finishedAt}).eq('id',job.id).in('status',['queued','processing']);
+    return {job_id:job.id,status:'failed',error_code:'AI_TIMEOUT',finished_at:finishedAt};
+  }
+  if(job.status!=='completed')return {job_id:job.id,status:job.status,error_code:job.error_code,created_at:job.created_at,started_at:job.started_at,finished_at:job.finished_at};
+
+  const {data:run,error:runError}=await serviceClient.from('case_ai_runs').select('id,created_at,model,result,source_refs').eq('id',job.result_run_id).eq('case_id',caseId).maybeSingle();
+  if(runError)throw runError;
+  if(!run)return {job_id:job.id,status:'processing',created_at:job.created_at,started_at:job.started_at};
+  await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:adminId,action:'ai_case_result_recovered',object_type:'case',object_id:caseId,details:{job_id:job.id,run_id:run.id,automatic_write:false}});
+  return {job_id:job.id,status:'completed',...run.result,model:run.model,run_id:run.id,analyzed_at:run.created_at,source_catalog:run.source_refs||[]};
+}
+
 async function latestCaseAnalysis(adminId:string,caseId:string,afterValue:unknown){
   const requestedAfter=Date.parse(String(afterValue||''));
   const recoveryFloor=Date.now()-(Number.isFinite(requestedAfter)?15*60*1000:24*60*60*1000);
@@ -374,22 +448,32 @@ Deno.serve(async request=>{
   if(request.method!=='POST')return respond({error:'METHOD_NOT_ALLOWED'},405);
   try{
     const admin=await requireAdmin(request);
-    const apiKey=Deno.env.get('OPENAI_API_KEY');if(!apiKey)throw new Error('AI_NOT_CONFIGURED');
     const body=await request.json();
-    if(await monthlySpend()>=hardLimit)throw new Error('AI_BUDGET_EXCEEDED');
     if(body.action==='analyze_lead'){
+      const apiKey=Deno.env.get('OPENAI_API_KEY');if(!apiKey)throw new Error('AI_NOT_CONFIGURED');
+      if(await monthlySpend()>=hardLimit)throw new Error('AI_BUDGET_EXCEEDED');
       const leadId=clean(body.leadId,36);if(!validUuid(leadId))return respond({error:'INVALID_FIELDS'},400);
       return respond(await analyzeLead(apiKey,admin.id,leadId));
     }
-    if(body.action==='analyze_case'){
+    if(body.action==='start_case_analysis'){
+      const apiKey=Deno.env.get('OPENAI_API_KEY');if(!apiKey)throw new Error('AI_NOT_CONFIGURED');
+      if(await monthlySpend()>=hardLimit)throw new Error('AI_BUDGET_EXCEEDED');
       const caseId=clean(body.caseId,36);if(!validUuid(caseId))return respond({error:'INVALID_FIELDS'},400);
-      return respond(await analyzeCase(apiKey,admin.id,caseId,clean(body.request,4000)));
+      return respond(await startCaseAnalysis(apiKey,admin.id,caseId,clean(body.request,4000)),202);
+    }
+    if(body.action==='case_analysis_status'){
+      const caseId=clean(body.caseId,36),jobId=clean(body.jobId,36);if(!validUuid(caseId)||!validUuid(jobId))return respond({error:'INVALID_FIELDS'},400);
+      return respond(await caseAnalysisStatus(admin.id,caseId,jobId));
     }
     if(body.action==='latest_case_analysis'){
       const caseId=clean(body.caseId,36);if(!validUuid(caseId))return respond({error:'INVALID_FIELDS'},400);
       return respond(await latestCaseAnalysis(admin.id,caseId,body.after));
     }
-    if(body.action==='test_document_pipeline')return respond(await testSyntheticDocument(apiKey,admin.id));
+    if(body.action==='test_document_pipeline'){
+      const apiKey=Deno.env.get('OPENAI_API_KEY');if(!apiKey)throw new Error('AI_NOT_CONFIGURED');
+      if(await monthlySpend()>=hardLimit)throw new Error('AI_BUDGET_EXCEEDED');
+      return respond(await testSyntheticDocument(apiKey,admin.id));
+    }
     return respond({error:'INVALID_FIELDS'},400);
   }catch(error){return errorJson(request,error);}
 });
