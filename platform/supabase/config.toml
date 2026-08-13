@@ -48,3 +48,6 @@ verify_jwt = false
 
 [functions.internal-document-workflow]
 verify_jwt = false
+
+[functions.document-export]
+verify_jwt = false

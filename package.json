@@ -3,6 +3,14 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "scripts": {"build": "node build.mjs", "test": "node qa-web.mjs", "test:intake": "node intake-flow-qa.mjs", "test:seo": "node seo-audit.mjs"},
-  "devDependencies": {"playwright": "1.62.1"}
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node qa-web.mjs",
+    "test:intake": "node intake-flow-qa.mjs",
+    "test:seo": "node seo-audit.mjs"
+  },
+  "devDependencies": {
+    "docx": "9.7.1",
+    "playwright": "1.62.1"
+  }
 }

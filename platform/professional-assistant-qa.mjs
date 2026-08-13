@@ -28,7 +28,7 @@ const checks={
   privateJobQueue:asyncMigration.includes('enable row level security')&&asyncMigration.includes('revoke all privileges on public.case_ai_jobs from public, anon, authenticated'),
   noAutomaticSubmission:!assistant.includes('enviar al juzgado')&&!assistant.includes('presentar automáticamente'),
   citationsAreClickable:app.includes('ai-official-source')&&app.includes('target="_blank"')&&styles.includes('.ai-official-source'),
-  auditTrail:assistant.includes("prompt_version:'ratio-case-v7'")&&assistant.includes('official_source_count')&&assistant.includes('research_query_count')&&assistant.includes('tool_cost_excluded:true')
+  auditTrail:assistant.includes("prompt_version:'ratio-case-v8'")&&assistant.includes('official_source_count')&&assistant.includes('research_query_count')&&assistant.includes('tool_cost_excluded:true')
 };
 
 const failures=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
