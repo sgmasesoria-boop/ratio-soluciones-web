@@ -853,7 +853,7 @@ function renderAiAssistant(result) {
 }
 
 function caseAiPanel() {
-  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente interno · revisión humana</p><h3>Analizar el expediente completo</h3><p>Revisa la ficha, aclaraciones internas, cronología, solicitudes, respuestas, documentos de trabajo y hasta tres PDF, tanto del cliente como internos.</p></div><div class="ai-result-actions"><button class="secondary-button" id="add-ai-context" type="button">Aportar información al análisis</button><button class="secondary-button" id="test-document-ai" type="button">Probar PDF ficticio</button><button class="secondary-button" id="analyze-case-ai" type="button">Analizar expediente</button></div></div><p class="ai-data-scope">Las aclaraciones y correcciones se guardan en la cronología interna con fecha y autor y se incorporan al análisis siguiente. Privacidad: procesa únicamente PDF validados del cliente o incorporados por el equipo, con un máximo de 5 MB por archivo y 10 MB combinados. Los DOCX e imágenes se conservan y aparecen como fuentes, pero su contenido no se lee todavía. El análisis se inicia manualmente, no realiza cambios ni envía comunicaciones, registra cada archivo procesado y exige revisión humana.</p><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
+  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente integral del expediente · revisión profesional</p><h3>Analizar, resolver o redactar</h3><p>Conoce la ficha, cronología, aclaraciones, solicitudes, documentos del cliente, archivos internos y borradores anteriores.</p></div><button class="secondary-button" id="add-ai-context" type="button">Añadir o corregir un dato</button></div><label class="ai-request-label">¿Qué necesitas hacer?<textarea id="case-ai-request" rows="4" maxlength="4000" placeholder="Déjalo vacío para una revisión completa, o escribe por ejemplo: calcula el reparto; comprueba la legislación; redacta una reclamación; prepara la demanda; revisa el último borrador…"></textarea></label><div class="ai-submit-row"><p class="ai-data-scope">La investigación jurídica se realiza con consultas anónimas en fuentes oficiales. El resultado no modifica ni envía nada y queda listo para una única revisión profesional.</p><button class="primary-button" id="analyze-case-ai" type="button">Trabajar con el expediente <span>→</span></button></div><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
 }
 
 function renderCaseAiAssistant(result) {
@@ -861,11 +861,17 @@ function renderCaseAiAssistant(result) {
   const citations=ids=>(ids||[]).map(id=>catalog.get(id)).filter(Boolean).map(source=>`<span class="ai-source" title="${escapeHtml(source.id)}">${escapeHtml(source.label)}</span>`).join(' ');
   const sourcedList=(items,empty='Ninguno detectado')=>items?.length?`<ul class="ai-sourced-list">${items.map(item=>`<li><span>${escapeHtml(item.statement||item.action)}</span>${item.rationale?`<small>${escapeHtml(item.rationale)}</small>`:''}<div>${citations(item.source_ids)}</div></li>`).join('')}</ul>`:`<p>${empty}</p>`;
   const plainList=(items,empty='Ninguna detectada')=>items?.length?`<ul>${items.map(item=>`<li>${escapeHtml(item)}</li>`).join('')}</ul>`:`<p>${empty}</p>`;
+  const officialLinks=urls=>(urls||[]).map(url=>(result.official_sources||[]).find(source=>source.url===url)).filter(Boolean).map(source=>`<a class="ai-official-source" href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title||source.url)}</a>`).join(' ');
+  const legalList=(items,empty='No ha sido necesario aplicar normativa externa')=>items?.length?`<div class="ai-legal-list">${items.map(item=>`<article><strong>${escapeHtml(item.issue)}</strong><p>${escapeHtml(item.analysis)}</p><div>${citations(item.source_ids)} ${officialLinks(item.official_source_urls)}</div></article>`).join('')}</div>`:`<p>${empty}</p>`;
+  const calculations=(items,empty='No se han realizado cálculos')=>items?.length?`<div class="ai-calculations">${items.map(item=>`<article><strong>${escapeHtml(item.label)}</strong><code>${escapeHtml(item.formula)}</code><b>${escapeHtml(item.result)}</b><p>${escapeHtml(item.explanation)}</p><div>${citations(item.source_ids)} ${officialLinks(item.official_source_urls)}</div></article>`).join('')}</div>`:`<p>${empty}</p>`;
+  const deliverable=result.deliverable||{kind:'none',title:'',content:''};
   $('#case-ai-result').innerHTML=`
     <div class="ai-result-head"><strong>Análisis del expediente para revisión</strong><span>${escapeHtml(result.model||'Modelo configurado')} · ${escapeHtml(formatDate(result.analyzed_at||new Date().toISOString()))}</span></div>
+    <section class="ai-conclusion"><small>Conclusión</small><p>${escapeHtml(result.conclusion||result.executive_summary)}</p></section>
     <div class="ai-result-grid">
       <section><small>Resumen ejecutivo</small><p>${escapeHtml(result.executive_summary)}</p></section>
       <section><small>Situación actual</small><p>${escapeHtml(result.current_position)}</p></section>
+      <section><small>Supuestos utilizados</small>${plainList(result.assumptions,'Ningún supuesto añadido')}</section>
       <section><small>Hechos con fuente</small>${sourcedList(result.confirmed_facts)}</section>
       <section><small>Peticiones pendientes</small>${sourcedList(result.pending_client_requests)}</section>
       <section><small>Información que falta</small>${plainList(result.missing_information)}</section>
@@ -873,14 +879,31 @@ function renderCaseAiAssistant(result) {
       <section><small>Posibles contradicciones</small>${sourcedList(result.contradictions)}</section>
       <section><small>Próximas acciones sugeridas</small>${sourcedList(result.suggested_next_actions)}</section>
     </div>
+    <section class="ai-draft"><small>Fundamento y análisis</small>${legalList(result.legal_analysis)}</section>
+    <section class="ai-draft"><small>Cálculos</small>${calculations(result.calculations)}</section>
+    ${deliverable.content?`<section class="ai-deliverable"><small>${escapeHtml(deliverable.kind==='analysis'?'Informe preparado':'Borrador generado')}</small><h4>${escapeHtml(deliverable.title)}</h4><pre>${escapeHtml(deliverable.content)}</pre></section>`:''}
     <section class="ai-draft"><small>Borrador de actualización al cliente</small><p>${escapeHtml(result.draft_client_update)}</p></section>
+    ${(result.official_sources||[]).length?`<section class="ai-draft"><small>Fuentes oficiales consultadas</small><div class="ai-official-sources">${(result.official_sources||[]).map(source=>`<a class="ai-official-source" href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title||source.url)}</a>`).join(' ')}</div></section>`:''}
     <p class="ai-caution">${escapeHtml(result.caution)} ${result.document_content_analyzed?`PDF leídos en esta ejecución: ${Number(result.analyzed_document_count||0)}. Archivos omitidos por formato, validación o límite: ${Number(result.skipped_document_count||0)+Number(result.failed_document_count||0)}.`:'El contenido de los archivos no ha sido analizado.'}</p>
-    <div class="ai-result-actions"><button class="secondary-button" id="copy-case-ai-draft" type="button">Copiar borrador</button></div>`;
+    <div class="ai-result-actions">${deliverable.content?'<button class="secondary-button" id="save-case-ai-deliverable" type="button">Guardar como documento de trabajo</button>':''}<button class="secondary-button" id="copy-case-ai-draft" type="button">Copiar respuesta al cliente</button></div>`;
   $('#case-ai-result').hidden=false;
   $('#copy-case-ai-draft').addEventListener('click',async()=>{
     const copied=await copyTextSafely(result.draft_client_update);
     setModalFeedback('#case-ai-feedback',copied?'Borrador copiado. Revísalo antes de utilizarlo.':'No se ha podido copiar automáticamente.',copied?'info':'error');
   });
+  $('#save-case-ai-deliverable')?.addEventListener('click',()=>saveAiDeliverable(result));
+}
+
+async function saveAiDeliverable(result){
+  const caseItem=currentCase(),deliverable=result.deliverable;if(!caseItem||!deliverable?.content)return;
+  const button=$('#save-case-ai-deliverable'),original=button.textContent;button.disabled=true;button.textContent='Guardando…';
+  try{
+    if(productionMode&&platformApi){
+      const created=await platformApi.invoke('manage-crm',{action:'create_working_document',caseId:caseItem.id,title:deliverable.title||'Documento generado desde el expediente',documentType:deliverable.kind||'Documento',statusLabel:'Borrador generado · pendiente de revisión profesional'});
+      await platformApi.invoke('manage-crm',{action:'add_working_document_version',documentId:created.id,statusLabel:'Borrador generado · pendiente de revisión profesional',changeSummary:'Primera versión generada por el asistente integral del expediente.',draftContent:deliverable.content,sourceAiRunId:result.run_id});
+      await enterProduction();renderShell();toast('Borrador guardado y vinculado al análisis. Debe revisarlo el profesional.');
+    }else toast('En demostración el borrador no se guarda de forma permanente.');
+  }catch{setModalFeedback('#case-ai-feedback','No se ha podido guardar el borrador. El análisis sigue visible para poder copiarlo.');button.disabled=false;button.textContent=original;}
 }
 
 async function analyzeCurrentCase(caseItem) {
@@ -889,7 +912,8 @@ async function analyzeCurrentCase(caseItem) {
   setModalFeedback('#case-ai-feedback','Analizando el expediente y comprobando sus fuentes. Puede tardar unos segundos…','info');
   try{
     const demo={model:'Piloto demostrativo',analyzed_at:new Date().toISOString(),executive_summary:'El expediente está en curso y contiene una solicitud pendiente al cliente.',current_position:'Debe revisarse la documentación solicitada antes de proponer nuevas actuaciones.',confirmed_facts:[{statement:'Existe una solicitud pendiente.',source_ids:['request:req_01']}],pending_client_requests:[{statement:'Contrato de la tarjeta pendiente de entrega.',source_ids:['request:req_01']}],missing_information:['Contenido del contrato solicitado'],urgency_flags:[],contradictions:[],suggested_next_actions:[{action:'Esperar la entrega solicitada y revisarla.',rationale:'La decisión debe basarse en el documento.',source_ids:['request:req_01'],requires_human_review:true}],draft_client_update:'Hemos revisado el expediente. Para continuar necesitamos que entregues el documento solicitado desde tu plataforma privada.',caution:'Análisis orientativo sujeto a revisión humana.',source_catalog:[{id:'request:req_01',label:'Contrato de la tarjeta',type:'client_request',at:new Date().toISOString()}],document_content_analyzed:false};
-    const result=productionMode&&platformApi?await platformApi.invoke('ai-assist',{action:'analyze_case',caseId:caseItem.id}):demo;
+    const request=$('#case-ai-request')?.value?.trim()||'';
+    const result=productionMode&&platformApi?await platformApi.invoke('ai-assist',{action:'analyze_case',caseId:caseItem.id,request}):demo;
     renderCaseAiAssistant(result);setModalFeedback('#case-ai-feedback');
   }catch(error){
     const messages={AI_NOT_CONFIGURED:'Falta configurar la clave privada del servicio de análisis.',AI_BUDGET_EXCEEDED:'Se ha alcanzado el límite mensual configurado.',AI_KEY_INVALID:'La clave del servicio de análisis no es válida.',AI_QUOTA_EXCEEDED:'La cuenta del servicio de análisis no tiene cuota disponible.',AI_MODEL_UNAVAILABLE:'El modelo configurado no está disponible.',AI_REQUEST_INVALID:'El servicio rechazó la configuración del análisis.',AI_TEMPORARILY_UNAVAILABLE:'El servicio de análisis no está disponible temporalmente.',UNAUTHENTICATED:'Tu sesión ha caducado.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.',FORBIDDEN:'Tu usuario no tiene permiso para analizar expedientes.',CASE_NOT_FOUND:'El expediente ya no está disponible.'};
