@@ -24,6 +24,7 @@ const checks={
   asynchronousMobileSafe:assistant.includes('EdgeRuntime')&&assistant.includes("body.action==='start_case_analysis'")&&assistant.includes("body.action==='case_analysis_status'")&&app.includes("action:'start_case_analysis'")&&app.includes("action:'case_analysis_status'")&&app.includes('cerrar el móvil sin perderlo'),
   oneActiveAnalysisPerCase:asyncMigration.includes('case_ai_jobs_one_active_per_case_idx')&&asyncMigration.includes("where status in ('queued','processing')")&&assistant.includes("jobError.code==='23505'"),
   immutableFinalAuditPreserved:asyncMigration.includes('references public.case_ai_runs')&&assistant.includes("status:'completed',result_run_id:result.run_id")&&assistant.includes("from('case_ai_runs').insert"),
+  recoveredDocumentCounts:assistant.includes('result.document_content_analyzed=preparedDocuments.analyzed.length>0')&&assistant.includes('result.analyzed_document_count=preparedDocuments.analyzed.length'),
   privateJobQueue:asyncMigration.includes('enable row level security')&&asyncMigration.includes('revoke all privileges on public.case_ai_jobs from public, anon, authenticated'),
   noAutomaticSubmission:!assistant.includes('enviar al juzgado')&&!assistant.includes('presentar automáticamente'),
   citationsAreClickable:app.includes('ai-official-source')&&app.includes('target="_blank"')&&styles.includes('.ai-official-source'),
