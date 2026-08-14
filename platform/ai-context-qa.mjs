@@ -12,7 +12,7 @@ const checks={
   discoverableButton:app.includes('id="add-ai-context"')&&app.includes("openAiContextDialog(c)"),
   formSubmission:app.includes("action:'add_case_context'")&&app.includes('La API la usará en el próximo análisis'),
   protectedWrite:manager.includes("if(body.action==='add_case_context')")&&manager.includes("event_type:'ai_context'")&&manager.includes("visibility:'internal'")&&manager.includes("action:'ai_context_added'"),
-  correctionSemantics:assistant.includes('event_type ai_context')&&assistant.includes('corrección explícita')&&assistant.includes("prompt_version:'ratio-case-v7'")
+  correctionSemantics:assistant.includes('event_type ai_context')&&assistant.includes('corrección explícita')&&assistant.includes("prompt_version:'ratio-case-v8'")
 };
 
 const failures=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);

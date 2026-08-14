@@ -57,6 +57,11 @@ for (const canonical of canonicals) {
 const thanks = await readFile(join(root, 'gracias.html'), 'utf8');
 if (!/<meta\s+name="robots"\s+content="noindex,follow"/i.test(thanks)) findings.push('gracias.html: falta noindex,follow.');
 
+const build = await readFile(join(root, 'build.mjs'), 'utf8');
+if (!build.includes("url.hostname === 'ratiosoluciones.es'") || !build.includes("url.hostname = 'www.ratiosoluciones.es'") || !build.includes('Response.redirect(url.toString(), 301)')) {
+  findings.push('build.mjs: falta la redirección 301 del dominio raíz hacia www.');
+}
+
 const result = { passed: findings.length === 0, pages: publicPages.length, findings };
 console.log(JSON.stringify(result, null, 2));
 if (findings.length) process.exitCode = 1;

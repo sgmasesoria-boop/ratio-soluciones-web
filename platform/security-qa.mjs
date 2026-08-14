@@ -15,6 +15,7 @@ const config=await readFile('supabase/config.toml','utf8');
 const api=await readFile('platform-api.js','utf8');
 const app=await readFile('app.js','utf8');
 const build=await readFile('build.mjs','utf8');
+const builtWorker=await readFile('dist/server/index.js','utf8');
 const authHardening=await readFile('supabase/migrations/007_auth_and_data_api_hardening.sql','utf8');
 const mfaMigration=await readFile('supabase/migrations/20260808232753_require_internal_mfa.sql','utf8');
 const html=await readFile('index.html','utf8');
@@ -49,6 +50,10 @@ if(!auth.includes('await requireUser(request)')||!auth.includes("data.internal_r
 if(!api.includes("this.appMode !== 'portal'"))failures.push('El portal sigue consultando tablas internas del CRM.');
 if(!build.includes("['/app','/restablecer']"))failures.push('Las rutas autenticada y de recuperación no llegan a la aplicación.');
 if(!build.includes("dynamic?'no-store'"))failures.push('HTML y JavaScript pueden conservar una versión antigua del acceso MFA.');
+if(!build.includes("'strict-transport-security':'max-age=31536000; includeSubDomains'"))failures.push('CRM y portal no fuerzan HSTS.');
+if(!build.includes("'cross-origin-opener-policy':'same-origin'"))failures.push('CRM y portal no aíslan el contexto de navegación.');
+if(!builtWorker.includes("connect-src 'self' https://bvpeztdfwdbiielaione.supabase.co")||builtWorker.includes("connect-src 'self' https://*.supabase.co"))failures.push('La política CSP permite conexiones a proyectos Supabase ajenos a Ratio.');
+if(!builtWorker.includes("object-src 'none'"))failures.push('La política CSP no bloquea objetos embebidos.');
 if(!authHardening.includes('revoke all privileges on all tables in schema public from anon, authenticated'))failures.push('La Data API conserva privilegios amplios por defecto.');
 if(!authHardening.includes('grant update (read_at) on public.notifications to authenticated'))failures.push('El usuario autenticado no puede marcar sus avisos como leídos.');
 if(!authHardening.includes('revoke execute on function public.rls_auto_enable() from public, anon, authenticated'))failures.push('La función de activación RLS sigue expuesta por RPC.');
