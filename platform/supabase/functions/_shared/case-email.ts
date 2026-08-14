@@ -41,6 +41,7 @@ export async function sendCaseConfirmation(message:CaseConfirmation){
     :'Tu acceso anterior sigue siendo válido. Puedes entrar en la plataforma privada con tu correo y contraseña habituales.';
   try{
     await transporter.sendMail({
+      encoding:'base64',
       from:`Ratio Soluciones <${smtpUser}>`,
       to:message.email,
       replyTo:smtpUser,

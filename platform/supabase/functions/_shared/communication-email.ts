@@ -19,6 +19,7 @@ export async function notifyRatioOfCommunication(caseId:string,reference:string)
   if(!transport)return false;
   try{
     await transport.sendMail({
+      encoding:'base64',
       from:`Ratio Soluciones <${smtpUser()}>`,to:smtpUser(),replyTo:smtpUser(),
       subject:`Ratio Soluciones | Nueva solicitud en ${reference}`,
       text:`Hay una nueva solicitud de comunicación en el expediente ${reference}.\n\nRevísala dentro del CRM privado.\n\nhttps://crm.ratiosoluciones.es`
@@ -35,6 +36,7 @@ export async function notifyClientOfCommunicationResponse(caseId:string,email:st
   const cleanName=fullName.replace(/[\r\n]+/g,' ').trim();
   try{
     await transport.sendMail({
+      encoding:'base64',
       from:`Ratio Soluciones <${smtpUser()}>`,to:email,replyTo:smtpUser(),
       subject:'Ratio Soluciones | Hemos respondido en tu plataforma privada',
       text:`Hola ${cleanName},\n\nHemos respondido a tu solicitud dentro de tu expediente.\n\nAccede de forma segura: ${portalUrl}\n\nPor seguridad, no respondas a este correo con documentación.\n\nRatio Soluciones`

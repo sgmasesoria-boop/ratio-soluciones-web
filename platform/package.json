@@ -26,6 +26,8 @@
     "test:communications": "node communication-workflow-qa.mjs",
     "test:internal-documents": "node internal-document-qa.mjs",
     "test:document-export": "node document-export-qa.mjs",
-    "test:crm-priority-layout": "node crm-priority-layout-qa.mjs"
+    "test:crm-priority-layout": "node crm-priority-layout-qa.mjs",
+    "test:atomic-case-record": "node atomic-case-record-qa.mjs",
+    "test:data-erasure": "node data-erasure-qa.mjs"
   }
 }

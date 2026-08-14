@@ -36,6 +36,7 @@ export async function sendCaseUpdateEmail(message:CaseUpdateEmail){
   const cleanName=message.fullName.replace(/[\r\n]+/g,' ').trim();
   try{
     await transporter.sendMail({
+      encoding:'base64',
       from:`Ratio Soluciones <${smtpUser}>`,
       to:message.email,
       replyTo:smtpUser,
