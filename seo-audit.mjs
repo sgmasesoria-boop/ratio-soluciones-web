@@ -34,7 +34,7 @@ for (const file of publicPages) {
   for (const link of matches(html, /href="([^"]+)"/gi)) {
     const href = link[1];
     if (/^(?:https?:|mailto:|#|data:)/i.test(href)) continue;
-    const target = href.split('#')[0];
+    const target = href.split(/[?#]/)[0];
     if (!target) continue;
     try { await stat(join(root, target)); } catch { findings.push(`${file}: enlace interno roto (${href}).`); }
   }

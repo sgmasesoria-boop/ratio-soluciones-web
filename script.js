@@ -43,6 +43,18 @@ const progress = document.querySelector('.form-progress');
 const progressBars = [...document.querySelectorAll('.form-progress span')];
 let currentStep = 1;
 
+const requestedArea = new URLSearchParams(window.location.search).get('area');
+const campaignAreas = {
+  deudas: 'Deudas y segunda oportunidad',
+  bancos: 'Bancos, tarjetas e hipotecas',
+  hacienda: 'Hacienda e impuestos'
+};
+if (form && requestedArea && campaignAreas[requestedArea]) {
+  const areaInput = [...form.querySelectorAll('input[name="area"]')]
+    .find((input) => input.value === campaignAreas[requestedArea]);
+  if (areaInput) areaInput.checked = true;
+}
+
 function showStep(number) {
   currentStep = number;
   steps.forEach((step) => {

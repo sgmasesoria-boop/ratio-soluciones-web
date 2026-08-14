@@ -111,7 +111,7 @@ for (const file of htmlFiles) {
   for (const match of html.matchAll(/href="([^"]+)"/g)) {
     const href = match[1];
     if (/^(https?:|mailto:|data:|#)/.test(href)) continue;
-    const target = href.split('#')[0];
+    const target = href.split(/[?#]/)[0];
     try { await stat(join(root, target)); } catch { findings.push(`${file}: enlace interno roto ${href}`); }
   }
 }
