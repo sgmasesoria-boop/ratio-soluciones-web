@@ -121,202 +121,1464 @@ function loadState() {
     const storedEvents=stored.events || [];
     const newDemoCases=seed.cases.filter(item=>!storedCases.some(saved=>saved.id===item.id));
     const newDemoEvents=seed.events.filter(item=>!storedEvents.some(saved=>saved.id===item.id));
-    return { ...structuredClone(seed), ...stored, cases:[...storedCases,...structuredClone(newDemoCases)], events:[...storedEvents,...structuredClone(newDemoEvents)], leads, tasks:stored.tasks || [], documentRequests:stored.documentRequests || structuredClone(seed.documentRequests), caseDocuments:stored.caseDocuments || [], internalDocuments:stored.internalDocuments||[], communicationRequests:stored.communicationRequex„éy∂âûÀk∫wµÁ[€ù[ùI—[ùôYÿ[ô»\ò⁄]õ¯†)âŒ√BàŸ][Ÿ[ôYYòX⁄ 	»Ÿÿ›[Y[ù]\ÿYYôYYòX⁄…À	–⁄Yúò[ô»H€€ô^pÏ€àH[ùôYÿ[ô»[\ò⁄]õ¯†)âÀ	⁄[ôõ… N√Bàû^√Bà€€ú›ÿ\ŸRYI
-	»Ÿÿ›[Y[ù]\ÿYXÿ\ŸI Kùò[YKô\]Y\›YI
-	»Ÿÿ›[Y[ù]\ÿY\ô\]Y\›	 Kùò[YN√BàYäõŸX›[€ì[ŸIâú]õ‹õP\J^√Bà]ÿZ]]õ‹õP\Kö[ùõ⁄ŸS][\\ù
-	Ÿÿ›[Y[ù]€‹öŸõ›…Àô]»õ‹õQ]J]ô[ùò›\úô[ù\ôŸ]
-JN√Bà]ÿZ][ù\îõŸX›[€ä
-NÿX›]ôPÿ\ŸRYXÿ\ŸRYÿX›]ôTŸX›[€èI€›ô\ùöY]…Œ‹ô[ô\î⁄[
+    return { ...structuredClone(seed), ...stored, cases:[...storedCases,...structuredClone(newDemoCases)], events:[...storedEvents,...structuredClone(newDemoEvents)], leads, tasks:stored.tasks || [], documentRequests:stored.documentRequests || structuredClone(seed.documentRequests), caseDocuments:stored.caseDocuments || [], internalDocuments:stored.internalDocuments||[], communicationRequests:stored.communicationRequests||structuredClone(seed.communicationRequests), workingDocuments:stored.workingDocuments||[], documentVersions:stored.documentVersions||[], contracts:stored.contracts||[], audit:stored.audit || [] };
+  }
+  catch { return structuredClone(seed); }
+}
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function setBrowserRoute(path) {
+  if (/^https?:$/.test(location.protocol) && location.pathname !== path) history.replaceState({}, '', path);
+}
+function currentUser() { return state.users[state.activeRole]; }
+function currentCase() { return state.cases.find(item => item.id === activeCaseId) || state.cases[0]; }
+function log(action, objectType, objectId, metadata = {}) {
+  state.audit.push({ id:crypto.randomUUID(), actorId:currentUser()?.id, action, objectType, objectId, metadata, at:new Date().toISOString() });
+}
 
-N√BàY[Ÿ^√Bà€€ú›][ô]»]J
-Kù“T”‘›ö[ô 
-KYX‹û\Àúò[ô€UURQ
+function mapProductionWorkspace(workspace, authUser) {
+  const profile = workspace.profile;
+  if (!profile?.active) throw new Error('PROFILE_NOT_ACTIVE');
+  const activeRole = profile.internal_role === 'client' ? 'client' : 'admin';
+  const cases = workspace.cases.map(item => ({
+    id:item.id, reference:item.reference, clientId:item.client_id,
+    client:activeRole === 'client' ? profile.display_name : (item.client_name || 'Cliente asignado'),
+    title:item.title, category:item.category, statusCode:item.status,
+    status:item.manual_phase || statusLabels[item.status] || item.status,
+    openedAt:item.opened_at, clientNextStep:item.client_next_step || '',
+    phone:item.contact_phone || '', email:item.contact_email || '', province:item.contact_province || '', source:item.source || '',
+    manualPhase:item.manual_phase || '', portalStatus:item.portal_status || 'disabled', contractConfirmedAt:item.contract_confirmed_at || '',
+    amount:Number(item.quoted_amount || 0), privacyNoticeAt:item.privacy_notice_at || '', legalBasis:item.legal_basis || 'precontractual_request',
+    professionalName:item.professional_name || '', professionalTitle:item.professional_title || '',
+    professionalRegistration:item.professional_registration || '', professionalRegion:item.professional_region || ''
+  }));
+  const events = workspace.events.map(item => ({ id:item.id, caseId:item.case_id, kind:item.event_type, title:item.title, description:item.description || '', at:item.occurred_at, done:false, current:false }));
+  cases.forEach(caseItem => {
+    const caseEvents = events.filter(item => item.caseId === caseItem.id);
+    caseEvents.forEach((item,index) => { item.done=index<caseEvents.length-1; item.current=index===caseEvents.length-1; });
+  });
+  return {
+    activeRole,
+    users: {
+      client:{ id:profile.id, name:profile.display_name, initials:initials(profile.display_name), role:'Cliente' },
+      admin:{ id:profile.id, name:profile.display_name, initials:initials(profile.display_name), role:profile.internal_role === 'admin' ? 'Administrador' : 'Profesional' }
+    },
+    cases, events,
+    notifications:workspace.notifications.map(item => ({ id:item.id, userId:item.user_id, caseId:item.case_id, title:item.title, body:item.body, at:item.created_at, read:Boolean(item.read_at) })),
+    leads:[],
+    tasks:(workspace.tasks || []).map(item => ({ id:item.id, caseId:item.case_id, title:item.title, dueDate:item.due_on, priority:item.priority, completed:Boolean(item.completed_at), createdAt:item.created_at })),
+    documentRequests:(workspace.documentRequests || []).map(item => ({id:item.id,caseId:item.case_id,requestType:item.request_type||'document',title:item.title,instructions:item.instructions||'',status:item.status,responseText:item.response_text||'',responseAt:item.response_at||'',requestedBy:item.requested_by,requestedAt:item.requested_at,fulfilledAt:item.fulfilled_at||''})),
+    caseDocuments:(workspace.caseDocuments || []).map(item => ({id:item.id,caseId:item.case_id,requestId:item.request_id||'',originalName:item.original_name,mimeType:item.mime_type,sizeBytes:Number(item.size_bytes||0),status:item.status,visibility:item.visibility||'client',intakeChannel:item.intake_channel||'client_portal',uploadedBy:item.uploaded_by,privacyNoticeAt:item.privacy_notice_at,createdAt:item.created_at,reviewedAt:item.reviewed_at||''})),
+    internalDocuments:(workspace.internalDocuments||[]).map(item=>({id:item.id,caseId:item.case_id,title:item.title,note:item.note||'',originalName:item.original_name,mimeType:item.mime_type,sizeBytes:Number(item.size_bytes||0),sha256:item.sha256,uploadedBy:item.uploaded_by,createdAt:item.created_at})),
+    communicationRequests:(workspace.communicationRequests||[]).map(item=>({id:item.id,caseId:item.case_id,requestedBy:item.requested_by,subject:item.subject,message:item.message,deadlineContext:item.deadline_context||'',availabilityNote:item.availability_note||'',responseText:item.response_text||'',respondedBy:item.responded_by||'',respondedAt:item.responded_at||'',createdAt:item.created_at})),
+    workingDocuments:(workspace.workingDocuments||[]).map(item=>({id:item.id,caseId:item.case_id,title:item.title,documentType:item.document_type||'',statusLabel:item.current_status_label||'',visibility:item.visibility,publishedAt:item.published_at||'',createdAt:item.created_at,updatedAt:item.updated_at})),
+    documentVersions:(workspace.documentVersions||[]).map(item=>({id:item.id,documentId:item.working_document_id,versionNumber:item.version_number,statusLabel:item.status_label||'',changeSummary:item.change_summary||'',draftContent:item.draft_content||'',originalName:item.original_name||'',mimeType:item.mime_type||'',sizeBytes:Number(item.size_bytes||0),sourceAiRunId:item.source_ai_run_id||'',createdAt:item.created_at})),
+    contracts:(workspace.contracts||[]).map(item=>({id:item.id,caseId:item.case_id,templateKey:item.template_key,templateVersion:Number(item.template_version||1),contractNote:item.contract_note||'',signerFullName:item.signer_full_name,signerIdentifier:item.signer_identifier,signerAddress:item.signer_address,cause:item.cause,workScope:item.work_scope,priceAmount:Number(item.price_amount||0),currency:item.currency||'EUR',provider:item.provider||'',providerRequestId:item.provider_request_id||'',providerDocumentId:item.provider_document_id||'',unsignedStoragePath:item.unsigned_storage_path||'',unsignedSha256:item.unsigned_sha256||'',sentAt:item.sent_at||'',signedAt:item.signed_at||'',invalidatedAt:item.invalidated_at||'',createdAt:item.created_at,updatedAt:item.updated_at})),
+    audit:[]
+  };
+}
 
-Kô\]Y\›\›]Kôÿ›[Y[ùô\]Y\›Àôö[ô
-][OOö][KöYOO\ô\]Y\›Y
-N√Bà›]Kòÿ\ŸQÿ›[Y[ùÀù[ú⁄Yù
-⁄Yÿ\ŸRYô\]Y\›Y‹öY⁄[ò[ò[YNôö[Kõò[YKZ[YU\Nôö[Kù\K⁄^ôPû]\Œôö[Kú⁄^ôK›]\Œâ›\ÿYY	À\ÿYYûNò›\úô[ù\Ÿ\ä
-KöYö]òXﬁSõ›XŸP]ò]‹ôX]Y]ò]JN√BàYäô\]Y\›
-^‹ô\]Y\›ú›]\œI‹›XõZ]Y	Œ‹ô\]Y\›ôù[ö[Y]X]ﬂCBà›]Kô]ô[ùÀú\⁄
-⁄Yò‹û\Àúò[ô€UURQ
+function enter(role) {
+  if ((applicationMode === 'crm' && role !== 'admin') || (applicationMode === 'portal' && role !== 'client')) return;
+  state.activeRole = role;
+  saveState();
+  $('#login-view').hidden = true;
+  $('#app').hidden = false;
+  activeSection = 'overview';
+  activeCaseId = state.cases[0]?.id || null;
+  setBrowserRoute('/app');
+  renderShell();
+}
+async function enterProduction() {
+  if (!platformApi) throw new Error('La conexi√≥n segura todav√≠a no est√° configurada.');
+  const user = await platformApi.currentUser();
+  if (!user) return false;
+  const profile = await platformApi.loadProfile(user.id);
+  if (!profile?.active) {
+    await platformApi.signOut();
+    throw new Error('PROFILE_NOT_ACTIVE');
+  }
+  const role = profile.internal_role === 'client' ? 'client' : 'admin';
+  if ((applicationMode === 'crm' && role !== 'admin') || (applicationMode === 'portal' && role !== 'client')) {
+    await platformApi.signOut();
+    throw new Error('ROLE_NOT_ALLOWED');
+  }
+  if (role === 'admin' && platformApi.assuranceLevel() !== 'aal2') {
+    await openInternalMfa(user);
+    return false;
+  }
+  const workspace = await platformApi.loadWorkspace(user.id);
+  workspace.profile = profile;
+  state = mapProductionWorkspace(workspace, user);
+  activeCaseId = state.cases[0]?.id || null;
+  $('#login-view').hidden = true;
+  $('#app').hidden = false;
+  activeSection = 'overview';
+  setBrowserRoute('/app');
+  renderShell();
+  return true;
+}
 
-Kÿ\ŸRY⁄[ôâŸÿ›[Y[ù›\ÿYY	À]Nòÿ›[Y[ùX⁄pÏ€à[ùôYÿYNà	‹ô\]Y\›Àù]_	–\ò⁄]õ»€€X⁄]Y…ﬂX\ÿ‹ö\[€éâ…À]›\úô[ùùùY_JN√BàŸ 	Ÿÿ›[Y[ù›\ÿYY	À	ÿÿ\ŸWŸÿ›[Y[ù	ÀY
-N‹ÿ]ôT›]J
-N‹ô[ô\î⁄[
+async function openInternalMfa(user) {
+  $('#app').hidden = true;
+  $('#login-view').hidden = false;
+  const factors = Array.isArray(user?.factors) ? user.factors.filter(item => item.factor_type === 'totp') : [];
+  const verified = factors.find(item => item.status === 'verified');
+  mfaEnrollment = !verified;
+  $('#mfa-enrollment').hidden = !mfaEnrollment;
+  $('#mfa-dialog-title').textContent = mfaEnrollment ? 'Protege tu cuenta con una app de autenticaci√≥n' : 'Introduce tu segundo factor';
+  $('#mfa-dialog-description').textContent = mfaEnrollment
+    ? 'El acceso al CRM exige un segundo factor. Escanea el c√≥digo y confirma uno de los c√≥digos temporales.'
+    : 'Abre tu app de autenticaci√≥n e introduce el c√≥digo temporal para continuar.';
+  if (verified) {
+    mfaFactorId = verified.id;
+  } else {
+    for (const stale of factors.filter(item => item.status !== 'verified')) {
+      try { await platformApi.unenrollFactor(stale.id); } catch { /* Se crear√° un factor nuevo igualmente. */ }
+    }
+    const enrolled = await platformApi.enrollTotp('CRM Ratio Soluciones');
+    mfaFactorId = enrolled.id;
+    const qr = $('#mfa-qr');
+    const fallback = $('#mfa-qr-fallback');
+    const source = mfaQrSource(enrolled.totp?.qr_code);
+    qr.hidden = !source;
+    fallback.hidden = Boolean(source);
+    qr.onload = () => { qr.hidden = false; fallback.hidden = true; };
+    qr.onerror = () => { qr.hidden = true; fallback.hidden = false; };
+    if (source) qr.src = source;
+    else qr.removeAttribute('src');
+    $('#mfa-secret').textContent = enrolled.totp?.secret || '';
+    const appLink = $('#mfa-open-app');
+    const uri = String(enrolled.totp?.uri || '');
+    appLink.hidden = !uri.startsWith('otpauth://');
+    if (!appLink.hidden) appLink.href = uri;
+    else appLink.removeAttribute('href');
+  }
+  if (!$('#mfa-dialog').open) $('#mfa-dialog').showModal();
+  requestAnimationFrame(() => $('#mfa-code').focus());
+}
 
-N√BàCBà	
-	»Ÿÿ›[Y[ù]\ÿYYõ‹õI Kúô\Ÿ]
+function mfaQrSource(value) {
+  const qr = String(value || '').replace(/^\uFEFF/, '').trim();
+  if (/^data:image\/svg\+xml[^,]*;base64,/i.test(qr)) return qr;
+  if (/^data:image\/svg\+xml[^,]*,/i.test(qr)) {
+    const payload = qr.slice(qr.indexOf(',') + 1);
+    try { return mfaSvgDataUrl(decodeURIComponent(payload)); }
+    catch { return mfaSvgDataUrl(payload); }
+  }
+  if (/%3Csvg[\s%>]/i.test(qr)) {
+    try { return mfaSvgDataUrl(decodeURIComponent(qr)); }
+    catch { return ''; }
+  }
+  if (qr.includes('<svg')) return mfaSvgDataUrl(qr);
+  return '';
+}
 
-N…
-	»Ÿÿ›[Y[ù]\ÿYYX[Ÿ… Kò€‹ŸJ
-N›ÿ\›
-	–\ò⁄]õ»[ùôYÿY»€‹úôX›[Y[ùHHôY⁄\›òY»[àH^YY[ùKâ N√BàXÿ]⁄
-\úõ‹ä^√Bà€€ú›Y\‹ÿYŸ\œ^‘íUêP÷W”ì’P—W‘ëTURTëQâ—Xô\»Y\àHXŸ\\àH[ôõ‹õXX⁄pÏ€àHö]òX⁄YYâÀSïêSQ—–’SQSï—íSNâ—[\ò⁄]õ»õ»\»∞Ë[Y»»›\\òHHPãâÀ–’SQSï‘ëTUQT’’SêUêRSPìNâ—\›H€€X⁄]YXHõ»YZ]H[ùôYÿ\ÀâÀ–’SQSï–P–—T‘◊—SíQQâ”õ»Y[ô\»XÿŸ\€»H\›H€€X⁄]YâﬂN√BàŸ][Ÿ[ôYYòX⁄ 	»Ÿÿ›[Y[ù]\ÿYYôYYòX⁄…ÀY\‹ÿYŸ\÷Ÿ\úõ‹èÀò€ŸW_	”õ»ŸHHŸY»[ùôYÿ\à[\ò⁄]õÀàõ»»[ù∞ÎY\»‹à€‹úô[Œ»ùY[ôHH[ù[ù\õÀâ N√BàYö[ò[^ÿù]€ãô\ÿXõYYò[ŸNÿù]€ãö[õô\íS[‹öY⁄[ò[ﬂCBüJN√Bò\ﬁ[ò»ù[ò›[€à›€õÿYÿ›[Y[ù
-ÿ›[Y[ùYù]€ä^√Bà€€ú›‹öY⁄[ò[Xù]€ãù^€€ù[ùÿù]€ãô\ÿXõY]ùYNÿù]€ãù^€€ù[ùI‘ô\\ò[ô¯†)âŒ√Bàû^√BàYä\õŸX›[€ì[Ÿ_\]õ‹õP\J^›ÿ\›
-	”H\ÿÿ\ôÿHôX[ŸHXö[]H0ÓõöXÿ[Y[ùH[à[‹ù[€€ôX›YÀâ N‹ô]\õéﬂCBà€€ú›ô\›[X]ÿZ]]õ‹õP\Kö[ùõ⁄ŸJ	Ÿÿ›[Y[ù]€‹öŸõ›…ÀÿX›[€éâŸ›€õÿYŸÿ›[Y[ù	Àÿ›[Y[ùYJN√Bà€€ú›\õ[ô]»Tì
-ô\›[ù\õ
-N√BàYä\õúõ›ÿ€€OOI⁄Œâﬂ]\õö‹›ò[YKô[ô’⁄]
-	Àú›\Xò\ŸKò€… J]õ›»ô]»\úõ‹ä	“SïêSQ—’”ì–Q’Tì	 N√Bà€€ú›[öœYÿ›[Y[ùò‹ôX]Q[[Y[ù
-	ÿI N€[öÀöôYè]\õöôYé€[öÀù\ôŸ]I◊ÿõ[ö…Œ€[öÀúô[I€õ€‹[ô\àõ‹ôYô\úô\âŒŸÿ›[Y[ùòõŸKò\[ô⁄[
-[ö N€[öÀò€X⁄ 
-N€[öÀúô[[›ôJ
-N√Bàÿ\›
-	—[õXŸHŸY›\õ»‹ôXY»\ò[ùHåŸY›[ô‹Àâ N√BàXÿ]⁄›ÿ\›
-	”õ»ŸHHŸY»ô\\ò\àH\ÿÿ\ôÿHŸY›\òKâ NﬂCBàö[ò[^ÿù]€ãô\ÿXõYYò[ŸNÿù]€ãù^€€ù[ù[‹öY⁄[ò[ﬂCBüCBò\ﬁ[ò»ù[ò›[€àô]öY]—ÿ›[Y[ù
-ÿ›[Y[ùY›]\Àù]€ä^√Bà€€ú›‹öY⁄[ò[Xù]€ãù^€€ù[ùÿù]€ãô\ÿXõY]ùYNÿù]€ãù^€€ù[ùI—›X\ô[ô¯†)âŒ√Bàû^√BàYäõŸX›[€ì[ŸIâú]õ‹õP\J^ÿ]ÿZ]]õ‹õP\Kö[ùõ⁄ŸJ	Ÿÿ›[Y[ù]€‹öŸõ›…ÀÿX›[€éâ‹ô]öY]◊Ÿÿ›[Y[ù	Àÿ›[Y[ùY›]\ﬂJNÿ]ÿZ][ù\îõŸX›[€ä
-NÿX›]ôTŸX›[€èIÿÿ\Ÿ\…ŒÿX›]ôPÿ\ŸRY\›]Kòÿ\ŸQÿ›[Y[ùÀôö[ô
-][OOö][KöYOOYÿ›[Y[ùY
-OÀòÿ\ŸRYX›]ôPÿ\ŸRY‹ô[ô\î⁄[
+function mfaSvgDataUrl(value) {
+  const svg = String(value || '');
+  const start = svg.indexOf('<svg');
+  if (start < 0) return '';
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.slice(start))}`;
+}
+async function logout() {
+  if (productionMode && platformApi) await platformApi.signOut();
+  state.activeRole = null;
+  if (!productionMode) saveState();
+  $('#app').hidden = true;
+  $('#login-view').hidden = false;
+  if ($('#mfa-dialog')?.open) $('#mfa-dialog').close();
+  setBrowserRoute('/');
+  $('.sidebar').classList.remove('open');
+}
 
-NﬂCBà[Ÿ^ÿ€€ú›][O\›]Kòÿ\ŸQÿ›[Y[ùÀôö[ô
-ÿ›[Y[ùOôÿ›[Y[ùöYOOYÿ›[Y[ùY
-N⁄Yä][JZ][Kú›]\œ\›]\Œ‹ÿ]ôT›]J
-N‹ô[ô\î⁄[
+function renderShell() {
+  const user = currentUser();
+  const isAdmin = state.activeRole === 'admin';
+  $('#workspace-kicker').textContent = isAdmin ? 'Gesti√≥n interna' : 'Espacio privado';
+  $('#workspace-name').textContent = isAdmin ? 'CRM y expedientes' : 'Mi expediente';
+  $('#header-kicker').textContent = isAdmin ? 'Ratio Soluciones' : 'Plataforma privada';
+  $('#header-title').textContent = isAdmin ? 'CRM y gesti√≥n de expedientes' : 'Mi expediente';
+  $('#profile-initials').textContent = user.initials;
+  $('#profile-role').textContent = user.role;
+  $('#profile-name').textContent = user.name;
+  const unread = state.notifications.filter(n => n.userId === user.id && !n.read).length;
+  $('#notification-count').textContent = unread;
+  $('#notification-count').hidden = unread === 0;
+  const items = isAdmin
+    ? [['overview','Resumen'],['cases','Expedientes'],['tasks','Agenda'],['finance','Control econ√≥mico'],['notifications','Avisos'],['audit','Registro de actividad']]
+    : [['overview','Resumen'],['timeline','Cronolog√≠a'],['notifications','Avisos'],['security','Acceso y seguridad']];
+  $('#app-nav').innerHTML = items.map(([id,label]) => `<button type="button" data-section="${id}" class="${activeSection===id?'active':''}">${label}</button>`).join('');
+  $$('[data-section]').forEach(button => button.addEventListener('click', () => {
+    activeSection=button.dataset.section;
+    if (isAdmin && activeSection === 'cases') activeCaseId=null;
+    renderShell();
+    $('.sidebar').classList.remove('open');
+  }));
+  renderMain();
+}
 
-NﬂCBàÿ\›
-›]\œOOIÿXÿŸ\Y	œ…—ÿ›[Y[ù»ò[YYÀâŒâ—ÿ›[Y[ù»X\òÿY»\òHô]ö\⁄pÏ€ãâ N√BàXÿ]⁄›ÿ\›
-	”õ»ŸHHŸY»X›X[^ò\à[ÿ›[Y[ùÀâ NﬂCBàö[ò[^ÿù]€ãô\ÿXõYYò[ŸNÿù]€ãù^€€ù[ù[‹öY⁄[ò[ﬂCBüCBò\ﬁ[ò»ù[ò›[€àÿ[òŸ[€Y[ùô\]Y\›
-ô\]Y\›Yù]€ä^√BàYä]⁄[ô›Àò€€ôö\õJ	Ø‘ô]\ò\à\›H€€X⁄]Y»[€Y[ùHô\∞ËH]YHXHõ»Y[ôH]YHô\‹€ô\õKâ J\ô]\õé√Bà€€ú›‹öY⁄[ò[Xù]€ãù^€€ù[ùÿù]€ãô\ÿXõY]ùYNÿù]€ãù^€€ù[ùI‘ô]\ò[ô¯†)âŒ√Bàû^√Bà€€ú›ô\]Y\›\›]Kôÿ›[Y[ùô\]Y\›Àôö[ô
-][OOö][KöYOO\ô\]Y\›Y
-N√BàYäõŸX›[€ì[ŸIâú]õ‹õP\J^ÿ]ÿZ]]õ‹õP\Kö[ùõ⁄ŸJ	Ÿÿ›[Y[ù]€‹öŸõ›…ÀÿX›[€éâÿÿ[òŸ[‹ô\]Y\›	Àô\]Y\›YJNÿ]ÿZ][ù\îõŸX›[€ä
-NÿX›]ôPÿ\ŸRY\ô\]Y\›Àòÿ\ŸRYX›]ôPÿ\ŸRYÿX›]ôTŸX›[€èIÿÿ\Ÿ\…Œ‹ô[ô\î⁄[
+function renderMain() {
+  if (!state.cases.length && state.activeRole !== 'admin') {
+    $('#main').innerHTML = `${pageHead('Plataforma privada','Todav√≠a no hay expedientes asignados','Tu acceso est√° activo. Cuando se abra el primer expediente aparecer√° aqu√≠.')}<section class="panel"><div class="empty">No hay expedientes disponibles.</div></section>`;
+    return;
+  }
+  if (state.activeRole === 'admin') renderAdmin(); else renderClient();
+}
+function pageHead(kicker,title,description,actions='') {
+  return `<div class="page-head"><div><p class="kicker">${escapeHtml(kicker)}</p><h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}</p></div>${actions?`<div class="page-actions">${actions}</div>`:''}</div>`;
+}
 
-NﬂCBà[ŸHYäô\]Y\›
-^‹ô\]Y\›ú›]\œIÿÿ[òŸ[Y	Œÿ€€ú›][ô]»]J
-Kù“T”‘›ö[ô 
-N‹›]Kô]ô[ùÀú\⁄
-⁄Yò‹û\Àúò[ô€UURQ
+function renderClient() {
+  const c = currentCase();
+  if (activeSection === 'overview') {
+    $('#main').innerHTML = `${pageHead(c.reference,c.title,'Consulta cada actuaci√≥n registrada en tu expediente.')}
+      <div class="case-layout"><section class="panel"><div class="panel-head"><h2>Historial del expediente</h2><small>Orden cronol√≥gico</small></div>${timeline()}</section><aside>${nextStepCard(c)}${professionalCard(c)}</aside></div>${communicationPanel(c,false)}${caseDocumentsPanel(c,false)}`;
+  } else if (activeSection === 'timeline') {
+    $('#main').innerHTML = `${pageHead('Cronolog√≠a','Cada actuaci√≥n, en orden','El historial muestra hechos ya registrados. No incluye fechas estimadas de resoluci√≥n.')}<section class="panel">${timeline(true)}</section>`;
+  } else if (activeSection === 'notifications') {
+    markNotificationsRead();
+    $('#main').innerHTML = `${pageHead('Avisos','Novedades de tu caso','Los avisos te indican cu√°ndo existe un avance o necesitamos una decisi√≥n.')}<section class="panel"><div class="notification-list">${notificationList()}</div></section>`;
+  } else {
+    $('#main').innerHTML = `${pageHead('Seguridad','Tu acceso','Controla tu sesi√≥n y protege el acceso al expediente.')}<div class="case-layout"><section class="panel"><div class="panel-head"><h2>Doble factor de autenticaci√≥n</h2><span class="status-pill">Obligatorio para el equipo</span></div><p class="panel-copy">Las cuentas internas no podr√°n utilizarse con clientes reales hasta que el doble factor est√© activado y verificado en el proveedor de identidad.</p></section><section class="panel"><div class="panel-head"><h2>Privacidad del portal</h2></div><p class="panel-copy">La documentaci√≥n se entrega √∫nicamente cuando Ratio la solicita. Cada archivo queda vinculado al expediente, con acceso privado y registro de actividad.</p></section></div>`;
+  }
+  bindDocumentActions();
+  bindCommunicationActions();
+}
 
-Kÿ\ŸRYúô\]Y\›òÿ\ŸRY⁄[ôâÿ€Y[ù‹ô\]Y\›ÿÿ[òŸ[Y	À]Nò€€X⁄]Yô]\òYNà	‹ô\]Y\›ù]_X\ÿ‹ö\[€éâ÷XHõ»ôXŸ\⁄][[‹»\›Hô\‹Y\›KâÀ]›\úô[ùùùY_JN‹ÿ]ôT›]J
-N‹ô[ô\î⁄[
+function renderAdmin() {
+  const c = state.cases.find(item => item.id === activeCaseId) || null;
+  const activeCases = state.cases.filter(item => item.statusCode==='open').length;
+  const pendingTasks = state.tasks.filter(item => !item.completed).length;
+  const portalCases=state.cases.filter(item=>['invited','active'].includes(item.portalStatus)).length;
+  const pipelineAmount = state.cases.filter(item=>item.statusCode==='open').reduce((total,item)=>total+Number(item.amount||0),0);
+  if (activeSection === 'overview') {
+    $('#main').innerHTML = `${pageHead('Gesti√≥n interna','Resumen operativo','Un √∫nico expediente desde el primer contacto, con acceso del cliente separado.','<button class="primary-button" id="new-lead">Nuevo expediente <span>‚Üí</span></button>')}
+      <div class="metric-grid"><div class="metric"><small>Expedientes activos</small><strong>${activeCases}</strong><span>Incluye estudios iniciales</span></div><div class="metric"><small>Tareas pendientes</small><strong>${pendingTasks}</strong><span>Agenda interna</span></div><div class="metric"><small>Portales habilitados</small><strong>${portalCases}</strong><span>Tras contrataci√≥n</span></div><div class="metric"><small>Presupuestado</small><strong>${formatMoney(pipelineAmount)}</strong><span>Expedientes abiertos</span></div></div>
+      <div class="admin-grid"><section class="panel"><div class="panel-head"><h2>√öltimos expedientes</h2><small>${activeCases} abiertos</small></div>${caseTable(state.cases.filter(item=>item.statusCode==='open').slice(0,6))}</section><section class="panel"><div class="panel-head"><h2>Pr√≥ximas actuaciones</h2><small>Uso interno</small></div>${taskList(state.tasks.filter(item=>!item.completed).slice(0,6))}</section></div>`;
+    bindCrmActions();
+  } else if (activeSection === 'leads') {
+    const visibleLeads=filteredLeads();
+    $('#main').innerHTML = `${pageHead('CRM','Consultas y oportunidades','Cada contacto conserva su origen, consentimiento, estado y un historial cronol√≥gico de notas.','<button class="primary-button" id="new-lead">Registrar consulta <span>‚Üí</span></button>')}<section class="panel"><div class="lead-filters"><label for="lead-status-filter">Mostrar consultas</label><select id="lead-status-filter"><option value="active" ${leadFilter==='active'?'selected':''}>Activas</option><option value="new" ${leadFilter==='new'?'selected':''}>Nuevas</option><option value="review" ${leadFilter==='review'?'selected':''}>En estudio</option><option value="waiting" ${leadFilter==='waiting'?'selected':''}>Falta informaci√≥n</option><option value="viable" ${leadFilter==='viable'?'selected':''}>Viables</option><option value="proposal" ${leadFilter==='proposal'?'selected':''}>Propuesta enviada</option><option value="contract" ${leadFilter==='contract'?'selected':''}>Contrato pendiente</option><option value="won" ${leadFilter==='won'?'selected':''}>Contratadas</option><option value="lost" ${leadFilter==='lost'?'selected':''}>No viables / cerradas</option><option value="all" ${leadFilter==='all'?'selected':''}>Todas</option></select><small>${visibleLeads.length} ${visibleLeads.length===1?'consulta':'consultas'}</small></div><div class="pipeline-board">${leadPipeline(visibleLeads)}</div></section>`;
+    bindCrmActions();
+  } else if (activeSection === 'tasks') {
+    $('#main').innerHTML = `${pageHead('Agenda interna','Pr√≥ximas actuaciones','Las fechas son recordatorios internos y nunca se muestran como promesas al cliente.','<button class="primary-button" id="new-task">Nueva tarea <span>‚Üí</span></button>')}<section class="panel">${taskList(state.tasks)}</section>`;
+    bindCrmActions();
+  } else if (activeSection === 'cases') {
+    if (!state.cases.length) {
+      $('#main').innerHTML = `${pageHead('Expedientes','Todav√≠a no hay expedientes','El primer contacto aparecer√° aqu√≠ directamente.','<button class="primary-button" id="new-lead">Nuevo expediente <span>‚Üí</span></button>')}<section class="panel"><div class="empty">No hay expedientes disponibles.</div></section>`;
+      bindCrmActions();
+    } else if (!c) {
+      const visibleCases=filteredCases();
+      $('#main').innerHTML = `${pageHead('Expedientes','Expedientes activos','La situaci√≥n se escribe libremente en cada ficha. Los cerrados solo aparecen al buscarlos o filtrarlos.','<button class="primary-button" id="new-lead">Nuevo expediente <span>‚Üí</span></button>')}<section class="panel"><div class="case-tools"><div class="case-search"><label for="case-search">Buscar expediente</label><input id="case-search" type="search" value="${escapeHtml(caseSearch)}" placeholder="Nombre, tel√©fono, correo, referencia, asunto‚Ä¶" autocomplete="off"><small>La b√∫squeda revisa todos los campos e incluye expedientes cerrados.</small></div><div class="case-filter"><label for="case-status-filter">Mostrar</label><select id="case-status-filter"><option value="active" ${caseFilter==='active'?'selected':''}>Solo activos</option><option value="closed" ${caseFilter==='closed'?'selected':''}>Solo cerrados</option><option value="all" ${caseFilter==='all'?'selected':''}>Todos</option></select></div></div><div class="panel-head"><h2>Listado de expedientes</h2><small id="case-count">${visibleCases.length} ${visibleCases.length===1?'expediente':'expedientes'}</small></div><div id="case-results">${caseTable(visibleCases)}</div></section>`;
+      bindCrmActions();
+      bindCaseListControls();
+    } else {
+      const signedContract=(state.contracts||[]).find(item=>item.caseId===c.id&&item.signedAt&&!item.invalidatedAt);
+      const portalAction=['invited','active'].includes(c.portalStatus)?'<button class="secondary-button" id="resend-case-confirmation">Reenviar acceso</button>':signedContract?'<button class="secondary-button" id="activate-case-portal">Activar portal</button>':'';
+      const requestAction=['invited','active'].includes(c.portalStatus)?'<button class="secondary-button" id="request-document">Solicitar al cliente</button>':'';
+      $('#main').innerHTML = `${pageHead('Expedientes',c.reference+' ¬∑ '+c.client,c.title,`<button class="secondary-button" id="back-to-cases">‚Üê Todos los expedientes</button><button class="secondary-button" id="edit-case-record">Editar ficha</button>${portalAction}${requestAction}<button class="primary-button" id="new-update">Registrar avance ‚Üí</button>`)}${caseAiPanel()}${workingDocumentsPanel(c)}${internalDocumentsPanel(c)}${caseDocumentsPanel(c,true)}${contractPanel(c)}${communicationPanel(c,true)}<section class="case-secondary-group" aria-labelledby="case-secondary-title"><div class="secondary-group-head"><p class="kicker">Informaci√≥n complementaria</p><h2 id="case-secondary-title">Seguimiento y coordinaci√≥n</h2><p>Datos √∫tiles para consultar despu√©s del trabajo principal del expediente.</p></div><div class="case-layout"><section class="panel"><div class="panel-head"><h2>Cronolog√≠a</h2><span class="status-pill">${escapeHtml(c.manualPhase||statusLabels[c.statusCode]||'Sin indicaci√≥n')}</span></div>${timeline(true)}</section><aside>${portalAccessCard(c)}${nextStepCard(c)}${professionalCard(c)}</aside></div></section>`;
+      $('#back-to-cases').addEventListener('click',()=>{activeCaseId=null;renderShell();});
+      $('#new-update').addEventListener('click',openUpdateDialog);
+      $('#request-document')?.addEventListener('click',openDocumentRequestDialog);
+      $('#analyze-case-ai')?.addEventListener('click',()=>analyzeCurrentCase(c));
+      $('#load-latest-case-ai')?.addEventListener('click',()=>loadLatestCaseAnalysis(c));
+      resumePendingCaseAnalysis(c);
+      $('#add-ai-context')?.addEventListener('click',()=>openAiContextDialog(c));
+      $('#test-document-ai')?.addEventListener('click',testSyntheticDocumentPipeline);
+      bindDocumentActions();
+      bindCommunicationActions();
+    }
+  } else if (activeSection === 'finance') {
+    const contracted=state.cases.filter(item=>['invited','active'].includes(item.portalStatus));
+    $('#main').innerHTML = `${pageHead('Control econ√≥mico','Contrataciones e importes','Resumen interno basado en expedientes, sin embudos comerciales predefinidos.')}<div class="metric-grid"><div class="metric"><small>Contrataciones</small><strong>${contracted.length}</strong><span>Portales habilitados</span></div><div class="metric"><small>Importe contratado</small><strong>${formatMoney(contracted.reduce((t,i)=>t+Number(i.amount||0),0))}</strong><span>Importe presupuestado</span></div><div class="metric"><small>Expedientes abiertos</small><strong>${activeCases}</strong><span>En cualquier situaci√≥n</span></div><div class="metric"><small>Liquidaciones</small><strong>‚Äî</strong><span>Fase posterior</span></div></div><section class="panel">${caseTable(state.cases.filter(i=>i.amount>0))}</section>`;
+    bindCrmActions();
+  } else if (activeSection === 'notifications') {
+    $('#main').innerHTML = `${pageHead('Avisos','Registro de notificaciones','Cada aviso queda vinculado a un expediente y a un avance concreto.')}<section class="panel"><div class="notification-list">${notificationList(true)}</div></section>`;
+  } else {
+    $('#main').innerHTML = `${pageHead('Auditor√≠a','Registro de actividad','Altas, accesos y avances se conservan en un registro no editable por usuarios ordinarios.')}<section class="panel">${auditTable()}</section>`;
+  }
+}
 
-NﬂCBàÿ\›
-	‘€€X⁄]Yô]\òYKà[€Y[ùHXHõ»Y[ôH]YHô\‹€ô\õKâ N√BàXÿ]⁄›ÿ\›
-	”õ»ŸHHŸY»ô]\ò\àH€€X⁄]Yâ NﬂCBàö[ò[^ÿù]€ãô\ÿXõYYò[ŸNÿù]€ãù^€€ù[ù[‹öY⁄[ò[ﬂCBüCBÉBâ
-	»ÿ€€[][öXÿ][€ãYõ‹õI KòY]ô[ù\›[ô\ä	‹›XõZ]	À\ﬁ[ò»]ô[ùOû√Bà]ô[ùúô]ô[ùYò][
+function formatMoney(value) { return new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(value||0)); }
+function leadTable(list=state.leads) {
+  if (!list.length) return '<div class="empty">No hay consultas en este estado.</div>';
+  return `<table class="case-table"><thead><tr><th>Referencia</th><th>Contacto</th><th>√Årea</th><th>Estado</th><th>√öltimo movimiento</th></tr></thead><tbody>${list.map(item=>`<tr tabindex="0" data-lead-id="${escapeHtml(item.id)}"><td class="case-ref">${escapeHtml(item.reference)}</td><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.category)}</td><td><span class="lead-status status-${escapeHtml(item.status)}">${escapeHtml(leadStatusLabels[item.status]||item.status)}</span></td><td>${escapeHtml(formatDate(item.updatedAt||item.createdAt))}</td></tr>`).join('')}</tbody></table>`;
+}
+function filteredLeads() {
+  if(leadFilter==='active')return state.leads.filter(item=>!['won','lost'].includes(item.status));
+  if(leadFilter==='all')return state.leads;
+  return state.leads.filter(item=>item.status===leadFilter);
+}
+function leadPipeline(list=filteredLeads()) {
+  const groups=[['new','Nuevas'],['review','En estudio'],['waiting','Falta informaci√≥n'],['viable','Viables'],['proposal','Propuesta'],['contract','Contrato'],['won','Contratadas'],['lost','Cerradas']];
+  const visibleStatuses=leadFilter==='active'?groups.filter(([status])=>!['won','lost'].includes(status)):leadFilter==='all'?groups:groups.filter(([status])=>status===leadFilter);
+  return visibleStatuses.map(([status,label])=>{const grouped=list.filter(item=>item.status===status);return `<section class="pipeline-column"><header><strong>${label}</strong><span>${grouped.length}</span></header>${grouped.map(item=>{const latestNote=item.notes?.at(-1)?.body||'Sin notas internas';return `<button type="button" class="lead-card" data-lead-id="${escapeHtml(item.id)}"><small>${escapeHtml(item.reference)} ¬∑ ${escapeHtml(item.province||'Sin provincia')}</small><strong>${escapeHtml(item.name)}</strong><p>${escapeHtml(item.category)}</p><em>${escapeHtml(latestNote)}</em></button>`;}).join('')||'<p class="pipeline-empty">Sin consultas</p>'}</section>`;}).join('');
+}
+function taskList(list=state.tasks) {
+  if (!list.length) return '<div class="empty">No hay tareas pendientes.</div>';
+  return `<div class="task-list">${[...list].sort((a,b)=>String(a.dueDate).localeCompare(String(b.dueDate))).map(task=>{const caseItem=state.cases.find(item=>item.id===task.caseId);return `<article class="task-row ${task.completed?'completed':''}"><button type="button" class="task-check" data-task-id="${escapeHtml(task.id)}" aria-label="${task.completed?'Reabrir':'Completar'} tarea">${task.completed?'‚úì':''}</button><div><strong>${escapeHtml(task.title)}</strong><p>${escapeHtml(caseItem?caseItem.client+' ¬∑ '+caseItem.reference:'Sin expediente asociado')}</p></div><time class="${task.priority==='high'?'priority-high':''}">${escapeHtml(formatShortDate(task.dueDate))}</time></article>`;}).join('')}</div>`;
+}
+function formatShortDate(value) { if(!value)return ''; return new Intl.DateTimeFormat('es-ES',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(`${String(value).slice(0,10)}T12:00:00`)); }
+function leadHistoryEntries(lead) {
+  const initialEntry={id:`initial-${lead.id}`,type:'consultation',label:'Consulta',title:'Consulta recibida',body:lead.summary,at:lead.createdAt};
+  const consultationEntries=(lead.notes||[]).map(note=>({
+    id:note.id,type:'consultation',label:'Consulta',title:note.authorName||'Equipo Ratio',body:note.body,at:note.at
+  }));
+  const caseEntries=lead.convertedCaseId?state.events.filter(event=>event.caseId===lead.convertedCaseId).map(event=>({
+    id:event.id,type:'case',label:'Expediente',title:event.title,body:event.description&&event.description!==event.title?event.description:'',at:event.at
+  })):[];
+  return [initialEntry,...consultationEntries,...caseEntries].sort((a,b)=>new Date(b.at)-new Date(a.at));
+}
+function leadHistory(lead) {
+  const entries=leadHistoryEntries(lead);
+  if(!entries.length)return '<div class="empty lead-history-empty">Todav√≠a no hay movimientos. El pr√≥ximo cambio quedar√° registrado aqu√≠ autom√°ticamente.</div>';
+  return `<div class="lead-history-timeline">${entries.map(entry=>`<article class="history-${escapeHtml(entry.type)}"><time>${escapeHtml(formatDate(entry.at))}</time><div><span class="history-source">${escapeHtml(entry.label)}</span><strong>${escapeHtml(entry.title)}</strong>${entry.body?`<p>${escapeHtml(entry.body)}</p>`:''}</div></article>`).join('')}</div>`;
+}
+function caseConsultationHistory(caseItem) {
+  const leads=state.leads.filter(lead=>lead.convertedCaseId===caseItem.id);
+  if(!leads.length)return '';
+  const count=leads.reduce((total,lead)=>total+leadHistoryEntries(lead).length,0);
+  return `<section class="panel case-consultation-history"><div class="panel-head"><div><p class="kicker">Uso interno</p><h2>Historial cronol√≥gico completo</h2><p>Consulta inicial y anotaciones del expediente, claramente diferenciadas.</p></div><small>${count} ${count===1?'movimiento':'movimientos'}</small></div>${leads.map(lead=>`<div class="consultation-origin"><strong>${escapeHtml(lead.reference)} ¬∑ ${escapeHtml(lead.name)}</strong><p>${escapeHtml(lead.summary)}</p></div>${leadHistory(lead)}`).join('')}</section>`;
+}
 
-N⁄Yä]ô[ùú›XõZ]\èÀùò[YOOOIÿÿ[òŸ[	 ^…
-	»ÿ€€[][öXÿ][€ãYX[Ÿ… Kò€‹ŸJ
-N‹ô]\õéﬂCBà€€ú›^[ÿY^ÿX›[€éâ‹ô\]Y\›ÿ€€[][öXÿ][€âÀÿ\ŸRYâ
-	»ÿ€€[][öXÿ][€ãXÿ\ŸI Kùò[YK›XöôX›â
-	»ÿ€€[][öXÿ][€ã\›XöôX›	 Kùò[YKùö[J
-KY\‹ÿYŸNâ
-	»ÿ€€[][öXÿ][€ã[Y\‹ÿYŸI Kùò[YKùö[J
-KXY[ôP€€ù^â
-	»ÿ€€[][öXÿ][€ãYXY[ôI Kùò[YKùö[J
-K]òZ[Xö[]Sõ›Nâ
-	»ÿ€€[][öXÿ][€ãX]òZ[Xö[]I Kùò[YKùö[J
-_N√BàYä^[ÿYú›XöôX›õ[ô›ﬂ^[ÿYõY\‹ÿYŸKõ[ô›L
-^‹Ÿ][Ÿ[ôYYòX⁄ 	»ÿ€€[][öXÿ][€ãYôYYòX⁄…À	“[ôXÿH[\›[ù»H^XÿHúô]ô[Y[ùH]pÍHôXŸ\⁄]\Àâ N‹ô]\õéﬂCBà€€ú›ù]€èY]ô[ùú›XõZ]\éÿ€€ú›‹öY⁄[ò[Xù]€ãö[õô\íSÿù]€ãô\ÿXõY]ùYNÿù]€ãù^€€ù[ùI—[ùöX[ô»€€X⁄]Y8†)âŒ√Bàû^√BàYäõŸX›[€ì[ŸIâú]õ‹õP\J^ÿ]ÿZ]]õ‹õP\Kö[ùõ⁄ŸJ	ÿÿ\ŸKX€€[][öXÿ][€ú…À^[ÿY
-Nÿ]ÿZ][ù\îõŸX›[€ä
-NÿX›]ôPÿ\ŸRY\^[ÿYòÿ\ŸRYÿX›]ôTŸX›[€èI€›ô\ùöY]…ŒﬂCBà[Ÿ^ÿ€€ú›][ô]»]J
-Kù“T”‘›ö[ô 
-KYX‹û\Àúò[ô€UURQ
+function timeline(full=false) {
+  const events=state.events.filter(e=>e.caseId===currentCase().id).sort((a,b)=>new Date(a.at)-new Date(b.at));
+  return `<div class="timeline">${events.map((e,i)=>{const detail=e.description&&e.description!==e.title?`<p>${escapeHtml(e.description)}</p>`:'';return `<article class="event ${e.current?'current':''}"><span class="event-mark">${e.done?'‚úì':String(i+1).padStart(2,'0')}</span><div class="event-body"><small>${formatDate(e.at)} ¬∑ ${e.done?'Registrado':e.current?'√öltimo avance':'Avance'}</small><strong>${escapeHtml(e.title)}</strong>${detail}</div></article>`;}).join('')}${full?'<article class="event"><span class="event-mark">‚Äî</span><div class="event-body"><small>Siguiente avance</small><strong>Se a√±adir√° cuando ocurra</strong><p>No mostramos fechas previstas que todav√≠a no pueden confirmarse.</p></div></article>':''}</div>`;
+}
+function nextStepCard(c) {
+  const pending=state.documentRequests.filter(item=>item.caseId===c.id&&item.status==='pending');
+  const isClient=state.activeRole==='client';
+  const content=pending.length?`<div class="client-action-list">${pending.map(request=>{
+    const typeLabel=request.requestType==='clarification'?'Aclaraci√≥n':'Documentaci√≥n';
+    const action=isClient?(request.requestType==='clarification'
+      ?`<button type="button" class="secondary-button" data-respond-request="${escapeHtml(request.id)}">Responder aclaraci√≥n</button>`
+      :`<button type="button" class="secondary-button" data-upload-request="${escapeHtml(request.id)}">Entregar archivo</button>`):'';
+    return `<article class="client-action"><small>${escapeHtml(typeLabel)}</small><strong>${escapeHtml(request.title)}</strong>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${action}</article>`;
+  }).join('')}</div>`:'<p><strong>Por ahora, nada.</strong></p><p>Te avisaremos cuando necesitemos documentaci√≥n, una aclaraci√≥n o una decisi√≥n.</p>';
+  return `<section class="panel next-step-card"><div class="panel-head"><h2>Peticiones de Ratio</h2><small>${pending.length?`${pending.length} pendiente${pending.length===1?'':'s'}`:'Sin peticiones pendientes'}</small></div>${content}</section>`;
+}
+function professionalCard(c) {
+  const assigned=Boolean(c.professionalName);
+  return `<section class="panel professional-card"><div class="panel-head"><h2>Profesional asignado</h2><small>${assigned?'Identificado':'Pendiente'}</small></div>${assigned?`<div class="professional-profile"><span>${escapeHtml(initials(c.professionalName))}</span><div><strong>${escapeHtml(c.professionalName)}</strong><p>${escapeHtml(c.professionalTitle || 'Profesional responsable')}</p><small>${escapeHtml([c.professionalRegistration,c.professionalRegion].filter(Boolean).join(' ¬∑ '))}</small></div></div><p class="professional-channel-note">Ratio coordina las comunicaciones ordinarias desde este portal. Cuando el asunto requiera hablar directamente con el profesional, organizaremos el contacto.</p>`:'<p class="panel-copy">Te informaremos de su identidad y acreditaci√≥n cuando se asigne la intervenci√≥n.</p>'}</section>`;
+}
 
-N‹›]Kò€€[][öXÿ][€îô\]Y\›Àù[ú⁄Yù
-⁄Yÿ\ŸRYú^[ÿYòÿ\ŸRYô\]Y\›YûNò›\úô[ù\Ÿ\ä
-KöY›XöôX›ú^[ÿYú›XöôX›Y\‹ÿYŸNú^[ÿYõY\‹ÿYŸKXY[ôP€€ù^ú^[ÿYôXY[ôP€€ù^]òZ[Xö[]Sõ›Nú^[ÿYò]òZ[Xö[]Sõ›Kô\‹€úŸU^â…Àô\‹€ôY]â…À‹ôX]Y]ò]JN‹›]Kõõ›YöXÿ][€úÀú\⁄
-⁄Yò‹û\Àúò[ô€UURQ
+function communicationPanel(caseItem,isAdmin){
+  const requests=(state.communicationRequests||[]).filter(item=>item.caseId===caseItem.id).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const items=requests.length?requests.map(item=>`<article class="communication-item"><div class="communication-head"><div><small>${escapeHtml(formatDate(item.createdAt))}</small><strong>${escapeHtml(item.subject)}</strong></div>${item.respondedAt?'<span class="status-pill">Respondida</span>':'<span class="status-pill">Pendiente de respuesta</span>'}</div><p>${escapeHtml(item.message)}</p>${item.deadlineContext?`<div class="communication-context"><small>Notificaci√≥n o plazo indicado</small><p>${escapeHtml(item.deadlineContext)}</p></div>`:''}${item.availabilityNote?`<div class="communication-context"><small>Disponibilidad orientativa</small><p>${escapeHtml(item.availabilityNote)}</p></div>`:''}${item.responseText?`<div class="clarification-response"><small>Respuesta de Ratio ¬∑ ${escapeHtml(formatDate(item.respondedAt))}</small><p>${escapeHtml(item.responseText)}</p></div>`:isAdmin?`<button type="button" class="secondary-button" data-respond-communication="${escapeHtml(item.id)}">Responder desde Ratio</button>`:''}</article>`).join(''):'<div class="empty">Todav√≠a no hay solicitudes de comunicaci√≥n.</div>';
+  const action=!isAdmin&&caseItem.statusCode==='open'?'<button type="button" class="primary-button" id="request-communication">Solicitar aclaraci√≥n o llamada ‚Üí</button>':'';
+  const heading=isAdmin?'Peticiones del cliente':'Tus peticiones a Ratio';
+  const kicker=isAdmin?'Solicitudes recibidas':'Solicitudes enviadas';
+  const description=isAdmin?'Consultas, aclaraciones o solicitudes de contacto enviadas por el cliente desde su portal.':'Consulta una petici√≥n anterior o solicita una aclaraci√≥n o llamada sobre tu expediente.';
+  return `<section class="panel communication-panel"><div class="panel-head"><div><p class="kicker">${kicker}</p><h2>${heading}</h2><p>${description}</p></div>${action}</div><div class="communication-notice"><strong>Si existe una notificaci√≥n, cita o plazo, debe indicarse expresamente.</strong><span>El portal deja constancia, pero no sustituye los canales de urgencia comunicados para el asunto.</span></div><div class="communication-list">${items}</div></section>`;
+}
 
-K\Ÿ\íYú›]Kù\Ÿ\úÀòYZ[ãöYÿ\ŸRYú^[ÿYòÿ\ŸRY]Nâ”ùY]òH€€X⁄]YH€€][öXÿX⁄pÏ€âÀõŸNú^[ÿYú›XöôX›]ôXYôò[Ÿ_JN‹›]Kô]ô[ùÀú\⁄
-⁄Yò‹û\Àúò[ô€UURQ
+function openCommunicationDialog(){
+  const c=currentCase();if(!c)return;
+  $('#communication-form').reset();$('#communication-case').value=c.id;setModalFeedback('#communication-feedback');$('#communication-dialog').showModal();
+}
+function openCommunicationResponseDialog(id){
+  const item=(state.communicationRequests||[]).find(record=>record.id===id);if(!item)return;
+  $('#communication-response-form').reset();$('#communication-response-id').value=id;$('#communication-response-subject').textContent=item.subject;setModalFeedback('#communication-response-feedback');$('#communication-response-dialog').showModal();
+}
+function bindCommunicationActions(){
+  $('#request-communication')?.addEventListener('click',openCommunicationDialog);
+  $$('[data-respond-communication]').forEach(button=>button.addEventListener('click',()=>openCommunicationResponseDialog(button.dataset.respondCommunication)));
+}
+function normalizeSearch(value) {
+  return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
 
-Kÿ\ŸRYú^[ÿYòÿ\ŸRY⁄[ôâÿ€Y[ùÿ€€[][öXÿ][€ó‹ô\]Y\›Y	À]Nâ‘€€X⁄]Y[ùöXYHHò][…À\ÿ‹ö\[€éú^[ÿYú›XöôX›]›\úô[ùùùY_JN‹ÿ]ôT›]J
-NﬂCBà	
-	»ÿ€€[][öXÿ][€ãYõ‹õI Kúô\Ÿ]
+function formatFileSize(bytes) {
+  const size=Number(bytes||0);
+  return size>=1048576?`${(size/1048576).toFixed(1)} MB`:`${Math.max(1,Math.round(size/1024))} KB`;
+}
+function caseDocumentsPanel(caseItem,isAdmin) {
+  const requests=state.documentRequests.filter(item=>item.caseId===caseItem.id);
+  const documents=state.caseDocuments.filter(item=>item.caseId===caseItem.id);
+  const directDocuments=documents.filter(item=>!item.requestId);
+  const statusText={pending:'Pendiente de entrega',submitted:'Entregada ¬∑ pendiente de revisi√≥n',accepted:'Revisada',cancelled:'Cancelada',uploaded:'Recibido',rejected:'Rechazado'};
+  const fileType=document=>document.mimeType==='application/pdf'?'PDF':document.mimeType?.includes('wordprocessingml')?'DOCX':'IMG';
+  const directContent=directDocuments.length?`<article class="document-request"><div class="document-request-head"><div><span class="history-source">Documentaci√≥n del cliente</span><h3>Documentos incorporados al expediente</h3></div></div><ul class="document-list">${directDocuments.map(document=>`<li><span>${fileType(document)}</span><div><strong>${escapeHtml(document.originalName)}</strong><small>${escapeHtml(formatFileSize(document.sizeBytes))} ¬∑ ${escapeHtml(formatDate(document.createdAt))} ¬∑ ${document.intakeChannel==='received_by_ratio'?'Recibido por Ratio':'Entregado en el portal'}</small></div><div class="document-actions"><em>${escapeHtml(statusText[document.status]||document.status)}</em><button type="button" class="document-download" data-download-document="${escapeHtml(document.id)}">Descargar</button></div></li>`).join('')}</ul></article>`:'';
+  const requestContent=requests.length?requests.map(request=>{
+    const files=documents.filter(document=>document.requestId===request.id);
+    const fileList=files.length?`<ul class="document-list">${files.map(document=>`<li><span>${fileType(document)}</span><div><strong>${escapeHtml(document.originalName)}</strong><small>${escapeHtml(formatFileSize(document.sizeBytes))} ¬∑ ${escapeHtml(formatDate(document.createdAt))}</small></div><div class="document-actions"><em>${escapeHtml(statusText[document.status]||document.status)}</em><button type="button" class="document-download" data-download-document="${escapeHtml(document.id)}">Descargar</button>${isAdmin&&document.status==='uploaded'?`<button type="button" class="document-download" data-review-document="${escapeHtml(document.id)}" data-review-status="accepted">Validar</button>`:''}</div></li>`).join('')}</ul>`:'<p class="document-empty">Todav√≠a no se ha entregado ning√∫n archivo.</p>';
+    if(request.requestType==='clarification'){
+      const clarificationStatus={pending:'Pendiente de respuesta',submitted:'Respondida',accepted:'Revisada',cancelled:'Cancelada'};
+      const response=request.responseText?`<div class="clarification-response"><small>Respuesta del cliente${request.responseAt?` ¬∑ ${escapeHtml(formatDate(request.responseAt))}`:''}</small><p>${escapeHtml(request.responseText)}</p></div>`:'<p class="document-empty">Todav√≠a no se ha recibido la aclaraci√≥n.</p>';
+      const adminAction=isAdmin&&request.status==='pending'?`<button type="button" class="document-download" data-cancel-request="${escapeHtml(request.id)}">Retirar solicitud</button>`:'';
+      return `<article class="document-request"><div class="document-request-head"><div><span class="history-source">Aclaraci√≥n ¬∑ ${escapeHtml(clarificationStatus[request.status]||request.status)}</span><h3>${escapeHtml(request.title)}</h3></div>${adminAction}</div>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${response}</article>`;
+    }
+    const adminAction=isAdmin&&request.status==='pending'?`<button type="button" class="document-download" data-cancel-request="${escapeHtml(request.id)}">Retirar solicitud</button>`:'';
+    return `<article class="document-request"><div class="document-request-head"><div><span class="history-source">Documentaci√≥n ¬∑ ${escapeHtml(statusText[request.status]||request.status)}</span><h3>${escapeHtml(request.title)}</h3></div>${adminAction}</div>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${fileList}</article>`;
+  }).join(''):'';
+  const empty=!directContent&&!requestContent?'<div class="empty">Todav√≠a no hay documentaci√≥n ni solicitudes en este expediente.</div>':'';
+  const adminAction=isAdmin?'<button class="secondary-button" id="add-client-document" type="button">Incorporar documento recibido</button>':`<small>${requests.length} ${requests.length===1?'solicitud':'solicitudes'}</small>`;
+  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Documentaci√≥n del cliente</p><h2>Documentos, solicitudes y respuestas</h2><p>Incluye lo entregado en el portal y lo recibido por Ratio en papel o por otra v√≠a autorizada. Todo queda vinculado y auditado.</p></div>${adminAction}</div>${directContent}${requestContent}${empty}</section>`;
+}
 
-N…
-	»ÿ€€[][öXÿ][€ãYX[Ÿ… Kò€‹ŸJ
-N‹ô[ô\î⁄[
+function openDocumentRequestDialog() {
+  const c=currentCase();
+  if(!c)return;
+  $('#document-request-case').value=c.id;
+  $('#document-request-context').textContent=`${c.reference} ¬∑ ${c.client}`;
+  $('#document-request-form').reset();
+  $('#document-request-case').value=c.id;
+  $('#document-request-type').value='document';
+  setModalFeedback('#document-request-feedback');
+  $('#document-request-dialog').showModal();
+}
+function openDocumentUploadDialog(requestId) {
+  const request=state.documentRequests.find(item=>item.id===requestId);
+  if(!request)return;
+  $('#document-upload-form').reset();
+  $('#document-upload-case').value=request.caseId;
+  $('#document-upload-request').value=request.id;
+  $('#document-upload-title').textContent=request.title;
+  $('#document-file-name').textContent='Ning√∫n archivo seleccionado';
+  setModalFeedback('#document-upload-feedback');
+  $('#document-upload-dialog').showModal();
+}
+function openClarificationResponseDialog(requestId) {
+  const request=state.documentRequests.find(item=>item.id===requestId&&item.requestType==='clarification');
+  if(!request)return;
+  $('#clarification-response-form').reset();
+  $('#clarification-response-case').value=request.caseId;
+  $('#clarification-response-request').value=request.id;
+  $('#clarification-response-title').textContent=request.title;
+  $('#clarification-response-instructions').textContent=request.instructions||'Escribe la aclaraci√≥n solicitada.';
+  setModalFeedback('#clarification-response-feedback');
+  $('#clarification-response-dialog').showModal();
+}
+function bindDocumentActions() {
+  $$('[data-upload-request]').forEach(button=>button.addEventListener('click',()=>openDocumentUploadDialog(button.dataset.uploadRequest)));
+  $$('[data-respond-request]').forEach(button=>button.addEventListener('click',()=>openClarificationResponseDialog(button.dataset.respondRequest)));
+  $$('[data-download-document]').forEach(button=>button.addEventListener('click',()=>downloadDocument(button.dataset.downloadDocument,button)));
+  $$('[data-review-document]').forEach(button=>button.addEventListener('click',()=>reviewDocument(button.dataset.reviewDocument,button.dataset.reviewStatus,button)));
+  $$('[data-cancel-request]').forEach(button=>button.addEventListener('click',()=>cancelClientRequest(button.dataset.cancelRequest,button)));
+}
+function caseSearchText(c) {
+  return normalizeSearch(Object.values(c).join(' '));
+}
+function filteredCases() {
+  const query=normalizeSearch(caseSearch);
+  if(query)return state.cases.filter(c=>caseSearchText(c).includes(query));
+  if(caseFilter==='closed')return state.cases.filter(c=>['not_contracted','archived'].includes(c.statusCode));
+  if(caseFilter==='all')return state.cases;
+  return state.cases.filter(c=>c.statusCode==='open');
+}
+function caseTable(list=filteredCases()) {
+  if(!list.length)return `<div class="empty">${caseSearch?'No hay expedientes que coincidan con la b√∫squeda.':'No hay expedientes en esta vista.'}</div>`;
+  return `<table class="case-table"><thead><tr><th>Referencia</th><th>Persona</th><th>√Årea</th><th>Situaci√≥n indicada</th><th>Portal</th></tr></thead><tbody>${list.map(c=>`<tr tabindex="0" data-case-id="${escapeHtml(c.id)}"><td class="case-ref">${escapeHtml(c.reference)}</td><td>${escapeHtml(c.client)}</td><td>${escapeHtml(c.category)}</td><td><span class="status-pill">${escapeHtml(c.manualPhase||'Sin indicaci√≥n')}</span></td><td>${escapeHtml(portalStatusLabel(c.portalStatus))}</td></tr>`).join('')}</tbody></table>`;
+}
 
-N›ÿ\›
-	‘€€X⁄]Y[ùöXYKà]YYHôY⁄\›òYH[àH^YY[ùKâ N√BàXÿ]⁄
-\úõ‹ä^ÿ€€ú›Y\‹ÿYŸ\œ^“SïêSQ–””SUSíP–US”ó‘ëTUQT’â‘ô]ö\ÿH[\›[ù»H[^»HH€€X⁄]YâÀ””SUSíP–US”ó–P–—T‘◊—SíQQâ”õ»Y[ô\»XÿŸ\€»H\›H^YY[ùKâÀ–T—W–”‘—Qâ—[^YY[ùH\›0ËHŸ\úòYÀâﬂN‹Ÿ][Ÿ[ôYYòX⁄ 	»ÿ€€[][öXÿ][€ãYôYYòX⁄…ÀY\‹ÿYŸ\÷Ÿ\úõ‹èÀò€ŸW_	”õ»ŸHHŸY»[ùöX\àH€€X⁄]YàùY[ôHH[ù[ù\õÀâ NﬂCBàö[ò[^ÿù]€ãô\ÿXõYYò[ŸNÿù]€ãö[õô\íS[‹öY⁄[ò[ﬂCBüJN√BÉBâ
-	»ÿ€€[][öXÿ][€ã\ô\‹€úŸKYõ‹õI KòY]ô[ù\›[ô\ä	‹›XõZ]	À\ﬁ[ò»]ô[ùOû√Bà]ô[ùúô]ô[ùYò][
+function portalStatusLabel(value){return ({disabled:'Sin acceso',invited:'Invitaci√≥n enviada',active:'Activo',suspended:'Suspendido',revoked:'Revocado'})[value]||'Sin acceso';}
+function portalAccessCard(c){return `<section class="side-card"><small>Acceso del cliente</small><strong>${escapeHtml(portalStatusLabel(c.portalStatus))}</strong><p>${['invited','active'].includes(c.portalStatus)?'El cliente puede acceder √∫nicamente a la informaci√≥n publicada para √©l.':'El expediente es exclusivamente interno hasta confirmar la contrataci√≥n.'}</p></section>`;}
 
-N⁄Yä]ô[ùú›XõZ]\èÀùò[YOOOIÿÿ[òŸ[	 ^…
-	»ÿ€€[][öXÿ][€ã\ô\‹€úŸKYX[Ÿ… Kò€‹ŸJ
-N‹ô]\õéﬂCBà€€ú›€€[][öXÿ][€íYI
-	»ÿ€€[][öXÿ][€ã\ô\‹€úŸKZY	 Kùò[YKô\‹€úŸU^I
-	»ÿ€€[][öXÿ][€ã\ô\‹€úŸK]^	 Kùò[YKùö[J
-N√BàYäô\‹€úŸU^õ[ô›ä^‹Ÿ][Ÿ[ôYYòX⁄ 	»ÿ€€[][öXÿ][€ã\ô\‹€úŸKYôYYòX⁄…À	—\ÿ‹öXôHHô\‹Y\›H[ù\»H[ùöX\õKâ N‹ô]\õéﬂCBà€€ú›ù]€èY]ô[ùú›XõZ]\éÿ€€ú›‹öY⁄[ò[Xù]€ãö[õô\íSÿù]€ãô\ÿXõY]ùYNÿù]€ãù^€€ù[ùI—›X\ô[ô»ô\‹Y\›x†)âŒ√Bàû^√Bà€€ú›][OJ›]Kò€€[][öXÿ][€îô\]Y\›ﬂ◊JKôö[ô
-ôX€‹ôOúôX€‹ôöYOOX€€[][öXÿ][€íY
-N√BàYäõŸX›[€ì[ŸIâú]õ‹õP\J^ÿ]ÿZ]]õ‹õP\Kö[ùõ⁄ŸJ	ÿÿ\ŸKX€€[][öXÿ][€ú…ÀÿX›[€éâ‹ô\‹€ôÿ€€[][öXÿ][€âÀ€€[][öXÿ][€íYô\‹€úŸU^JNÿ]ÿZ][ù\îõŸX›[€ä
-NÿX›]ôPÿ\ŸRYZ][OÀòÿ\ŸRYX›]ôPÿ\ŸRYÿX›]ôTŸX›[€èIÿÿ\Ÿ\…ŒﬂCBà[ŸHYä][J^⁄][Kúô\‹€úŸU^\ô\‹€úŸU^⁄][Kúô\‹€ôY][ô]»]J
-Kù“T”‘›ö[ô 
-N‹›]Kõõ›YöXÿ][€úÀú\⁄
-⁄Yò‹û\Àúò[ô€UURQ
+function contractPanel(c){
+  const contract=(state.contracts||[]).filter(item=>item.caseId===c.id).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt))[0];
+  const content=contract
+    ? `<div class="contact-summary"><div><small>Anotaci√≥n de Ratio</small><strong>${escapeHtml(contract.contractNote||'Sin anotaci√≥n')}</strong><span>Plantilla ${escapeHtml(contract.templateKey||'ratio-servicios')} v${Number(contract.templateVersion||1)}</span></div><div><small>Causa</small><strong>${escapeHtml(contract.cause)}</strong><span>${escapeHtml(contract.workScope)}</span></div><div><small>Precio</small><strong>${escapeHtml(formatMoney(contract.priceAmount))}</strong><span>${contract.signedAt&&!contract.invalidatedAt?`Firma acreditada ${escapeHtml(formatDate(contract.signedAt))}`:contract.sentAt?`Env√≠o registrado ${escapeHtml(formatDate(contract.sentAt))}`:'Sin firma acreditada'}</span></div></div>`
+    : '<div class="empty">Todav√≠a no se ha preparado el contrato.</div>';
+  const actions=[
+    !contract||(!contract.signedAt&&!contract.providerRequestId)?'<button class="secondary-button" id="prepare-contract" type="button">Editar ficha contractual</button>':'',
+    contract&&!contract.signedAt&&!contract.providerRequestId?'<button class="secondary-button" id="generate-contract-pdf" type="button">Generar PDF</button>':'',
+    contract?.unsignedStoragePath?'<button class="secondary-button" id="download-contract-pdf" type="button">Descargar PDF</button>':'',
+    contract?.unsignedStoragePath&&!contract.signedAt&&!contract.providerRequestId?'<button class="primary-button" id="send-contract-signature" type="button">Enviar a firma ‚Üí</button>':''
+  ].filter(Boolean).join('');
+  return `<section class="panel"><div class="panel-head"><div><p class="kicker">Contrataci√≥n separada del expediente</p><h2>Contrato de servicios</h2><p>La causa, el precio, el trabajo y cualquier anotaci√≥n se escriben libremente. No existe un recorrido de estados premarcado.</p></div><div class="panel-actions">${actions}</div></div>${content}${contract?.unsignedSha256?`<p class="ai-data-scope">PDF preparado y protegido con huella SHA-256: ${escapeHtml(contract.unsignedSha256.slice(0,16))}‚Ä¶</p>`:''}${contract&&!contract.signedAt?'<p class="ai-data-scope">La anotaci√≥n manual no acredita env√≠o ni firma. El portal solo se habilita cuando existen el documento firmado y sus evidencias.</p>':''}</section>`;
+}
 
-K\Ÿ\íYú›]Kù\Ÿ\úÀò€Y[ùöYÿ\ŸRYö][Kòÿ\ŸRY]Nâ‘ô\‹Y\›HHH€€X⁄]Y	ÀõŸNö][Kú›XöôX›]ö][Kúô\‹€ôY]ôXYôò[Ÿ_JN‹›]Kô]ô[ùÀú\⁄
-⁄Yò‹û\Àúò[ô€UURQ
+function internalDocumentsPanel(c){
+  const documents=(state.internalDocuments||[]).filter(item=>item.caseId===c.id);
+  const fileType=item=>item.mimeType==='application/pdf'?'PDF':item.mimeType.includes('wordprocessingml')?'DOCX':'IMG';
+  const content=documents.length?`<ul class="document-list">${documents.map(item=>`<li><span>${fileType(item)}</span><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.originalName)} ¬∑ ${escapeHtml(formatFileSize(item.sizeBytes))} ¬∑ ${escapeHtml(formatDate(item.createdAt))}</small>${item.note?`<small>${escapeHtml(item.note)}</small>`:''}</div><div class="document-actions"><em>Interno ¬∑ ${escapeHtml(String(item.sha256||'').slice(0,10))}‚Ä¶</em><button type="button" class="document-download" data-download-internal-document="${escapeHtml(item.id)}">Descargar</button></div></li>`).join('')}</ul>`:'<div class="empty">Todav√≠a no hay archivos internos adjuntos.</div>';
+  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Archivo privado de Ratio</p><h2>Documentaci√≥n interna</h2><p>Archivos creados o recibidos por el equipo. Nunca se muestran al cliente por defecto.</p></div><button class="secondary-button" id="add-internal-document" type="button">Adjuntar archivo</button></div>${content}</section>`;
+}
 
-Kÿ\ŸRYö][Kòÿ\ŸRY⁄[ôâÿ€Y[ùÿ€€[][öXÿ][€ó‹ô\‹€ôY	À]Nâ‘ò][»Hô\‹€ôY»HH€€X⁄]Y	À\ÿ‹ö\[€éö][Kú›XöôX›]ö][Kúô\‹€ôY]›\úô[ùùùY_JN‹ÿ]ôT›]J
-NﬂCBà	
-	»ÿ€€[][öXÿ][€ã\ô\‹€úŸKYõ‹õI Kúô\Ÿ]
+function workingDocumentsPanel(c){
+  const documents=(state.workingDocuments||[]).filter(item=>item.caseId===c.id);
+  const content=documents.length?documents.map(document=>{
+    const versions=(state.documentVersions||[]).filter(item=>item.documentId===document.id).sort((a,b)=>b.versionNumber-a.versionNumber);
+    return `<article class="document-request working-document-row"><div><small>${escapeHtml(document.documentType||'Documento de trabajo')}</small><strong>${escapeHtml(document.title)}</strong><p>${escapeHtml(document.statusLabel||'Sin estado indicado')} ¬∑ ${versions.length} ${versions.length===1?'versi√≥n':'versiones'}</p></div><div class="working-document-actions">${versions.length?`<button class="primary-button open-working-document" type="button" data-working-document-id="${escapeHtml(document.id)}">Abrir documento</button>`:''}<button class="secondary-button add-document-version" type="button" data-working-document-id="${escapeHtml(document.id)}">A√±adir versi√≥n</button></div></article>`;
+  }).join(''):'<div class="empty">Todav√≠a no hay documentos de trabajo.</div>';
+  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Trabajo interno versionado</p><h2>Escritos y documentos</h2><p>Cada borrador se conserva, puede volver a abrirse y admite nuevas versiones sin perder las anteriores.</p></div><button class="secondary-button" id="new-working-document" type="button">Nuevo documento</button></div>${content}</section>`;
+}
+function refreshCaseList() {
+  const visible=filteredCases();
+  $('#case-results').innerHTML=caseTable(visible);
+  $('#case-count').textContent=`${visible.length} ${visible.length===1?'expediente':'expedientes'}`;
+  bindCaseRows();
+}
+function bindCaseListControls() {
+  $('#case-search').addEventListener('input',event=>{caseSearch=event.target.value;refreshCaseList();});
+  $('#case-status-filter').addEventListener('change',event=>{caseFilter=event.target.value;refreshCaseList();});
+  bindCaseRows();
+}
+function bindCaseRows() {
+  $$('[data-case-id]').forEach(row => {
+    const open=()=>{activeCaseId=row.dataset.caseId;activeSection='cases';renderShell();};
+    row.addEventListener('click',open);
+    row.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}});
+  });
+}
+function notificationList(all=false) {
+  const list=all?state.notifications:state.notifications.filter(n=>n.userId===currentUser().id);
+  return list.length?list.map(n=>`<article class="notice ${n.read?'read':''}"><i></i><div><strong>${escapeHtml(n.title)}</strong><p>${escapeHtml(n.body)}</p></div><time>${formatDate(n.at)}</time></article>`).join(''):'<div class="empty">No hay avisos.</div>';
+}
+function auditTable() {
+  if(!state.audit.length)return '<div class="empty">Las acciones realizadas en esta prueba aparecer√°n aqu√≠.</div>';
+  return `<table class="case-table"><thead><tr><th>Momento</th><th>Acci√≥n</th><th>Objeto</th><th>Usuario</th></tr></thead><tbody>${[...state.audit].reverse().map(a=>`<tr><td>${formatDate(a.at)}</td><td>${escapeHtml(a.action)}</td><td>${escapeHtml(a.objectType)} ¬∑ ${escapeHtml(String(a.objectId).slice(0,12))}</td><td>${escapeHtml(a.actorId)}</td></tr>`).join('')}</tbody></table>`;
+}
 
-N…
-	»ÿ€€[][öXÿ][€ã\ô\‹€úŸKYX[Ÿ… Kò€‹ŸJ
-N‹ô[ô\î⁄[
+function bindCrmActions() {
+  $('#new-lead')?.addEventListener('click',()=>$('#lead-dialog').showModal());
+  $('#new-task')?.addEventListener('click',openTaskDialog);
+  $('#lead-status-filter')?.addEventListener('change',event=>{leadFilter=event.target.value;renderShell();});
+  $$('[data-lead-id]').forEach(node=>{
+    const open=()=>openLeadDialog(node.dataset.leadId);
+    node.addEventListener('click',open);
+    node.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open();}});
+  });
+  $$('[data-task-id]').forEach(button=>button.addEventListener('click',()=>toggleTask(button.dataset.taskId)));
+  bindCaseRows();
+}
+function openLeadDialog(leadId) {
+  const lead=state.leads.find(item=>item.id===leadId); if(!lead)return;
+  $('#lead-detail-id').value=lead.id;
+  $('#lead-detail-title').textContent=`${lead.reference} ¬∑ ${lead.name}`;
+  $('#lead-detail-contact').innerHTML=`<div><small>Contacto</small><strong>${escapeHtml(lead.phone||'Sin tel√©fono')}</strong><span>${escapeHtml(lead.email||'Sin correo')}</span></div><div><small>Consulta</small><strong>${escapeHtml(lead.category)}</strong><span>${escapeHtml(lead.summary)}</span></div><div><small>Privacidad</small><strong>Informaci√≥n entregada</strong><span>${escapeHtml(formatDate(lead.privacyNoticeAt))}</span></div>`;
+  $('#lead-detail-phone').value=lead.phone||'';
+  $('#lead-detail-email').value=lead.email||'';
+  $('#lead-detail-status').innerHTML=availableLeadStatuses(lead.status,lead.convertedCaseId).map(status=>`<option value="${escapeHtml(status)}">${escapeHtml(leadStatusLabels[status])}</option>`).join('');
+  $('#lead-detail-status').value=lead.status;
+  $('#lead-detail-amount').value=lead.amount||'';
+  $('#lead-detail-note').value='';
+  const historyCount=leadHistoryEntries(lead).length;
+  $('#lead-history-count').textContent=`${historyCount} ${historyCount===1?'movimiento':'movimientos'}`;
+  $('#lead-history-list').innerHTML=leadHistory(lead);
+  $('#ai-assistant-result').hidden=true;
+  $('#ai-assistant-result').innerHTML='';
+  setModalFeedback('#lead-detail-feedback');
+  if(lead.convertedCaseId)setModalFeedback('#lead-detail-feedback','Esta consulta ya est√° vinculada a un expediente. Puedes reenviar al cliente el correo que confirma su apertura.','info');
+  $('#convert-lead').textContent=lead.convertedCaseId?'Reenviar confirmaci√≥n':'Convertir en expediente';
+  $('#convert-lead').disabled=lead.status!=='won'&&!lead.convertedCaseId;
+  $('#lead-detail-dialog').showModal();
+}
+function openTaskDialog() {
+  $('#task-lead').innerHTML=state.cases.filter(item=>item.statusCode==='open').map(item=>`<option value="${escapeHtml(item.id)}">${escapeHtml(item.reference+' ¬∑ '+item.client)}</option>`).join('');
+  $('#task-date').value=new Date().toISOString().slice(0,10);
+  $('#task-dialog').showModal();
+}
 
-N›ÿ\›
-	‘ô\‹Y\›HôY⁄\›òYHH€Y[ùH]ö\ÿYÀâ N√BàXÿ]⁄
-\úõ‹ä^ÿ€€ú›Y\‹ÿYŸ\œ^–””SUSíP–US”ó–SëPQW‘ëT‘”ëQâ—\›H€€X⁄]YXHY[ôHô\‹Y\›KâÀ””SUSíP–US”ó”ì’—ì’Sëâ”H€€X⁄]YXHõ»\›0ËH\‹€öXõKâÀQêW‘ëTURTëQâ–€€ôö\õXHHùY]õ»[ŸY›[ô»òX›‹ãâﬂN‹Ÿ][Ÿ[ôYYòX⁄ 	»ÿ€€[][öXÿ][€ã\ô\‹€úŸKYôYYòX⁄…ÀY\‹ÿYŸ\÷Ÿ\úõ‹èÀò€ŸW_	”õ»ŸHHŸY»ôY⁄\›ò\àHô\‹Y\›Kâ NﬂCBàö[ò[^ÿù]€ãô\ÿXõYYò[ŸNÿù]€ãö[õô\íS[‹öY⁄[ò[ﬂCBüJN√BÉBâ
-	»‹\‹›€‹ôYõ‹õI KòY]ô[ù\›[ô\ä	‹›XõZ]	À\ﬁ[ò»]ô[ùOû√Bà]ô[ùúô]ô[ùYò][
+function openCaseRecordDialog(caseItem){
+  $('#case-record-id').value=caseItem.id;
+  $('#case-record-title').textContent=`${caseItem.reference} ¬∑ ${caseItem.client}`;
+  $('#case-record-phone').value=caseItem.phone||'';
+  $('#case-record-email').value=caseItem.email||'';
+  $('#case-record-phase').value=caseItem.manualPhase||'';
+  $('#case-record-lifecycle').value=caseItem.statusCode||'open';
+  $('#case-record-amount').value=caseItem.amount||'';
+  $('#case-record-note').value='';
+  setModalFeedback('#case-record-feedback');
+  $('#case-record-dialog').showModal();
+}
 
-Nÿ€€ú›\‹›€‹ôI
-	»€ô]À\\‹›€‹ô	 Kùò[YK€€ôö\õX][€èI
-	»ÿ€€ôö\õK\\‹›€‹ô	 Kùò[YN√BàYä\‹›€‹ôOOX€€ôö\õX][€ä^›ÿ\›
-	”\»€€ùò\ŸpÏX\»õ»€⁄[ò⁄Y[ãâ N‹ô]\õéﬂCBà€€ú››XõZ]\èY]ô[ùú›XõZ]\é‹›XõZ]\ãô\ÿXõY]ùYN√Bàû^ÿ]ÿZ]]õ‹õP\Kù\]T\‹›€‹ô
-\‹›€‹ô
-N…
-	»‹\‹›€‹ôYõ‹õI Kúô\Ÿ]
+function openAiContextDialog(caseItem){
+  $('#ai-context-form').reset();
+  $('#ai-context-case').value=caseItem.id;
+  $('#ai-context-title').value='Aclaraci√≥n para el an√°lisis';
+  setModalFeedback('#ai-context-feedback');
+  $('#ai-context-dialog').showModal();
+  $('#ai-context-content').focus();
+}
 
-N…
-	»‹\‹›€‹ôYX[Ÿ… Kò€‹ŸJ
-Nÿ]ÿZ][ù\îõŸX›[€ä
-N›ÿ\›
-	–XÿŸ\€»€€ôö\õXY»€‹úôX›[Y[ùKâ NﬂCBàÿ]⁄
-\úõ‹ä^›ÿ\›
-\úõ‹èÀò€ŸOOOI’—PR◊‘T‘’”‘ë	œ…’\ÿH[Y[õ‹»Làÿ\òX›\ô\À€€àX^pÓúÿ›[KZ[∞Óúÿ›[K∞ÓõY\õ»HÎ[Xõ€À⁄[à\‹X⁄[‹ÀâŒâ”õ»ŸHHŸY»€€ôö\õX\à[XÿŸ\€Àâ NﬂCBàö[ò[^‹›XõZ]\ãô\ÿXõYYò[ŸNﬂCBüJN√Bâ
-	»‹\‹›€‹ôYX[Ÿ… KòY]ô[ù\›[ô\ä	ÿÿ[òŸ[	À]ô[ùOô]ô[ùúô]ô[ùYò][
+async function activateCasePortal(caseItem){
+  const signedContract=(state.contracts||[]).find(item=>item.caseId===caseItem.id&&item.signedAt&&!item.invalidatedAt);
+  if(!signedContract){toast('El portal solo puede activarse despu√©s de recibir el contrato firmado.');return;}
+  if(!confirm(`Se ha comprobado un contrato firmado para ${caseItem.client}. ¬øActivar y comunicar el acceso al portal?`))return;
+  const button=$('#activate-case-portal');if(button){button.disabled=true;button.textContent='Activando‚Ä¶';}
+  try{
+    if(!productionMode||!platformApi){caseItem.portalStatus='active';caseItem.contractConfirmedAt=new Date().toISOString();saveState();renderShell();return;}
+    const result=await platformApi.invoke('manage-crm',{action:'activate_case_portal',caseId:caseItem.id});
+    await enterProduction();activeCaseId=caseItem.id;activeSection='cases';renderShell();
+    toast(result.confirmationSent===false?'Portal activado, pero el correo no pudo enviarse.':'Portal activado y acceso comunicado.');
+  }catch(error){
+    const messages={SIGNED_CONTRACT_REQUIRED:'No existe un contrato firmado con justificante de evidencias.',PORTAL_ALREADY_ENABLED:'El portal ya est√° habilitado.',EMAIL_REQUIRED_FOR_PORTAL:'El expediente necesita un correo v√°lido.',EMAIL_BELONGS_TO_INTERNAL_USER:'Ese correo pertenece a una cuenta interna.'};
+    toast(messages[error?.code]||'No se ha podido activar el portal.');
+  }finally{if(button){button.disabled=false;button.textContent='Activar portal tras contrato';}}
+}
 
-JN√Bâ
-	»€YòKYõ‹õI KòY]ô[ù\›[ô\ä	‹›XõZ]	À\ﬁ[ò»]ô[ùOû√Bà]ô[ùúô]ô[ùYò][
+function openWorkingDocumentDialog(caseItem){
+  $('#working-document-form').reset();$('#working-document-case').value=caseItem.id;setModalFeedback('#working-document-feedback');$('#working-document-dialog').showModal();
+}
 
-N√Bà€€ú›€ŸOI
-	»€YòKX€ŸI Kùò[YKùö[J
-N√Bà€€ú››XõZ]\èY]ô[ùú›XõZ]\é‹›XõZ]\ãô\ÿXõY]ùYN√Bàû^√Bà€€ú›⁄[[ôŸOX]ÿZ]]õ‹õP\Kò⁄[[ôŸSYòJYòQòX›‹íY
-N√Bà]ÿZ]]õ‹õP\Kùô\öYûSYòJYòQòX›‹íY⁄[[ôŸKöY€ŸJN√Bà	
-	»€YòKYõ‹õI Kúô\Ÿ]
+function openInternalDocumentDialog(caseItem){
+  $('#internal-document-form').reset();$('#internal-document-case').value=caseItem.id;$('#internal-document-file-name').textContent='Ning√∫n archivo seleccionado';setModalFeedback('#internal-document-feedback');$('#internal-document-dialog').showModal();
+}
 
-N…
-	»€YòKYX[Ÿ… Kò€‹ŸJ
-N√Bà]ÿZ][ù\îõŸX›[€ä
-N√Bàÿ\›
-YòQ[úõ€Y[ù…‘ŸY›[ô»òX›‹àX›]òY»€‹úôX›[Y[ùKâŒâ“Y[ùYY€€ôö\õXYH€‹úôX›[Y[ùKâ N√BàXÿ]⁄
-\úõ‹ä^√Bà€€ú›[ùò[Y€ŸOV…“SïêSQ”QêW–”—IÀ	€YòW›ô\öYöXÿ][€óŸòZ[Y	◊Kö[ò€Y\ \úõ‹èÀò€ŸJN√Bàÿ\›
-[ùò[Y€ŸO…—[ÏŸY€»[\‹ò[õ»\»∞Ë[Y»»HÿYXÿYÀàXúôHH\H]][ùXÿX⁄pÏ€àH[ùõŸXŸH[ÏŸY€»ùY]õ»]YH\\ôXŸKâŒâ”õ»ŸHHŸY»ô\öYöXÿ\à[ŸY›[ô»òX›‹ãà[ù0Í[ù[»HùY]õÀâ N√BàYö[ò[^‹›XõZ]\ãô\ÿXõYYò[ŸNﬂCBüJN√Bâ
-	»€YòK[Ÿ€›]	 KòY]ô[ù\›[ô\ä	ÿ€X⁄…ÀŸ€›]
-N√Bâ
-	»€YòKYX[Ÿ… KòY]ô[ù\›[ô\ä	ÿÿ[òŸ[	À]ô[ùOô]ô[ùúô]ô[ùYò][
+function openClientDocumentIntakeDialog(caseItem){
+  $('#client-document-intake-form').reset();$('#client-document-intake-case').value=caseItem.id;$('#client-document-intake-file-name').textContent='Ning√∫n archivo seleccionado';setModalFeedback('#client-document-intake-feedback');$('#client-document-intake-dialog').showModal();
+}
 
-JN√Bâ
-	»€õ›YöXÿ][€ãXù]€â KòY]ô[ù\›[ô\ä	ÿ€X⁄…À
+function openContractDialog(caseItem){
+  const contract=(state.contracts||[]).filter(item=>item.caseId===caseItem.id&&!item.signedAt&&!item.providerRequestId).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt))[0];
+  $('#contract-form').reset();$('#contract-case').value=caseItem.id;$('#contract-note').value=contract?.contractNote||'';$('#contract-signer-name').value=contract?.signerFullName||caseItem.client||'';$('#contract-signer-id').value=contract?.signerIdentifier||'';$('#contract-signer-address').value=contract?.signerAddress||'';$('#contract-cause').value=contract?.cause||caseItem.title||'';$('#contract-price').value=contract?.priceAmount||caseItem.amount||'';$('#contract-work-scope').value=contract?.workScope||'';setModalFeedback('#contract-feedback');$('#contract-dialog').showModal();
+}
 
-OOûÿX›]ôTŸX›[€èI€õ›YöXÿ][€ú…Œ‹ô[ô\î⁄[
+function workingDocumentVersions(documentId){
+  return (state.documentVersions||[]).filter(item=>item.documentId===documentId).sort((a,b)=>b.versionNumber-a.versionNumber);
+}
 
-NﬂJN√BÉBöYäõŸX›[€ì[ŸJ^√Bà	
-	Àù\›Xò[õô\â KöY[è]ùYN…
-	Àô[[ÀXXÿŸ\‹… KöY[èH\ù[ù[YP€€ôöYÀò[›—[[–XÿŸ\‹Œ√BàYä]õ‹õP\J^√Bà€€ú›ÿ[òX⁄’\O\]õ‹õP\Kò€€ú›[YU\õŸ\‹⁄[€äÿÿ][€ãöôYäN√BàYä]õ‹õP\Kúô\]Z\ô\‘\‹›€‹ôŸ]\
-ÿ[òX⁄’\JJ^√Bà	
-	»‹\‹›€‹ôYX[Ÿ… Kú⁄›”[Ÿ[
+function renderWorkingDocumentVersion(documentId,versionId){
+  const versions=workingDocumentVersions(documentId);
+  const version=versions.find(item=>item.id===versionId)||versions[0];
+  if(!version)return;
+  activeWorkingDocumentVersionId=version.id;
+  $('#working-document-view-version').value=version.id;
+  $('#working-document-view-meta').innerHTML=`<small>Versi√≥n ${escapeHtml(version.versionNumber)} ¬∑ ${escapeHtml(formatDate(version.createdAt))}</small><p><strong>${escapeHtml(version.statusLabel||'Sin anotaci√≥n')}</strong>${version.changeSummary?`<br>${escapeHtml(version.changeSummary)}`:''}</p>`;
+  const content=String(version.draftContent||'');
+  $('#working-document-view-content').textContent=content||'Esta versi√≥n no contiene texto editable.';
+  $('#copy-working-document-version').disabled=!content;
+  $('#download-working-document-version').disabled=!content;
+  setModalFeedback('#working-document-view-feedback');
+}
 
-N√Bàô\]Y\›[ö[X][€ëúò[YJ
+function openWorkingDocumentViewer(documentId,versionId=''){
+  const documentRecord=(state.workingDocuments||[]).find(item=>item.id===documentId);if(!documentRecord)return;
+  const versions=workingDocumentVersions(documentId);if(!versions.length)return toast('Este documento todav√≠a no tiene versiones guardadas.');
+  $('#working-document-view-id').value=documentId;
+  $('#working-document-view-title').textContent=documentRecord.title;
+  const selector=$('#working-document-view-version');selector.innerHTML='';
+  versions.forEach(version=>{const option=document.createElement('option');option.value=version.id;option.textContent=`Versi√≥n ${version.versionNumber} ¬∑ ${version.statusLabel||'Sin anotaci√≥n'} ¬∑ ${formatDate(version.createdAt)}`;selector.appendChild(option);});
+  renderWorkingDocumentVersion(documentId,versionId||versions[0].id);
+  $('#working-document-view-dialog').showModal();
+}
 
-OOâ
-	»€ô]À\\‹›€‹ô	 Kôõÿ›\ 
-JN√BàY[ŸH[ù\îõŸX›[€ä
-Kòÿ]⁄
+function openDocumentVersionDialog(documentId,sourceVersionId=''){
+  const documentRecord=(state.workingDocuments||[]).find(item=>item.id===documentId);if(!documentRecord)return;
+  const source=workingDocumentVersions(documentId).find(item=>item.id===sourceVersionId);
+  $('#document-version-form').reset();$('#document-version-id').value=documentId;$('#document-version-title').textContent=`Nueva versi√≥n ¬∑ ${documentRecord.title}`;$('#document-version-status').value=source?.statusLabel||documentRecord.statusLabel||'';$('#document-version-content').value=source?.draftContent||'';$('#document-version-summary').value=source?`Nueva versi√≥n basada en la versi√≥n ${source.versionNumber}.`:'';setModalFeedback('#document-version-feedback');$('#document-version-dialog').showModal();
+}
 
+document.addEventListener('click',event=>{
+  const target=event.target.closest?.('button');if(!target)return;
+  if(target.id==='edit-case-record'){const item=currentCase();if(item)openCaseRecordDialog(item);}
+  else if(target.id==='activate-case-portal'){const item=currentCase();if(item)activateCasePortal(item);}
+  else if(target.id==='resend-case-confirmation'){const item=currentCase();if(item)resendCaseConfirmation(item);}
+  else if(target.id==='new-working-document'){const item=currentCase();if(item)openWorkingDocumentDialog(item);}
+  else if(target.id==='add-internal-document'){const item=currentCase();if(item)openInternalDocumentDialog(item);}
+  else if(target.id==='add-client-document'){const item=currentCase();if(item)openClientDocumentIntakeDialog(item);}
+  else if(target.id==='prepare-contract'){const item=currentCase();if(item)openContractDialog(item);}
+  else if(target.id==='generate-contract-pdf'){const item=currentCase();if(item)generateContractPdf(item,target);}
+  else if(target.id==='download-contract-pdf'){const item=currentCase();if(item)downloadContractPdf(item,target);}
+  else if(target.id==='send-contract-signature'){const item=currentCase();if(item)sendContractSignature(item,target);}
+  else if(target.dataset.downloadInternalDocument)downloadInternalDocument(target.dataset.downloadInternalDocument,target);
+  else if(target.classList.contains('open-working-document'))openWorkingDocumentViewer(target.dataset.workingDocumentId);
+  else if(target.classList.contains('add-document-version'))openDocumentVersionDialog(target.dataset.workingDocumentId);
+});
 
-OOûﬂJN√BàCBüY[ŸHYä›]KòX›]ôTõ€JY[ù\ä›]KòX›]ôTõ€JN√B
+$('#working-document-view-version').addEventListener('change',event=>renderWorkingDocumentVersion($('#working-document-view-id').value,event.target.value));
+$('#copy-working-document-version').addEventListener('click',async()=>{
+  const version=workingDocumentVersions($('#working-document-view-id').value).find(item=>item.id===activeWorkingDocumentVersionId);
+  const copied=version?.draftContent&&await copyTextSafely(version.draftContent);
+  setModalFeedback('#working-document-view-feedback',copied?'Texto copiado al portapapeles.':'No se ha podido copiar el texto.',copied?'info':'');
+});
+$('#download-working-document-version').addEventListener('click',async event=>{
+  const version=workingDocumentVersions($('#working-document-view-id').value).find(item=>item.id===activeWorkingDocumentVersionId);
+  if(!version?.draftContent)return setModalFeedback('#working-document-view-feedback','Esta versi√≥n no contiene texto para exportar.');
+  const button=event.currentTarget,original=button.textContent;button.disabled=true;button.textContent='Preparando Word‚Ä¶';
+  try{
+    if(!productionMode||!platformApi){setModalFeedback('#working-document-view-feedback','La exportaci√≥n profesional est√° disponible en el CRM protegido.','info');return;}
+    const result=await platformApi.invoke('document-export',{versionId:version.id});
+    if(result?.mimeType!=='application/vnd.openxmlformats-officedocument.wordprocessingml.document'||!result?.base64||!result?.filename)throw new Error('INVALID_DOCUMENT_EXPORT');
+    const binary=atob(result.base64),bytes=new Uint8Array(binary.length);
+    for(let index=0;index<binary.length;index++)bytes[index]=binary.charCodeAt(index);
+    const blob=new Blob([bytes],{type:result.mimeType}),url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download=result.filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    setModalFeedback('#working-document-view-feedback','Word profesional generado con identidad Ratio. Rev√≠salo antes de utilizarlo.','info');
+  }catch(error){
+    const messages={DOCUMENT_CONTENT_EMPTY:'Esta versi√≥n no contiene texto para exportar.',DOCUMENT_NOT_FOUND:'La versi√≥n ya no est√° disponible.',MFA_REQUIRED:'Confirma de nuevo el segundo factor para exportar.'};
+    setModalFeedback('#working-document-view-feedback',messages[error?.code]||'No se ha podido generar el Word profesional.');
+  }finally{button.disabled=false;button.textContent=original;}
+});
+$('#create-working-document-version-from-current').addEventListener('click',()=>{
+  const documentId=$('#working-document-view-id').value;
+  $('#working-document-view-dialog').close();
+  openDocumentVersionDialog(documentId,activeWorkingDocumentVersionId);
+});
+
+async function generateContractPdf(caseItem,button){
+  const contract=(state.contracts||[]).filter(item=>item.caseId===caseItem.id&&!item.signedAt&&!item.providerRequestId).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt))[0];
+  if(!contract)return toast('Prepara primero la ficha contractual.');
+  button.disabled=true;
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('contract-signature',{action:'generate_contract_pdf',contractId:contract.id});await downloadContractPdfById(contract.id);await enterProduction();}
+    else{contract.unsignedStoragePath=`demo/${contract.id}/unsigned.pdf`;contract.unsignedSha256='a'.repeat(64);contract.updatedAt=new Date().toISOString();saveState();}
+    activeCaseId=caseItem.id;activeSection='cases';renderShell();toast('PDF contractual generado. Revisa el documento antes de enviarlo.');
+  }catch(error){const message=error?.code==='CONTRACT_NOT_EDITABLE'?'Este contrato ya no puede modificarse.':error?.code==='MFA_REQUIRED'?'Confirma el segundo factor para generar el contrato.':'No se ha podido generar el PDF contractual.';toast(message);}
+  finally{button.disabled=false;}
+}
+
+function openSecureDownload(rawUrl){
+  const url=new URL(rawUrl);
+  if(url.protocol!=='https:'||!url.hostname.endsWith('.supabase.co'))throw new Error('INVALID_DOWNLOAD_URL');
+  const link=document.createElement('a');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';document.body.appendChild(link);link.click();link.remove();
+}
+
+async function downloadContractPdfById(contractId){
+  const result=await platformApi.invoke('contract-signature',{action:'download_contract_pdf',contractId});
+  openSecureDownload(result.url);
+}
+
+async function downloadContractPdf(caseItem,button){
+  const contract=(state.contracts||[]).filter(item=>item.caseId===caseItem.id&&item.unsignedStoragePath).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt))[0];
+  if(!contract)return toast('Todav√≠a no existe un PDF preparado.');
+  const original=button.textContent;button.disabled=true;button.textContent='Preparando‚Ä¶';
+  try{if(productionMode&&platformApi)await downloadContractPdfById(contract.id);else toast('En modo de prueba no existe un archivo binario.');}
+  catch{toast('No se ha podido descargar el PDF contractual.');}
+  finally{button.disabled=false;button.textContent=original;}
+}
+
+async function sendContractSignature(caseItem,button){
+  const contract=(state.contracts||[]).filter(item=>item.caseId===caseItem.id&&!item.signedAt&&!item.providerRequestId).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt))[0];
+  if(!contract?.unsignedStoragePath)return toast('Genera y revisa primero el PDF contractual.');
+  if(!confirm('Se enviar√° el PDF preparado al correo del firmante. ¬øHas revisado causa, alcance, precio e identidad?'))return;
+  button.disabled=true;
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('contract-signature',{action:'send_contract_signature',contractId:contract.id});await enterProduction();}
+    else{contract.provider='signaturit';contract.providerRequestId=`demo-${crypto.randomUUID()}`;contract.providerDocumentId=`demo-doc-${crypto.randomUUID()}`;contract.sentAt=new Date().toISOString();contract.updatedAt=contract.sentAt;saveState();}
+    activeCaseId=caseItem.id;activeSection='cases';renderShell();toast('Env√≠o registrado. La firma no se acreditar√° hasta verificar el PDF firmado y sus evidencias.');
+  }catch(error){const messages={SIGNATURE_PROVIDER_NOT_CONFIGURED:'El proveedor de firma todav√≠a no est√° configurado.',CONTRACT_PDF_REQUIRED:'Genera de nuevo el PDF antes de enviarlo.',CONTRACT_SIGNATURE_ALREADY_SENT:'El contrato ya fue enviado.',MFA_REQUIRED:'Confirma el segundo factor para realizar el env√≠o.'};toast(messages[error?.code]||'No se ha podido enviar el contrato a firma.');}
+  finally{button.disabled=false;}
+}
+async function toggleTask(taskId) {
+  const task=state.tasks.find(item=>item.id===taskId); if(!task)return;
+  task.completed=!task.completed;
+  if(productionMode&&platformApi){
+    try{await platformApi.update('crm_tasks',`id=eq.${encodeURIComponent(task.id)}`,{completed_at:task.completed?new Date().toISOString():null});}
+    catch{task.completed=!task.completed;toast('No se ha podido actualizar la tarea.');return;}
+  } else { log(task.completed?'task_completed':'task_reopened','crm_task',task.id);saveState(); }
+  renderShell();
+}
+function nextLeadReference() {
+  const year=new Date().getFullYear();
+  const maximum=state.cases.reduce((max,item)=>Math.max(max,Number(String(item.reference||'').split('-').pop())||0),0);
+  return `C-${year}-${String(maximum+1).padStart(3,'0')}`;
+}
+
+function openUpdateDialog() {
+  const c=currentCase();
+  $('#update-title').value='';
+  $('#professional-name').value=c.professionalName || '';
+  $('#professional-title').value=c.professionalTitle || '';
+  $('#professional-registration').value=c.professionalRegistration || '';
+  $('#professional-region').value=c.professionalRegion || '';
+  setModalFeedback('#update-feedback');
+  $('#update-dialog').showModal();
+}
+function closeLeadDialog() {
+  $('#lead-form').reset();
+  setModalFeedback('#lead-form-feedback');
+  $('#lead-dialog').close();
+}
+async function copyTextSafely(value) {
+  const text=String(value||'');
+  if(navigator.clipboard?.writeText){
+    try{await navigator.clipboard.writeText(text);return true;}catch{/* Se intenta el m√©todo compatible siguiente. */}
+  }
+  const field=document.createElement('textarea');
+  field.value=text;field.setAttribute('readonly','');field.style.position='fixed';field.style.opacity='0';
+  document.body.appendChild(field);field.select();
+  try{return Boolean(document.execCommand?.('copy'));}catch{return false;}finally{field.remove();}
+}
+function renderAiAssistant(result) {
+  const list=(items,empty='Ninguna detectada')=>items?.length?`<ul>${items.map(item=>`<li>${escapeHtml(item)}</li>`).join('')}</ul>`:`<p>${empty}</p>`;
+  $('#ai-assistant-result').innerHTML=`
+    <div class="ai-result-head"><strong>An√°lisis interno para revisi√≥n</strong><span>${escapeHtml(result.model||'Modelo configurado')}</span></div>
+    <div class="ai-result-grid">
+      <section><small>Resumen</small><p>${escapeHtml(result.summary)}</p></section>
+      <section><small>Categor√≠a sugerida</small><p>${escapeHtml(result.suggested_category)}</p></section>
+      <section><small>Informaci√≥n que falta</small>${list(result.missing_information)}</section>
+      <section><small>Preguntas propuestas</small>${list(result.questions_for_client)}</section>
+      <section><small>Se√±ales de urgencia</small>${list(result.urgency_flags)}</section>
+      <section><small>Nota de actuaci√≥n sugerida</small><p>${escapeHtml(result.suggested_internal_note)}</p></section>
+    </div>
+    <section class="ai-draft"><small>Borrador de respuesta</small><p>${escapeHtml(result.draft_reply)}</p></section>
+    <p class="ai-caution">${escapeHtml(result.caution)}</p>
+    <div class="ai-result-actions"><button class="secondary-button" id="copy-ai-draft" type="button">Copiar borrador</button><button class="secondary-button" id="use-ai-internal-note" type="button">A√±adir a nota interna</button></div>`;
+  $('#ai-assistant-result').hidden=false;
+  $('#copy-ai-draft').addEventListener('click',async event=>{
+    event.preventDefault();event.stopPropagation();
+    const copied=await copyTextSafely(result.draft_reply);
+    setModalFeedback('#lead-detail-feedback',copied?'Borrador copiado. Rev√≠salo antes de enviarlo.':'No se ha podido copiar autom√°ticamente. Selecciona el texto del borrador y c√≥pialo manualmente.',copied?'info':'error');
+  });
+  $('#use-ai-internal-note').addEventListener('click',event=>{
+    event.preventDefault();event.stopPropagation();
+    const field=$('#lead-detail-note');const suggestion=String(result.suggested_internal_note||'').trim();
+    field.value=(field.value.trim()?`${field.value.trim()}\n\n${suggestion}`:suggestion).slice(0,800);field.focus();
+    setModalFeedback('#lead-detail-feedback','Sugerencia a√±adida a la nota interna. Rev√≠sala y pulsa ¬´Guardar cambios¬ª.','info');
+  });
+}
+
+function caseAiPanel() {
+  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente integral del expediente ¬∑ revisi√≥n profesional</p><h3>Analizar, resolver o redactar</h3><p>Conoce la ficha, cronolog√≠a, aclaraciones, solicitudes, documentos del cliente, archivos internos y borradores anteriores.</p></div><div class="ai-result-actions"><button class="secondary-button" id="load-latest-case-ai" type="button">Ver √∫ltimo an√°lisis guardado</button><button class="secondary-button" id="add-ai-context" type="button">A√±adir o corregir un dato</button></div></div><label class="ai-request-label">¬øQu√© necesitas hacer?<textarea id="case-ai-request" rows="4" maxlength="4000" placeholder="D√©jalo vac√≠o para una revisi√≥n completa, o escribe por ejemplo: calcula el reparto; comprueba la legislaci√≥n; redacta una reclamaci√≥n; prepara la demanda; revisa el √∫ltimo borrador‚Ä¶"></textarea></label><div class="ai-submit-row"><p class="ai-data-scope">La investigaci√≥n jur√≠dica se realiza con consultas an√≥nimas en fuentes oficiales. El resultado no modifica ni env√≠a nada y queda listo para una √∫nica revisi√≥n profesional.</p><button class="primary-button" id="analyze-case-ai" type="button">Trabajar con el expediente <span>‚Üí</span></button></div><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
+}
+
+function renderCaseAiAssistant(result) {
+  const catalog=new Map((result.source_catalog||[]).map(source=>[source.id,source]));
+  const citations=ids=>(ids||[]).map(id=>catalog.get(id)).filter(Boolean).map(source=>`<span class="ai-source" title="${escapeHtml(source.id)}">${escapeHtml(source.label)}</span>`).join(' ');
+  const sourcedList=(items,empty='Ninguno detectado')=>items?.length?`<ul class="ai-sourced-list">${items.map(item=>`<li><span>${escapeHtml(item.statement||item.action)}</span>${item.rationale?`<small>${escapeHtml(item.rationale)}</small>`:''}<div>${citations(item.source_ids)}</div></li>`).join('')}</ul>`:`<p>${empty}</p>`;
+  const plainList=(items,empty='Ninguna detectada')=>items?.length?`<ul>${items.map(item=>`<li>${escapeHtml(item)}</li>`).join('')}</ul>`:`<p>${empty}</p>`;
+  const officialLinks=urls=>(urls||[]).map(url=>(result.official_sources||[]).find(source=>source.url===url)).filter(Boolean).map(source=>`<a class="ai-official-source" href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title||source.url)}</a>`).join(' ');
+  const legalList=(items,empty='No ha sido necesario aplicar normativa externa')=>items?.length?`<div class="ai-legal-list">${items.map(item=>`<article><strong>${escapeHtml(item.issue)}</strong><p>${escapeHtml(item.analysis)}</p><div>${citations(item.source_ids)} ${officialLinks(item.official_source_urls)}</div></article>`).join('')}</div>`:`<p>${empty}</p>`;
+  const calculations=(items,empty='No se han realizado c√°lculos')=>items?.length?`<div class="ai-calculations">${items.map(item=>`<article><strong>${escapeHtml(item.label)}</strong><code>${escapeHtml(item.formula)}</code><b>${escapeHtml(item.result)}</b><p>${escapeHtml(item.explanation)}</p><div>${citations(item.source_ids)} ${officialLinks(item.official_source_urls)}</div></article>`).join('')}</div>`:`<p>${empty}</p>`;
+  const deliverable=result.deliverable||{kind:'none',title:'',content:''};
+  $('#case-ai-result').innerHTML=`
+    <div class="ai-result-head"><strong>An√°lisis del expediente para revisi√≥n</strong><span>${escapeHtml(result.model||'Modelo configurado')} ¬∑ ${escapeHtml(formatDate(result.analyzed_at||new Date().toISOString()))}</span></div>
+    <section class="ai-conclusion"><small>Conclusi√≥n</small><p>${escapeHtml(result.conclusion||result.executive_summary)}</p></section>
+    <div class="ai-result-grid">
+      <section><small>Resumen ejecutivo</small><p>${escapeHtml(result.executive_summary)}</p></section>
+      <section><small>Situaci√≥n actual</small><p>${escapeHtml(result.current_position)}</p></section>
+      <section><small>Supuestos utilizados</small>${plainList(result.assumptions,'Ning√∫n supuesto a√±adido')}</section>
+      <section><small>Hechos con fuente</small>${sourcedList(result.confirmed_facts)}</section>
+      <section><small>Peticiones pendientes</small>${sourcedList(result.pending_client_requests)}</section>
+      <section><small>Informaci√≥n que falta</small>${plainList(result.missing_information)}</section>
+      <section><small>Se√±ales de urgencia</small>${sourcedList(result.urgency_flags)}</section>
+      <section><small>Posibles contradicciones</small>${sourcedList(result.contradictions)}</section>
+      <section><small>Pr√≥ximas acciones sugeridas</small>${sourcedList(result.suggested_next_actions)}</section>
+    </div>
+    <section class="ai-draft"><small>Fundamento y an√°lisis</small>${legalList(result.legal_analysis)}</section>
+    <section class="ai-draft"><small>C√°lculos</small>${calculations(result.calculations)}</section>
+    ${deliverable.content?`<section class="ai-deliverable"><small>${escapeHtml(deliverable.kind==='analysis'?'Informe preparado':'Borrador generado')}</small><h4>${escapeHtml(deliverable.title)}</h4><pre>${escapeHtml(deliverable.content)}</pre></section>`:''}
+    <section class="ai-draft"><small>Borrador de actualizaci√≥n al cliente</small><p>${escapeHtml(result.draft_client_update)}</p></section>
+    ${(result.official_sources||[]).length?`<section class="ai-draft"><small>Fuentes oficiales consultadas</small><div class="ai-official-sources">${(result.official_sources||[]).map(source=>`<a class="ai-official-source" href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title||source.url)}</a>`).join(' ')}</div></section>`:''}
+    <p class="ai-caution">${escapeHtml(result.caution)} ${result.document_content_analyzed?`PDF le√≠dos en esta ejecuci√≥n: ${Number(result.analyzed_document_count||0)}. Archivos omitidos por formato, validaci√≥n o l√≠mite: ${Number(result.skipped_document_count||0)+Number(result.failed_document_count||0)}.`:'El contenido de los archivos no ha sido analizado.'}</p>
+    <div class="ai-result-actions">${deliverable.content?'<button class="secondary-button" id="save-case-ai-deliverable" type="button">Guardar como documento de trabajo</button>':''}<button class="secondary-button" id="copy-case-ai-draft" type="button">Copiar respuesta al cliente</button></div>`;
+  $('#case-ai-result').hidden=false;
+  $('#copy-case-ai-draft').addEventListener('click',async()=>{
+    const copied=await copyTextSafely(result.draft_client_update);
+    setModalFeedback('#case-ai-feedback',copied?'Borrador copiado. Rev√≠salo antes de utilizarlo.':'No se ha podido copiar autom√°ticamente.',copied?'info':'error');
+  });
+  $('#save-case-ai-deliverable')?.addEventListener('click',()=>saveAiDeliverable(result));
+}
+
+function renderCaseAiFallback(result){
+  const deliverable=result?.deliverable||{};
+  $('#case-ai-result').innerHTML=`<div class="ai-result-head"><strong>An√°lisis recuperado para revisi√≥n</strong><span>${escapeHtml(result?.model||'Modelo configurado')}</span></div><section class="ai-conclusion"><small>Conclusi√≥n</small><p>${escapeHtml(result?.conclusion||result?.executive_summary||'El an√°lisis termin√≥, pero no contiene una conclusi√≥n visible.')}</p></section><section class="ai-draft"><small>Resumen ejecutivo</small><p>${escapeHtml(result?.executive_summary||'')}</p></section>${deliverable.content?`<section class="ai-deliverable"><small>Borrador generado</small><h4>${escapeHtml(deliverable.title||'Documento preparado')}</h4><pre>${escapeHtml(deliverable.content)}</pre></section>`:''}<p class="ai-caution">Se muestra una vista simplificada porque el navegador no pudo componer el informe completo. El an√°lisis permanece guardado en el expediente.</p>`;
+  $('#case-ai-result').hidden=false;
+}
+
+function displayCaseAiResult(result){
+  try{renderCaseAiAssistant(result);return true;}catch(error){console.error('No se pudo componer el an√°lisis completo',error);renderCaseAiFallback(result);return false;}
+}
+
+async function loadLatestCaseAnalysis(caseItem){
+  const button=$('#load-latest-case-ai');if(!button||!productionMode||!platformApi)return;
+  const original=button.textContent;button.disabled=true;button.textContent='Recuperando‚Ä¶';
+  try{
+    const recovered=await platformApi.invoke('ai-assist',{action:'latest_case_analysis',caseId:caseItem.id});
+    if(!recovered?.found){setModalFeedback('#case-ai-feedback','No hay ning√∫n an√°lisis guardado durante las √∫ltimas 24 horas.','info');return;}
+    displayCaseAiResult(recovered);setModalFeedback('#case-ai-feedback','√öltimo an√°lisis guardado recuperado sin realizar una nueva ejecuci√≥n.','info');
+  }catch{setModalFeedback('#case-ai-feedback','No se ha podido recuperar el √∫ltimo an√°lisis guardado.');}
+  finally{button.disabled=false;button.textContent=original;}
+}
+
+async function saveAiDeliverable(result){
+  const caseItem=currentCase(),deliverable=result.deliverable;if(!caseItem||!deliverable?.content)return;
+  const button=$('#save-case-ai-deliverable'),original=button.textContent;button.disabled=true;button.textContent='Guardando‚Ä¶';
+  try{
+    if(productionMode&&platformApi){
+      const created=await platformApi.invoke('manage-crm',{action:'create_working_document',caseId:caseItem.id,title:deliverable.title||'Documento generado desde el expediente',documentType:deliverable.kind||'Documento',statusLabel:'Borrador generado ¬∑ pendiente de revisi√≥n profesional'});
+      await platformApi.invoke('manage-crm',{action:'add_working_document_version',documentId:created.id,statusLabel:'Borrador generado ¬∑ pendiente de revisi√≥n profesional',changeSummary:'Primera versi√≥n generada por el asistente integral del expediente.',draftContent:deliverable.content,sourceAiRunId:result.run_id});
+      await enterProduction();renderShell();toast('Borrador guardado y vinculado al an√°lisis. Debe revisarlo el profesional.');
+    }else toast('En demostraci√≥n el borrador no se guarda de forma permanente.');
+  }catch{setModalFeedback('#case-ai-feedback','No se ha podido guardar el borrador. El an√°lisis sigue visible para poder copiarlo.');button.disabled=false;button.textContent=original;}
+}
+
+const caseAiPolls=new Set();
+const caseAiJobKey=caseId=>`ratio-case-ai-job:${caseId}`;
+const wait=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds));
+
+function caseAiErrorMessage(code,requestId=''){
+  const messages={AI_NOT_CONFIGURED:'Falta configurar la clave privada del servicio de an√°lisis.',AI_BUDGET_EXCEEDED:'Se ha alcanzado el l√≠mite mensual configurado.',AI_KEY_INVALID:'La clave del servicio de an√°lisis no es v√°lida.',AI_QUOTA_EXCEEDED:'La cuenta del servicio de an√°lisis no tiene cuota disponible.',AI_MODEL_UNAVAILABLE:'El modelo configurado no est√° disponible.',AI_REQUEST_INVALID:'El servicio rechaz√≥ la configuraci√≥n del an√°lisis.',AI_TEMPORARILY_UNAVAILABLE:'El servicio de an√°lisis no est√° disponible temporalmente.',AI_TIMEOUT:'El an√°lisis ha superado el tiempo m√°ximo y se ha detenido sin realizar cambios.',UNAUTHENTICATED:'Tu sesi√≥n ha caducado.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.',FORBIDDEN:'Tu usuario no tiene permiso para analizar expedientes.',CASE_NOT_FOUND:'El expediente ya no est√° disponible.'};
+  return messages[code]||`No se ha podido analizar el expediente${requestId?` (referencia ${requestId})`:''}.`;
+}
+
+function rememberCaseAiJob(caseId,jobId){try{sessionStorage.setItem(caseAiJobKey(caseId),jobId);}catch{/* El seguimiento en pantalla sigue funcionando. */}}
+function forgetCaseAiJob(caseId){try{sessionStorage.removeItem(caseAiJobKey(caseId));}catch{/* Sin almacenamiento de sesi√≥n. */}}
+function rememberedCaseAiJob(caseId){try{return sessionStorage.getItem(caseAiJobKey(caseId))||'';}catch{return '';}}
+
+async function pollCaseAnalysis(caseItem,jobId,{resumed=false}={}){
+  if(caseAiPolls.has(jobId))return;
+  caseAiPolls.add(jobId);
+  const button=$('#analyze-case-ai'),original=button?.textContent||'Trabajar con el expediente ‚Üí';
+  if(button){button.disabled=true;button.textContent='An√°lisis en curso‚Ä¶';}
+  setModalFeedback('#case-ai-feedback',resumed?'Retomando el seguimiento del an√°lisis. Puedes permanecer aqu√≠ o volver m√°s tarde.':'El an√°lisis se est√° realizando en segundo plano. Puedes cambiar de pantalla o cerrar el m√≥vil sin perderlo.','info');
+  let transientFailures=0;
+  try{
+    for(let attempt=0;attempt<110;attempt++){
+      await wait(attempt===0?1200:4000);
+      if(!button||!document.body.contains(button))return;
+      let status;
+      try{
+        status=await platformApi.invoke('ai-assist',{action:'case_analysis_status',caseId:caseItem.id,jobId});
+        transientFailures=0;
+      }catch(error){
+        if(['UNAUTHENTICATED','MFA_REQUIRED','FORBIDDEN'].includes(error?.code))throw error;
+        transientFailures++;
+        if(transientFailures>=4)throw error;
+        setModalFeedback('#case-ai-feedback','La conexi√≥n se ha interrumpido moment√°neamente. El an√°lisis contin√∫a y estamos intentando recuperar el resultado‚Ä¶','info');
+        continue;
+      }
+      if(status?.status==='completed'){
+        forgetCaseAiJob(caseItem.id);
+        const completeView=displayCaseAiResult(status);
+        setModalFeedback('#case-ai-feedback',completeView?'An√°lisis completado y guardado en el expediente.':'El an√°lisis termin√≥ y se muestra en vista simplificada. Permanece guardado en el expediente.','info');
+        return;
+      }
+      if(status?.status==='failed'){
+        forgetCaseAiJob(caseItem.id);
+        setModalFeedback('#case-ai-feedback',caseAiErrorMessage(status.error_code));
+        return;
+      }
+      button.textContent=status?.status==='processing'?'Analizando expediente‚Ä¶':'Preparando an√°lisis‚Ä¶';
+    }
+    setModalFeedback('#case-ai-feedback','El an√°lisis sigue sin resultado. No inicies otro: utiliza ¬´Ver √∫ltimo an√°lisis guardado¬ª dentro de unos minutos.','info');
+  }catch(error){
+    setModalFeedback('#case-ai-feedback',caseAiErrorMessage(error?.code,error?.details?.requestId));
+  }finally{
+    caseAiPolls.delete(jobId);
+    if(button&&document.body.contains(button)){button.disabled=false;button.textContent=original;}
+  }
+}
+
+function resumePendingCaseAnalysis(caseItem){
+  if(!productionMode||!platformApi)return;
+  const jobId=rememberedCaseAiJob(caseItem.id);
+  if(jobId)pollCaseAnalysis(caseItem,jobId,{resumed:true});
+}
+
+async function analyzeCurrentCase(caseItem) {
+  const button=$('#analyze-case-ai');if(!button)return;
+  const original=button.textContent;button.disabled=true;button.textContent='Analizando‚Ä¶';
+  setModalFeedback('#case-ai-feedback','Preparando el an√°lisis seguro del expediente‚Ä¶','info');
+  try{
+    const demo={model:'Piloto demostrativo',analyzed_at:new Date().toISOString(),executive_summary:'El expediente est√° en curso y contiene una solicitud pendiente al cliente.',current_position:'Debe revisarse la documentaci√≥n solicitada antes de proponer nuevas actuaciones.',confirmed_facts:[{statement:'Existe una solicitud pendiente.',source_ids:['request:req_01']}],pending_client_requests:[{statement:'Contrato de la tarjeta pendiente de entrega.',source_ids:['request:req_01']}],missing_information:['Contenido del contrato solicitado'],urgency_flags:[],contradictions:[],suggested_next_actions:[{action:'Esperar la entrega solicitada y revisarla.',rationale:'La decisi√≥n debe basarse en el documento.',source_ids:['request:req_01'],requires_human_review:true}],draft_client_update:'Hemos revisado el expediente. Para continuar necesitamos que entregues el documento solicitado desde tu plataforma privada.',caution:'An√°lisis orientativo sujeto a revisi√≥n humana.',source_catalog:[{id:'request:req_01',label:'Contrato de la tarjeta',type:'client_request',at:new Date().toISOString()}],document_content_analyzed:false};
+    const request=$('#case-ai-request')?.value?.trim()||'';
+    if(productionMode&&platformApi){
+      const job=await platformApi.invoke('ai-assist',{action:'start_case_analysis',caseId:caseItem.id,request});
+      rememberCaseAiJob(caseItem.id,job.job_id);
+      button.disabled=false;button.textContent=original;
+      await pollCaseAnalysis(caseItem,job.job_id);
+      return;
+    }
+    const completeView=displayCaseAiResult(demo);
+    setModalFeedback('#case-ai-feedback',completeView?'An√°lisis demostrativo completado.':'El an√°lisis se muestra en vista simplificada.','info');
+  }catch(error){
+    setModalFeedback('#case-ai-feedback',caseAiErrorMessage(error?.code,error?.details?.requestId));
+  }finally{button.disabled=false;button.textContent=original;}
+}
+async function testSyntheticDocumentPipeline(){
+  const button=$('#test-document-ai');if(!button)return;
+  const original=button.textContent;button.disabled=true;button.textContent='Probando‚Ä¶';
+  setModalFeedback('#case-ai-feedback','Generando y leyendo un PDF ficticio sin datos personales‚Ä¶','info');
+  try{
+    if(!productionMode||!platformApi){setModalFeedback('#case-ai-feedback','La prueba completa solo est√° disponible en el CRM protegido.','info');return;}
+    const result=await platformApi.invoke('ai-assist',{action:'test_document_pipeline'});
+    setModalFeedback('#case-ai-feedback',result.test_passed?`Prueba superada. Texto detectado: ${result.detected_text}`:`La API respondi√≥, pero no identific√≥ correctamente el PDF ficticio: ${result.caution}` ,result.test_passed?'info':'error');
+  }catch(error){
+    setModalFeedback('#case-ai-feedback',`No se ha podido completar la prueba documental${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
+  }finally{button.disabled=false;button.textContent=original;}
+}
+function markNotificationsRead() {
+  const unread=state.notifications.filter(n=>n.userId===currentUser().id&&!n.read);
+  unread.forEach(n=>n.read=true);
+  if(productionMode&&platformApi)unread.forEach(n=>platformApi.update('notifications',`id=eq.${encodeURIComponent(n.id)}`,{read_at:new Date().toISOString()}).catch(()=>{}));
+  else saveState();
+}
+function toast(message) {
+  const node=$('#toast');node.textContent=message;node.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.hidden=true,3200);
+}
+function setModalFeedback(selector,message='',kind='error') {
+  const node=$(selector);if(!node)return;
+  node.textContent=message;
+  node.className=`modal-feedback ${kind}`;
+  node.hidden=!message;
+}
+
+function configureApplicationMode() {
+  const clientButton=$('[data-demo-role="client"]'),adminButton=$('[data-demo-role="admin"]');
+  if(applicationMode==='crm'){
+    clientButton.hidden=true;adminButton.hidden=false;
+    $('.login-card>.kicker').textContent='Gesti√≥n interna';
+    $('#login-title').textContent='Accede al CRM';
+    $('.login-lead').textContent='Gestiona consultas, tareas, contrataciones y expedientes desde un espacio privado de Ratio Soluciones.';
+    $('.demo-access p').textContent='Entorno interno de prueba con datos ficticios';
+    $('.test-banner').textContent='CRM DE PRUEBA ¬∑ DATOS FICTICIOS ¬∑ SIN DOCUMENTACI√ìN';
+    document.title='CRM privado | Ratio Soluciones';
+  }else if(applicationMode==='portal'){
+    adminButton.hidden=true;clientButton.hidden=false;
+    $('.demo-access p').textContent='Portal de cliente de prueba con datos ficticios';
+    $('.test-banner').textContent='PORTAL DE CLIENTE ¬∑ DATOS FICTICIOS ¬∑ SIN DOCUMENTACI√ìN';
+    document.title='Portal privado de clientes | Ratio Soluciones';
+  }
+}
+configureApplicationMode();
+$$('[data-demo-role]').forEach(button=>button.addEventListener('click',()=>enter(button.dataset.demoRole)));
+$('#login-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!productionMode){enter(applicationMode==='crm'?'admin':'client');return;}
+  const button=event.submitter;button.disabled=true;
+  try{const data=new FormData(event.currentTarget);await platformApi.signIn(data.get('email'),data.get('password'));await enterProduction();}
+  catch(error){toast(error?.status===400?'Correo o contrase√±a incorrectos.':'No se ha podido iniciar sesi√≥n de forma segura.');}
+  finally{button.disabled=false;}
+});
+$('#logout').addEventListener('click',logout);
+$('#recover-access').addEventListener('click',async()=>{
+  const email=$('#login-form input[name="email"]').value.trim();
+  if(!productionMode){toast('En producci√≥n recibir√°s un enlace seguro para recuperar el acceso.');return;}
+  if(!email){toast('Escribe primero tu correo electr√≥nico.');return;}
+  try{await platformApi.requestPasswordReset(email,`${location.origin}/restablecer`);toast('Si el correo est√° registrado, recibir√°s un enlace de recuperaci√≥n.');}
+  catch{toast('No se ha podido solicitar la recuperaci√≥n. Int√©ntalo de nuevo.');}
+});
+$('#mobile-menu').addEventListener('click',()=>$('.sidebar').classList.toggle('open'));
+$('#update-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#update-dialog').close();return;}
+  const payload={
+    caseId:currentCase().id,title:$('#update-title').value.trim(),
+    professionalName:$('#professional-name').value.trim(),professionalTitle:$('#professional-title').value.trim(),
+    professionalRegistration:$('#professional-registration').value.trim(),professionalRegion:$('#professional-region').value.trim()
+  };
+  if(!payload.title){setModalFeedback('#update-feedback','A√±ade el t√≠tulo del avance para guardar el cambio.');$('#update-title').focus();return;}
+  const submitter=event.submitter||$('#update-form .primary-button');const originalLabel=submitter.innerHTML;submitter.disabled=true;submitter.textContent='Guardando avance‚Ä¶';
+  setModalFeedback('#update-feedback','Guardando el avance‚Ä¶','info');
+  try{
+    if(productionMode&&platformApi){
+      const result=await platformApi.invoke('update-case',payload);
+      await enterProduction();
+      activeCaseId=payload.caseId;
+      activeSection='cases';
+      renderShell();
+      payload.emailSent=result.emailSent;
+    }
+    else{
+      const c=currentCase();Object.assign(c,{professionalName:payload.professionalName,professionalTitle:payload.professionalTitle,professionalRegistration:payload.professionalRegistration,professionalRegion:payload.professionalRegion});
+      const at=new Date().toISOString();state.events.forEach(item=>item.current=false);state.events.push({id:crypto.randomUUID(),caseId:c.id,kind:'case_update',title:payload.title,description:payload.title,at,current:true});
+      state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId:c.id,title:'Nuevo avance en tu expediente',body:payload.title,at,read:false});
+      log('case_updated','case',c.id);saveState();renderShell();
+    }
+    setModalFeedback('#update-feedback');$('#update-form').reset();$('#update-dialog').close();toast(payload.emailSent===false?'Avance guardado en la plataforma, pero el correo no pudo enviarse.':'Avance guardado y cliente avisado por email.');
+  }catch(error){
+    const messages={UNAUTHENTICATED:'Tu sesi√≥n ha caducado. Vuelve a iniciar sesi√≥n.',UNAUTHORIZED:'Tu sesi√≥n ha caducado. Vuelve a iniciar sesi√≥n.',MFA_REQUIRED:'Vuelve a confirmar el c√≥digo de tu app de autenticaci√≥n.',FORBIDDEN:'Tu usuario no tiene permiso para modificar expedientes.',INVALID_FIELDS:'Revisa el t√≠tulo del avance.'};
+    setModalFeedback('#update-feedback',messages[error?.code]||`No se ha podido guardar el avance${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
+  }
+  finally{submitter.disabled=false;submitter.innerHTML=originalLabel;}
+});
+$('#invite-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#invite-dialog').close();return;}
+  const payload={email:$('#invite-email').value.trim(),displayName:$('#invite-name').value.trim(),title:$('#invite-title').value.trim(),category:$('#invite-category').value};
+  if(!productionMode||!platformApi){toast('El alta real se habilitar√° al conectar el servidor europeo.');return;}
+  const submitter=event.submitter;submitter.disabled=true;
+  try{const created=await platformApi.invoke('invite-client',payload);await enterProduction();activeCaseId=created.caseId;activeSection='cases';renderShell();$('#invite-form').reset();$('#invite-dialog').close();toast('Expediente creado e invitaci√≥n enviada.');}
+  catch{toast('No se ha podido completar el alta. Revisa el correo y vuelve a intentarlo.');}
+  finally{submitter.disabled=false;}
+});
+$('#lead-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const payload={
+    fullName:$('#lead-name').value.trim(),phone:$('#lead-phone').value.trim(),email:$('#lead-email').value.trim().toLowerCase(),province:$('#lead-province').value.trim(),
+    category:$('#lead-category').value,source:$('#lead-source').value,summary:$('#lead-summary').value.trim(),privacyNoticeAcknowledged:Boolean($('#lead-privacy-notice').checked)
+  };
+  if(!payload.phone||!payload.email){setModalFeedback('#lead-form-feedback','Indica el tel√©fono y el correo electr√≥nico.');return;}
+  const submitter=event.submitter||$('#lead-form .primary-button');const originalLabel=submitter.innerHTML;submitter.disabled=true;submitter.textContent='Creando expediente‚Ä¶';
+  setModalFeedback('#lead-form-feedback','Creando el expediente interno‚Ä¶','info');
+  try{
+    let created=null;
+    if(productionMode&&platformApi){created=await platformApi.invoke('manage-crm',{action:'create_case',...payload});await enterProduction();}
+    else{
+      const at=new Date().toISOString();const id=crypto.randomUUID();
+      created={id,reference:nextLeadReference()};
+      state.cases.unshift({id,reference:created.reference,clientId:'',client:payload.fullName,title:payload.summary.slice(0,160),category:payload.category,statusCode:'open',status:'Abierto',manualPhase:'',portalStatus:'disabled',phone:payload.phone,email:payload.email,province:payload.province,source:payload.source,amount:0,privacyNoticeAt:at,legalBasis:'precontractual_request',openedAt:at,clientNextStep:'',professionalName:'',professionalTitle:'',professionalRegistration:'',professionalRegion:''});
+      state.events.push({id:crypto.randomUUID(),caseId:id,kind:'consultation_received',title:'Consulta inicial recibida',description:payload.summary,at,current:true});
+      log('case_created','case',id,{source:payload.source});saveState();
+    }
+    setModalFeedback('#lead-form-feedback');$('#lead-form').reset();$('#lead-dialog').close();activeCaseId=created?.id||null;activeSection='cases';renderShell();toast('Expediente creado correctamente. El portal contin√∫a desactivado.');
+  }catch(error){
+    const messages={UNAUTHENTICATED:'Tu sesi√≥n ha caducado. Vuelve a iniciar sesi√≥n.',UNAUTHORIZED:'Tu sesi√≥n ha caducado. Vuelve a iniciar sesi√≥n.',MFA_REQUIRED:'Vuelve a confirmar el c√≥digo de tu app de autenticaci√≥n.',FORBIDDEN:'Tu usuario no tiene permiso para registrar consultas.',INVALID_FIELDS:'Revisa los datos: nombre, tel√©fono, correo, resumen y confirmaci√≥n de privacidad.'};
+    setModalFeedback('#lead-form-feedback',messages[error?.code]||`No se ha podido registrar la consulta${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
+  }
+  finally{submitter.disabled=false;submitter.innerHTML=originalLabel;}
+});
+$('#cancel-lead').addEventListener('click',closeLeadDialog);
+$('#close-lead-dialog').addEventListener('click',closeLeadDialog);
+$('#lead-detail-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#lead-detail-dialog').close();return;}
+  const lead=state.leads.find(item=>item.id===$('#lead-detail-id').value);if(!lead)return;
+  const changes={phone:$('#lead-detail-phone').value.trim(),email:$('#lead-detail-email').value.trim().toLowerCase(),status:$('#lead-detail-status').value,amount:Number($('#lead-detail-amount').value||0),note:$('#lead-detail-note').value.trim()};
+  if(!changes.phone||!changes.email){setModalFeedback('#lead-detail-feedback','La consulta debe conservar el tel√©fono y el correo electr√≥nico.');return;}
+  if(!canAdvanceLeadStatus(lead.status,changes.status,lead.convertedCaseId)){setModalFeedback('#lead-detail-feedback','El estado no puede retroceder. Selecciona el estado actual o uno posterior.');return;}
+  const submitter=event.submitter||$('#lead-detail-form .primary-button');const originalLabel=submitter.innerHTML;submitter.disabled=true;submitter.textContent='Guardando cambios‚Ä¶';
+  setModalFeedback('#lead-detail-feedback','Guardando los cambios‚Ä¶','info');
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',{action:'update_lead',leadId:lead.id,...changes});await enterProduction();}
+    else{
+      const previousStatus=lead.status,at=new Date().toISOString(),authorName=currentUser()?.name||'Equipo Ratio';
+      Object.assign(lead,{phone:changes.phone,email:changes.email,status:changes.status,amount:changes.amount,updatedAt:at});
+      if(previousStatus!==changes.status)lead.notes.push({id:crypto.randomUUID(),body:`Estado cambiado de ¬´${leadStatusLabels[previousStatus]||previousStatus}¬ª a ¬´${leadStatusLabels[changes.status]||changes.status}¬ª.`,authorName,at});
+      if(changes.note)lead.notes.push({id:crypto.randomUUID(),body:changes.note,authorName,at});
+      log('lead_updated','crm_lead',lead.id,{status:changes.status});saveState();
+    }
+    setModalFeedback('#lead-detail-feedback');$('#lead-detail-dialog').close();renderShell();toast(changes.status==='lost'?'Consulta archivada. Puedes recuperarla con el filtro ¬´No viables / cerradas¬ª.':'Consulta actualizada.');
+  }catch(error){
+    const messages={UNAUTHENTICATED:'Tu sesi√≥n ha caducado. Vuelve a iniciar sesi√≥n.',UNAUTHORIZED:'Tu sesi√≥n ha caducado. Vuelve a iniciar sesi√≥n.',MFA_REQUIRED:'Vuelve a confirmar el c√≥digo de tu app de autenticaci√≥n.',FORBIDDEN:'Tu usuario no tiene permiso para modificar consultas.',INVALID_FIELDS:'Revisa los datos de la consulta.',STATUS_REGRESSION:'El estado no puede retroceder. Selecciona el estado actual o uno posterior.'};
+    setModalFeedback('#lead-detail-feedback',messages[error?.code]||`No se ha podido actualizar la consulta${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
+  }
+  finally{submitter.disabled=false;submitter.innerHTML=originalLabel;}
+});
+$('#analyze-lead-ai').addEventListener('click',async()=>{
+  const leadId=$('#lead-detail-id').value;if(!leadId)return;
+  const button=$('#analyze-lead-ai');const original=button.textContent;button.disabled=true;button.textContent='Analizando‚Ä¶';
+  setModalFeedback('#lead-detail-feedback','Analizando la consulta. Puede tardar unos segundos‚Ä¶','info');
+  try{
+    if(!productionMode||!platformApi){
+      renderAiAssistant({model:'Piloto demostrativo',summary:'Consulta que necesita ampliar informaci√≥n antes de valorar el siguiente paso.',suggested_category:state.leads.find(item=>item.id===leadId)?.category||'Pendiente',missing_information:['Documentaci√≥n disponible','Importes y fechas principales'],questions_for_client:['¬øQu√© ocurri√≥ y en qu√© fecha?','¬øQu√© respuesta has recibido hasta ahora?'],urgency_flags:[],draft_reply:'Gracias por contarnos tu situaci√≥n. Para estudiarla necesitamos que nos indiques las fechas principales, los importes y qu√© respuesta has recibido hasta ahora.',suggested_internal_note:'Contactar para ampliar informaci√≥n.',caution:'Sugerencia interna generada por IA. Debe revisarse antes de utilizarse.'});
+    }else renderAiAssistant(await platformApi.invoke('ai-assist',{action:'analyze_lead',leadId}));
+    setModalFeedback('#lead-detail-feedback');
+  }catch(error){
+    const messages={AI_NOT_CONFIGURED:'Falta configurar la clave privada del servicio de an√°lisis.',AI_BUDGET_EXCEEDED:'Se ha alcanzado el l√≠mite mensual configurado.',AI_KEY_INVALID:'La clave del servicio de an√°lisis no es v√°lida.',AI_QUOTA_EXCEEDED:'La cuenta del servicio de an√°lisis no tiene cuota disponible.',AI_MODEL_UNAVAILABLE:'El modelo configurado no est√° disponible para esta cuenta.',AI_REQUEST_INVALID:'El servicio rechaz√≥ la configuraci√≥n del an√°lisis.',AI_TEMPORARILY_UNAVAILABLE:'El servicio de an√°lisis no est√° disponible temporalmente. Int√©ntalo de nuevo m√°s tarde.',UNAUTHENTICATED:'Tu sesi√≥n ha caducado. Vuelve a iniciar sesi√≥n.',UNAUTHORIZED:'Tu sesi√≥n ha caducado. Vuelve a iniciar sesi√≥n.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor para usar el asistente.',FORBIDDEN:'Tu usuario no tiene permiso para usar el asistente.'};
+    const reference=error?.details?.requestId?` Referencia: ${error.details.requestId}.`:'';
+    setModalFeedback('#lead-detail-feedback',(messages[error?.code]||'No se ha podido generar el an√°lisis interno.')+reference);
+  }finally{button.disabled=false;button.textContent=original;}
+});
+async function resendCaseConfirmation(caseItem) {
+  if(!caseItem)return;
+  const button=$('#resend-case-confirmation')||$('#convert-lead');
+  const originalLabel=button?.textContent||'Reenviar confirmaci√≥n';
+  if(button){button.disabled=true;button.textContent='Enviando‚Ä¶';}
+  try{
+    if(!productionMode||!platformApi){toast('En producci√≥n se reenviar√° la confirmaci√≥n al cliente.');return;}
+    await platformApi.invoke('manage-crm',{action:'resend_case_confirmation_by_case',caseId:caseItem.id});
+    toast('Confirmaci√≥n del expediente enviada.');
+  }catch(error){
+    const messages={EMAIL_DELIVERY_FAILED:'No se ha podido enviar la confirmaci√≥n. Revisa el servicio de correo.',CASE_CONFIRMATION_UNAVAILABLE:'Este expediente no tiene un correo de confirmaci√≥n disponible.',UNAUTHENTICATED:'Tu sesi√≥n ha caducado. Vuelve a iniciar sesi√≥n.',MFA_REQUIRED:'Vuelve a confirmar el c√≥digo de tu app de autenticaci√≥n.'};
+    toast(messages[error?.code]||`No se ha podido reenviar la confirmaci√≥n${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
+  }finally{if(button){button.disabled=false;button.textContent=originalLabel;}}
+}
+$('#convert-lead').addEventListener('click',async()=>{
+  const lead=state.leads.find(item=>item.id===$('#lead-detail-id').value);if(!lead)return;
+  const button=$('#convert-lead');button.disabled=true;
+  try{
+    if(lead.convertedCaseId){
+      await resendCaseConfirmation(lead);
+      return;
+    }
+    let conversion=null;
+    if(productionMode&&platformApi){conversion=await platformApi.invoke('manage-crm',{action:'convert_lead',leadId:lead.id});await enterProduction();}
+    else{
+      const caseId=crypto.randomUUID();
+      const clientId=`lead-client-${lead.id}`;
+      state.cases.unshift({id:caseId,reference:`RS-${new Date().getFullYear()}-${String(state.cases.length+1).padStart(4,'0')}`,clientId,client:lead.name,title:lead.summary.slice(0,100),category:lead.category,statusCode:'open',status:'Abierto',stage:0,openedAt:new Date().toISOString(),clientNextStep:'',professionalName:'',professionalTitle:'',professionalRegistration:'',professionalRegion:lead.province});
+      state.events.push({id:crypto.randomUUID(),caseId,kind:'open',title:'Expediente abierto',description:'La consulta ha sido aceptada y convertida en expediente.',at:new Date().toISOString(),current:true});
+      lead.status='won';lead.updatedAt=new Date().toISOString();activeCaseId=caseId;
+      log('lead_converted','crm_lead',lead.id,{caseId});saveState();
+    }
+    $('#lead-detail-dialog').close();activeSection='cases';renderShell();toast(conversion&&!conversion.confirmationSent?'Expediente creado. El correo no pudo enviarse; puedes reenviarlo desde la consulta.':'Consulta convertida y confirmaci√≥n enviada al cliente.');
+  }catch(error){
+    const messages={EMAIL_REQUIRED_FOR_PORTAL:'A√±ade un correo electr√≥nico antes de crear el acceso del cliente.',LEAD_NOT_CONTRACTED:'Marca primero la consulta como ¬´Contratada¬ª.',LEAD_ALREADY_CONVERTED:'Esta consulta ya est√° vinculada a un expediente.',EMAIL_BELONGS_TO_INTERNAL_USER:'Ese correo pertenece a un usuario interno. Utiliza el correo del cliente.',EMAIL_DELIVERY_FAILED:'No se ha podido enviar la confirmaci√≥n. Revisa el servicio de correo antes de repetirlo.'};
+    toast(messages[error?.code]||`No se ha podido convertir la consulta${error?.details?.requestId?` (referencia ${error.details.requestId})`:''}.`);
+  }
+  finally{button.disabled=false;}
+});
+$('#task-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#task-dialog').close();return;}
+  const payload={title:$('#task-title').value.trim(),dueDate:$('#task-date').value,priority:$('#task-priority').value,caseId:$('#task-lead').value};
+  const submitter=event.submitter;submitter.disabled=true;
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',{action:'create_task',...payload});await enterProduction();}
+    else{const id=crypto.randomUUID();state.tasks.push({id,...payload,completed:false,createdAt:new Date().toISOString()});log('task_created','crm_task',id);saveState();}
+    $('#task-form').reset();$('#task-dialog').close();activeSection='tasks';renderShell();toast('Tarea registrada.');
+  }catch{toast('No se ha podido registrar la tarea.');}
+  finally{submitter.disabled=false;}
+});
+$('#case-record-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#case-record-dialog').close();return;}
+  const payload={action:'update_case_record',caseId:$('#case-record-id').value,phone:$('#case-record-phone').value.trim(),email:$('#case-record-email').value.trim().toLowerCase(),manualPhase:$('#case-record-phase').value.trim(),lifecycle:$('#case-record-lifecycle').value,amount:Number($('#case-record-amount').value||0),note:$('#case-record-note').value.trim()};
+  const button=event.submitter;button.disabled=true;setModalFeedback('#case-record-feedback','Guardando en la cronolog√≠a‚Ä¶','info');
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',payload);await enterProduction();activeCaseId=payload.caseId;activeSection='cases';}
+    else{const item=state.cases.find(c=>c.id===payload.caseId);if(item){Object.assign(item,{phone:payload.phone,email:payload.email,manualPhase:payload.manualPhase,status:payload.manualPhase||statusLabels[payload.lifecycle],statusCode:payload.lifecycle,amount:payload.amount});const at=new Date().toISOString();if(payload.manualPhase)state.events.push({id:crypto.randomUUID(),caseId:item.id,kind:'internal_phase_changed',title:payload.manualPhase,description:'',at,current:true});if(payload.note)state.events.push({id:crypto.randomUUID(),caseId:item.id,kind:'internal_note',title:'Nota interna',description:payload.note,at,current:true});saveState();}}
+    $('#case-record-dialog').close();renderShell();toast('Ficha e historial actualizados.');
+  }catch(error){setModalFeedback('#case-record-feedback',error?.code==='INVALID_FIELDS'?'Revisa tel√©fono, correo y datos introducidos.':'No se ha podido actualizar el expediente.');}
+  finally{button.disabled=false;}
+});
+$('#ai-context-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#ai-context-dialog').close();return;}
+  const payload={action:'add_case_context',caseId:$('#ai-context-case').value,title:$('#ai-context-title').value.trim(),content:$('#ai-context-content').value.trim()};
+  const button=event.submitter;button.disabled=true;setModalFeedback('#ai-context-feedback','Guardando la aclaraci√≥n en la cronolog√≠a interna‚Ä¶','info');
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',payload);await enterProduction();activeCaseId=payload.caseId;activeSection='cases';}
+    else{state.events.push({id:crypto.randomUUID(),caseId:payload.caseId,kind:'ai_context',title:payload.title,description:payload.content,at:new Date().toISOString(),current:true});saveState();}
+    $('#ai-context-dialog').close();renderShell();toast('Aclaraci√≥n guardada. La API la usar√° en el pr√≥ximo an√°lisis.');
+  }catch(error){setModalFeedback('#ai-context-feedback',error?.code==='INVALID_FIELDS'?'Escribe un t√≠tulo y una aclaraci√≥n de al menos 10 caracteres.':'No se ha podido guardar la aclaraci√≥n.');}
+  finally{button.disabled=false;}
+});
+$('#contract-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#contract-dialog').close();return;}
+  const payload={action:'save_contract_record',caseId:$('#contract-case').value,contractNote:$('#contract-note').value.trim(),signerFullName:$('#contract-signer-name').value.trim(),signerIdentifier:$('#contract-signer-id').value.trim(),signerAddress:$('#contract-signer-address').value.trim(),cause:$('#contract-cause').value.trim(),workScope:$('#contract-work-scope').value.trim(),priceAmount:Number($('#contract-price').value)};
+  const button=event.submitter;button.disabled=true;setModalFeedback('#contract-feedback','Guardando la ficha contractual‚Ä¶','info');
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',payload);await enterProduction();activeCaseId=payload.caseId;activeSection='cases';}
+    else{
+      let contract=state.contracts.find(item=>item.caseId===payload.caseId&&!item.signedAt&&!item.providerRequestId);const at=new Date().toISOString();
+      if(contract)Object.assign(contract,{contractNote:payload.contractNote,signerFullName:payload.signerFullName,signerIdentifier:payload.signerIdentifier,signerAddress:payload.signerAddress,cause:payload.cause,workScope:payload.workScope,priceAmount:payload.priceAmount,updatedAt:at});
+      else state.contracts.push({id:crypto.randomUUID(),caseId:payload.caseId,templateKey:'ratio-servicios',templateVersion:1,contractNote:payload.contractNote,signerFullName:payload.signerFullName,signerIdentifier:payload.signerIdentifier,signerAddress:payload.signerAddress,cause:payload.cause,workScope:payload.workScope,priceAmount:payload.priceAmount,currency:'EUR',createdAt:at,updatedAt:at});
+      saveState();
+    }
+    $('#contract-dialog').close();renderShell();toast('Ficha contractual guardada. La firma solo constar√° cuando el sistema reciba evidencias v√°lidas.');
+  }catch(error){const messages={CASE_NOT_OPEN:'Solo se prepara contrato para un expediente abierto.'};setModalFeedback('#contract-feedback',messages[error?.code]||'No se ha podido guardar el contrato.');}
+  finally{button.disabled=false;}
+});
+$('#working-document-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#working-document-dialog').close();return;}
+  const payload={action:'create_working_document',caseId:$('#working-document-case').value,title:$('#working-document-title').value.trim(),documentType:$('#working-document-type').value.trim(),statusLabel:$('#working-document-status').value.trim()};
+  const button=event.submitter;button.disabled=true;
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',payload);await enterProduction();activeCaseId=payload.caseId;activeSection='cases';}
+    else{state.workingDocuments.push({id:crypto.randomUUID(),caseId:payload.caseId,title:payload.title,documentType:payload.documentType,statusLabel:payload.statusLabel,visibility:'internal',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});saveState();}
+    $('#working-document-dialog').close();renderShell();toast('Documento de trabajo creado.');
+  }catch{setModalFeedback('#working-document-feedback','No se ha podido crear el documento.');}
+  finally{button.disabled=false;}
+});
+$('#document-version-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#document-version-dialog').close();return;}
+  const payload={action:'add_working_document_version',documentId:$('#document-version-id').value,statusLabel:$('#document-version-status').value.trim(),changeSummary:$('#document-version-summary').value.trim(),draftContent:$('#document-version-content').value};
+  const documentRecord=state.workingDocuments.find(item=>item.id===payload.documentId);const button=event.submitter;button.disabled=true;
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('manage-crm',payload);await enterProduction();activeCaseId=documentRecord?.caseId||activeCaseId;activeSection='cases';}
+    else{const versionNumber=state.documentVersions.filter(item=>item.documentId===payload.documentId).length+1;state.documentVersions.push({id:crypto.randomUUID(),documentId:payload.documentId,versionNumber,statusLabel:payload.statusLabel,changeSummary:payload.changeSummary,draftContent:payload.draftContent,createdAt:new Date().toISOString()});if(documentRecord)documentRecord.statusLabel=payload.statusLabel;saveState();}
+    $('#document-version-dialog').close();renderShell();toast('Nueva versi√≥n guardada sin sobrescribir las anteriores.');
+  }catch{setModalFeedback('#document-version-feedback','No se ha podido guardar esta versi√≥n.');}
+  finally{button.disabled=false;}
+});
+$('#document-request-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(event.submitter?.value==='cancel'){$('#document-request-dialog').close();return;}
+  const payload={action:'request_document',caseId:$('#document-request-case').value,requestType:$('#document-request-type').value,title:$('#document-request-title').value.trim(),instructions:$('#document-request-instructions').value.trim()};
+  if(payload.title.length<3){setModalFeedback('#document-request-feedback','Indica con claridad qu√© necesitas del cliente.');return;}
+  const button=event.submitter||$('#document-request-form .primary-button');const original=button.innerHTML;button.disabled=true;button.textContent='Creando solicitud‚Ä¶';
+  setModalFeedback('#document-request-feedback','Creando la solicitud y registrando el aviso‚Ä¶','info');
+  try{
+    let result={emailSent:true};
+    if(productionMode&&platformApi){
+      result=await platformApi.invoke('document-workflow',payload);
+      await enterProduction();activeCaseId=payload.caseId;activeSection='cases';renderShell();
+    }else{
+      const at=new Date().toISOString(),id=crypto.randomUUID();
+      const isDocument=payload.requestType==='document';
+      state.documentRequests.unshift({id,caseId:payload.caseId,requestType:payload.requestType,title:payload.title,instructions:payload.instructions,status:'pending',responseText:'',responseAt:'',requestedAt:at,requestedBy:currentUser().id});
+      state.events.push({id:crypto.randomUUID(),caseId:payload.caseId,kind:isDocument?'document_requested':'clarification_requested',title:`${isDocument?'Documentaci√≥n':'Aclaraci√≥n'} solicitada: ${payload.title}`,description:payload.instructions,at,current:true});
+      state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId:payload.caseId,title:isDocument?'Nueva solicitud de documentaci√≥n':'Necesitamos una aclaraci√≥n',body:payload.title,at,read:false});
+      log(isDocument?'document_requested':'clarification_requested','client_request',id);saveState();renderShell();
+    }
+    $('#document-request-form').reset();$('#document-request-dialog').close();
+    toast(result.emailSent===false?'Solicitud creada. El aviso est√° en el portal, pero el correo no pudo enviarse.':'Solicitud creada y cliente avisado.');
+  }catch(error){
+    const messages={CASE_CLOSED:'No se puede crear una solicitud en un expediente cerrado.',INVALID_CLIENT_REQUEST:'Revisa el tipo y el t√≠tulo de la solicitud.',MFA_REQUIRED:'Vuelve a confirmar el c√≥digo de tu app de autenticaci√≥n.',FORBIDDEN:'Tu usuario no tiene permiso para crear solicitudes.'};
+    setModalFeedback('#document-request-feedback',messages[error?.code]||'No se ha podido crear la solicitud.');
+  }finally{button.disabled=false;button.innerHTML=original;}
+});
+$('#clarification-response-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(event.submitter?.value==='cancel'){$('#clarification-response-dialog').close();return;}
+  const caseId=$('#clarification-response-case').value,requestId=$('#clarification-response-request').value,responseText=$('#clarification-response-text').value.trim();
+  if(responseText.length<2){setModalFeedback('#clarification-response-feedback','Escribe la aclaraci√≥n antes de enviarla.');return;}
+  const button=event.submitter||$('#clarification-response-form .primary-button');const original=button.innerHTML;button.disabled=true;button.textContent='Enviando aclaraci√≥n‚Ä¶';
+  setModalFeedback('#clarification-response-feedback','Guardando la respuesta en el expediente‚Ä¶','info');
+  try{
+    if(productionMode&&platformApi){
+      await platformApi.invoke('document-workflow',{action:'submit_clarification',caseId,requestId,responseText});
+      await enterProduction();activeCaseId=caseId;activeSection='overview';renderShell();
+    }else{
+      const at=new Date().toISOString(),request=state.documentRequests.find(item=>item.id===requestId);
+      if(request){request.status='submitted';request.responseText=responseText;request.responseAt=at;request.fulfilledAt=at;}
+      state.events.push({id:crypto.randomUUID(),caseId,kind:'clarification_submitted',title:`Aclaraci√≥n enviada: ${request?.title||'Respuesta solicitada'}`,description:responseText,at,current:true});
+      state.notifications.push({id:crypto.randomUUID(),userId:state.users.admin.id,caseId,title:'Aclaraci√≥n recibida',body:request?.title||'Respuesta del cliente',at,read:false});
+      log('clarification_submitted','client_request',requestId);saveState();renderShell();
+    }
+    $('#clarification-response-form').reset();$('#clarification-response-dialog').close();toast('Aclaraci√≥n enviada y registrada en tu expediente.');
+  }catch(error){
+    const messages={INVALID_CLARIFICATION_RESPONSE:'Revisa la aclaraci√≥n antes de enviarla.',CLIENT_REQUEST_ACCESS_DENIED:'No tienes acceso a esta solicitud.',DOCUMENT_REQUEST_UNAVAILABLE:'Esta solicitud ya no admite respuestas.'};
+    setModalFeedback('#clarification-response-feedback',messages[error?.code]||'No se ha podido guardar la aclaraci√≥n. Vuelve a intentarlo.');
+  }finally{button.disabled=false;button.innerHTML=original;}
+});
+$('#internal-document-file').addEventListener('change',event=>{
+  const file=event.target.files?.[0];
+  $('#internal-document-file-name').textContent=file?`${file.name} ¬∑ ${formatFileSize(file.size)}`:'Ning√∫n archivo seleccionado';
+});
+$('#client-document-intake-file').addEventListener('change',event=>{
+  const file=event.target.files?.[0];
+  $('#client-document-intake-file-name').textContent=file?`${file.name} ¬∑ ${formatFileSize(file.size)}`:'Ning√∫n archivo seleccionado';
+});
+$('#client-document-intake-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(event.submitter?.value==='cancel'){$('#client-document-intake-dialog').close();return;}
+  const file=$('#client-document-intake-file').files?.[0],allowed=['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'];
+  if(!$('#client-document-intake-privacy').checked){setModalFeedback('#client-document-intake-feedback','Confirma que se ha facilitado la informaci√≥n de privacidad.');return;}
+  if(!file||file.size<1||file.size>5*1024*1024||!allowed.includes(file.type)){setModalFeedback('#client-document-intake-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 5 MB.');return;}
+  const button=event.submitter||$('#client-document-intake-form .primary-button'),original=button.innerHTML,caseId=$('#client-document-intake-case').value;
+  button.disabled=true;button.textContent='Incorporando documento‚Ä¶';setModalFeedback('#client-document-intake-feedback','Guardando el archivo, su procedencia y su huella de integridad‚Ä¶','info');
+  try{
+    if(productionMode&&platformApi){await platformApi.invokeMultipart('document-workflow',new FormData(event.currentTarget));await enterProduction();activeCaseId=caseId;activeSection='cases';renderShell();}
+    else{const at=new Date().toISOString();state.caseDocuments.unshift({id:crypto.randomUUID(),caseId,requestId:'',originalName:file.name,mimeType:file.type,sizeBytes:file.size,status:'accepted',visibility:'client',intakeChannel:'received_by_ratio',uploadedBy:currentUser().id,privacyNoticeAt:at,createdAt:at,reviewedAt:at});state.events.push({id:crypto.randomUUID(),caseId,kind:'document_uploaded',title:'Documentaci√≥n incorporada al expediente',description:file.name,at,current:true});state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId,title:'Documento incorporado a tu expediente',body:file.name,at,read:false});log('client_document_received_by_ratio','case_document',state.caseDocuments[0].id);saveState();renderShell();}
+    $('#client-document-intake-form').reset();$('#client-document-intake-dialog').close();toast('Documento del cliente incorporado y registrado correctamente.');
+  }catch(error){const messages={PRIVACY_NOTICE_REQUIRED:'Confirma que se ha facilitado la informaci√≥n de privacidad.',INVALID_DOCUMENT_FILE:'El archivo no es v√°lido, no coincide con su formato o supera 5 MB.',INVALID_ADMIN_CLIENT_DOCUMENT:'No se ha podido registrar la procedencia del documento.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.'};setModalFeedback('#client-document-intake-feedback',messages[error?.code]||'No se ha podido incorporar el documento del cliente.');}
+  finally{button.disabled=false;button.innerHTML=original;}
+});
+$('#internal-document-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(event.submitter?.value==='cancel'){$('#internal-document-dialog').close();return;}
+  const file=$('#internal-document-file').files?.[0],allowed=['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'];
+  if(!file||file.size<1||file.size>15*1024*1024||!allowed.includes(file.type)){setModalFeedback('#internal-document-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 15 MB.');return;}
+  if($('#internal-document-title').value.trim().length<2){setModalFeedback('#internal-document-feedback','Indica un t√≠tulo para identificar el documento.');return;}
+  const button=event.submitter||$('#internal-document-form .primary-button'),original=button.innerHTML,caseId=$('#internal-document-case').value;
+  button.disabled=true;button.textContent='Adjuntando archivo‚Ä¶';setModalFeedback('#internal-document-feedback','Guardando en el archivo privado y calculando su huella‚Ä¶','info');
+  try{
+    if(productionMode&&platformApi){await platformApi.invokeMultipart('internal-document-workflow',new FormData(event.currentTarget));await enterProduction();activeCaseId=caseId;activeSection='cases';renderShell();}
+    else{const at=new Date().toISOString();state.internalDocuments.unshift({id:crypto.randomUUID(),caseId,title:$('#internal-document-title').value.trim(),note:$('#internal-document-note').value.trim(),originalName:file.name,mimeType:file.type,sizeBytes:file.size,sha256:'d'.repeat(64),uploadedBy:currentUser().id,createdAt:at});log('internal_document_uploaded','case_internal_document',state.internalDocuments[0].id);saveState();renderShell();}
+    $('#internal-document-form').reset();$('#internal-document-dialog').close();toast('Documento interno adjuntado al expediente.');
+  }catch(error){const messages={INVALID_INTERNAL_DOCUMENT:'Revisa el t√≠tulo y el expediente.',INVALID_INTERNAL_DOCUMENT_FILE:'El archivo no es v√°lido, su contenido no coincide con el formato o supera 15 MB.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.'};setModalFeedback('#internal-document-feedback',messages[error?.code]||'No se ha podido adjuntar el documento interno.');}
+  finally{button.disabled=false;button.innerHTML=original;}
+});
+async function downloadInternalDocument(documentId,button){
+  const original=button.textContent;button.disabled=true;button.textContent='Preparando‚Ä¶';
+  try{if(!productionMode||!platformApi){toast('En modo de prueba no existe un archivo binario.');return;}const result=await platformApi.invoke('internal-document-workflow',{action:'download_internal_document',documentId});openSecureDownload(result.url);toast('Enlace privado creado durante 60 segundos.');}
+  catch{toast('No se ha podido descargar el documento interno.');}
+  finally{button.disabled=false;button.textContent=original;}
+}
+$('#document-file').addEventListener('change',event=>{
+  const file=event.target.files?.[0];
+  $('#document-file-name').textContent=file?`${file.name} ¬∑ ${formatFileSize(file.size)}`:'Ning√∫n archivo seleccionado';
+});
+$('#document-upload-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(event.submitter?.value==='cancel'){$('#document-upload-dialog').close();return;}
+  const file=$('#document-file').files?.[0];
+  if(!$('#document-privacy-notice').checked){setModalFeedback('#document-upload-feedback','Lee y acepta la informaci√≥n de privacidad antes de continuar.');return;}
+  if(!file||file.size<1||file.size>5*1024*1024||!['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'].includes(file.type)){setModalFeedback('#document-upload-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 5 MB.');return;}
+  const button=event.submitter||$('#document-upload-form .primary-button');const original=button.innerHTML;button.disabled=true;button.textContent='Entregando archivo‚Ä¶';
+  setModalFeedback('#document-upload-feedback','Cifrando la conexi√≥n y entregando el archivo‚Ä¶','info');
+  try{
+    const caseId=$('#document-upload-case').value,requestId=$('#document-upload-request').value;
+    if(productionMode&&platformApi){
+      await platformApi.invokeMultipart('document-workflow',new FormData(event.currentTarget));
+      await enterProduction();activeCaseId=caseId;activeSection='overview';renderShell();
+    }else{
+      const at=new Date().toISOString(),id=crypto.randomUUID(),request=state.documentRequests.find(item=>item.id===requestId);
+      state.caseDocuments.unshift({id,caseId,requestId,originalName:file.name,mimeType:file.type,sizeBytes:file.size,status:'uploaded',uploadedBy:currentUser().id,privacyNoticeAt:at,createdAt:at});
+      if(request){request.status='submitted';request.fulfilledAt=at;}
+      state.events.push({id:crypto.randomUUID(),caseId,kind:'document_uploaded',title:`Documentaci√≥n entregada: ${request?.title||'Archivo solicitado'}`,description:'',at,current:true});
+      log('document_uploaded','case_document',id);saveState();renderShell();
+    }
+    $('#document-upload-form').reset();$('#document-upload-dialog').close();toast('Archivo entregado correctamente y registrado en tu expediente.');
+  }catch(error){
+    const messages={PRIVACY_NOTICE_REQUIRED:'Debes leer y aceptar la informaci√≥n de privacidad.',INVALID_DOCUMENT_FILE:'El archivo no es v√°lido o supera 5 MB.',DOCUMENT_REQUEST_UNAVAILABLE:'Esta solicitud ya no admite entregas.',DOCUMENT_ACCESS_DENIED:'No tienes acceso a esta solicitud.'};
+    setModalFeedback('#document-upload-feedback',messages[error?.code]||'No se ha podido entregar el archivo. No lo env√≠es por correo; vuelve a intentarlo.');
+  }finally{button.disabled=false;button.innerHTML=original;}
+});
+async function downloadDocument(documentId,button){
+  const original=button.textContent;button.disabled=true;button.textContent='Preparando‚Ä¶';
+  try{
+    if(!productionMode||!platformApi){toast('La descarga real se habilita √∫nicamente en el portal conectado.');return;}
+    const result=await platformApi.invoke('document-workflow',{action:'download_document',documentId});
+    const url=new URL(result.url);
+    if(url.protocol!=='https:'||!url.hostname.endsWith('.supabase.co'))throw new Error('INVALID_DOWNLOAD_URL');
+    const link=document.createElement('a');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';document.body.appendChild(link);link.click();link.remove();
+    toast('Enlace seguro creado durante 60 segundos.');
+  }catch{toast('No se ha podido preparar la descarga segura.');}
+  finally{button.disabled=false;button.textContent=original;}
+}
+async function reviewDocument(documentId,status,button){
+  const original=button.textContent;button.disabled=true;button.textContent='Guardando‚Ä¶';
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('document-workflow',{action:'review_document',documentId,status});await enterProduction();activeSection='cases';activeCaseId=state.caseDocuments.find(item=>item.id===documentId)?.caseId||activeCaseId;renderShell();}
+    else{const item=state.caseDocuments.find(document=>document.id===documentId);if(item)item.status=status;saveState();renderShell();}
+    toast(status==='accepted'?'Documento validado.':'Documento marcado para revisi√≥n.');
+  }catch{toast('No se ha podido actualizar el documento.');}
+  finally{button.disabled=false;button.textContent=original;}
+}
+async function cancelClientRequest(requestId,button){
+  if(!window.confirm('¬øRetirar esta solicitud? El cliente ver√° que ya no tiene que responderla.'))return;
+  const original=button.textContent;button.disabled=true;button.textContent='Retirando‚Ä¶';
+  try{
+    const request=state.documentRequests.find(item=>item.id===requestId);
+    if(productionMode&&platformApi){await platformApi.invoke('document-workflow',{action:'cancel_request',requestId});await enterProduction();activeCaseId=request?.caseId||activeCaseId;activeSection='cases';renderShell();}
+    else if(request){request.status='cancelled';const at=new Date().toISOString();state.events.push({id:crypto.randomUUID(),caseId:request.caseId,kind:'client_request_cancelled',title:`Solicitud retirada: ${request.title}`,description:'Ya no necesitamos esta respuesta.',at,current:true});saveState();renderShell();}
+    toast('Solicitud retirada. El cliente ya no tiene que responderla.');
+  }catch{toast('No se ha podido retirar la solicitud.');}
+  finally{button.disabled=false;button.textContent=original;}
+}
+
+$('#communication-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#communication-dialog').close();return;}
+  const payload={action:'request_communication',caseId:$('#communication-case').value,subject:$('#communication-subject').value.trim(),message:$('#communication-message').value.trim(),deadlineContext:$('#communication-deadline').value.trim(),availabilityNote:$('#communication-availability').value.trim()};
+  if(payload.subject.length<3||payload.message.length<10){setModalFeedback('#communication-feedback','Indica el asunto y explica brevemente qu√© necesitas.');return;}
+  const button=event.submitter;const original=button.innerHTML;button.disabled=true;button.textContent='Enviando solicitud‚Ä¶';
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('case-communications',payload);await enterProduction();activeCaseId=payload.caseId;activeSection='overview';}
+    else{const at=new Date().toISOString(),id=crypto.randomUUID();state.communicationRequests.unshift({id,caseId:payload.caseId,requestedBy:currentUser().id,subject:payload.subject,message:payload.message,deadlineContext:payload.deadlineContext,availabilityNote:payload.availabilityNote,responseText:'',respondedAt:'',createdAt:at});state.notifications.push({id:crypto.randomUUID(),userId:state.users.admin.id,caseId:payload.caseId,title:'Nueva solicitud de comunicaci√≥n',body:payload.subject,at,read:false});state.events.push({id:crypto.randomUUID(),caseId:payload.caseId,kind:'client_communication_requested',title:'Solicitud enviada a Ratio',description:payload.subject,at,current:true});saveState();}
+    $('#communication-form').reset();$('#communication-dialog').close();renderShell();toast('Solicitud enviada. Queda registrada en tu expediente.');
+  }catch(error){const messages={INVALID_COMMUNICATION_REQUEST:'Revisa el asunto y el texto de la solicitud.',COMMUNICATION_ACCESS_DENIED:'No tienes acceso a este expediente.',CASE_CLOSED:'El expediente est√° cerrado.'};setModalFeedback('#communication-feedback',messages[error?.code]||'No se ha podido enviar la solicitud. Vuelve a intentarlo.');}
+  finally{button.disabled=false;button.innerHTML=original;}
+});
+
+$('#communication-response-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(event.submitter?.value==='cancel'){$('#communication-response-dialog').close();return;}
+  const communicationId=$('#communication-response-id').value,responseText=$('#communication-response-text').value.trim();
+  if(responseText.length<2){setModalFeedback('#communication-response-feedback','Escribe la respuesta antes de enviarla.');return;}
+  const button=event.submitter;const original=button.innerHTML;button.disabled=true;button.textContent='Guardando respuesta‚Ä¶';
+  try{
+    const item=(state.communicationRequests||[]).find(record=>record.id===communicationId);
+    if(productionMode&&platformApi){await platformApi.invoke('case-communications',{action:'respond_communication',communicationId,responseText});await enterProduction();activeCaseId=item?.caseId||activeCaseId;activeSection='cases';}
+    else if(item){item.responseText=responseText;item.respondedAt=new Date().toISOString();state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId:item.caseId,title:'Respuesta a tu solicitud',body:item.subject,at:item.respondedAt,read:false});state.events.push({id:crypto.randomUUID(),caseId:item.caseId,kind:'client_communication_responded',title:'Ratio ha respondido a tu solicitud',description:item.subject,at:item.respondedAt,current:true});saveState();}
+    $('#communication-response-form').reset();$('#communication-response-dialog').close();renderShell();toast('Respuesta registrada y cliente avisado.');
+  }catch(error){const messages={COMMUNICATION_ALREADY_RESPONDED:'Esta solicitud ya tiene respuesta.',COMMUNICATION_NOT_FOUND:'La solicitud ya no est√° disponible.',MFA_REQUIRED:'Confirma de nuevo el segundo factor.'};setModalFeedback('#communication-response-feedback',messages[error?.code]||'No se ha podido registrar la respuesta.');}
+  finally{button.disabled=false;button.innerHTML=original;}
+});
+
+$('#password-form').addEventListener('submit',async event=>{
+  event.preventDefault();const password=$('#new-password').value,confirmation=$('#confirm-password').value;
+  if(password!==confirmation){toast('Las contrase√±as no coinciden.');return;}
+  const submitter=event.submitter;submitter.disabled=true;
+  try{await platformApi.updatePassword(password);$('#password-form').reset();$('#password-dialog').close();await enterProduction();toast('Acceso confirmado correctamente.');}
+  catch(error){toast(error?.code==='WEAK_PASSWORD'?'Usa al menos 12 caracteres, con may√∫scula, min√∫scula, n√∫mero y s√≠mbolo, sin espacios.':'No se ha podido confirmar el acceso.');}
+  finally{submitter.disabled=false;}
+});
+$('#password-dialog').addEventListener('cancel',event=>event.preventDefault());
+$('#mfa-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const code=$('#mfa-code').value.trim();
+  const submitter=event.submitter;submitter.disabled=true;
+  try{
+    const challenge=await platformApi.challengeMfa(mfaFactorId);
+    await platformApi.verifyMfa(mfaFactorId,challenge.id,code);
+    $('#mfa-form').reset();$('#mfa-dialog').close();
+    await enterProduction();
+    toast(mfaEnrollment?'Segundo factor activado correctamente.':'Identidad confirmada correctamente.');
+  }catch(error){
+    const invalidCode=['INVALID_MFA_CODE','mfa_verification_failed'].includes(error?.code);
+    toast(invalidCode?'El c√≥digo temporal no es v√°lido o ha caducado. Abre tu app de autenticaci√≥n e introduce el c√≥digo nuevo que aparece.':'No se ha podido verificar el segundo factor. Int√©ntalo de nuevo.');
+  }finally{submitter.disabled=false;}
+});
+$('#mfa-logout').addEventListener('click',logout);
+$('#mfa-dialog').addEventListener('cancel',event=>event.preventDefault());
+$('#notification-button').addEventListener('click',()=>{activeSection='notifications';renderShell();});
+
+if(productionMode){
+  $('.test-banner').hidden=true;$('.demo-access').hidden=!runtimeConfig.allowDemoAccess;
+  if(platformApi){
+    const callbackType=platformApi.consumeUrlSession(location.href);
+    if(platformApi.requiresPasswordSetup(callbackType)){
+      $('#password-dialog').showModal();
+      requestAnimationFrame(()=>$('#new-password').focus());
+    }else enterProduction().catch(()=>{});
+  }
+}else if(state.activeRole)enter(state.activeRole);
