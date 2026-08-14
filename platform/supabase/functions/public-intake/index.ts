@@ -32,12 +32,45 @@ function reply(origin:string,body:unknown,status=200){
   return new Response(JSON.stringify(body),{status,headers:headers(origin)});
 }
 
+function rateLimitedReply(origin:string,retryAfter:number){
+  const responseHeaders={...headers(origin),'retry-after':String(retryAfter)};
+  return new Response(JSON.stringify({error:'TOO_MANY_REQUESTS'}),{status:429,headers:responseHeaders});
+}
+
 function clean(value:unknown,max:number){
   return typeof value==='string'?value.trim().slice(0,max):'';
 }
 
 function validEmail(value:string){
   return value.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+async function fingerprint(scope:'email'|'ip',value:string){
+  const secret=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if(!secret)throw new Error('RATE_LIMIT_SECRET_UNAVAILABLE');
+  const encoder=new TextEncoder();
+  const key=await crypto.subtle.importKey(
+    'raw',encoder.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']
+  );
+  const signed=await crypto.subtle.sign('HMAC',key,encoder.encode(`ratio-public-intake-v1:${scope}:${value}`));
+  return [...new Uint8Array(signed)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+}
+
+async function consumeLimit(scope:'email'|'ip',value:string,windowSeconds:number,maxAttempts:number){
+  const hashed=await fingerprint(scope,value);
+  const {data,error}=await serviceClient.rpc('server_consume_public_intake_limit',{
+    p_scope:scope,p_fingerprint:hashed,p_window_seconds:windowSeconds,p_max_attempts:maxAttempts
+  });
+  if(error)throw error;
+  const result=Array.isArray(data)?data[0]:data;
+  if(!result||typeof result.allowed!=='boolean')throw new Error('INVALID_RATE_LIMIT_RESPONSE');
+  return {allowed:result.allowed,retryAfter:Number(result.retry_after_seconds)||60};
+}
+
+function sourceAddress(request:Request){
+  const cloudflare=request.headers.get('cf-connecting-ip')?.trim();
+  if(cloudflare)return cloudflare.slice(0,64);
+  return (request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'unknown').slice(0,64);
 }
 
 function reference(){
@@ -152,6 +185,11 @@ Deno.serve(async(request)=>{
     if(fullName.length<2||!validEmail(email)||!/[0-9+() .-]{7,20}/.test(phone)||!categoryMap[area]||consultation.length<10||body.privacyNoticeAcknowledged!==true){
       return reply(origin,{error:'INVALID_SUBMISSION'},400);
     }
+
+    const emailLimit=await consumeLimit('email',email,86400,3);
+    if(!emailLimit.allowed)return rateLimitedReply(origin,emailLimit.retryAfter);
+    const ipLimit=await consumeLimit('ip',sourceAddress(request),3600,20);
+    if(!ipLimit.allowed)return rateLimitedReply(origin,ipLimit.retryAfter);
 
     const summary=consultation;
     let created:{id:string;reference:string}|null=null;
