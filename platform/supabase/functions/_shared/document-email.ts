@@ -35,6 +35,7 @@ export async function sendDocumentRequestEmail(message:DocumentRequestEmail){
   const requestCopy=isDocument?'entregar la documentación de forma segura':'responder la aclaración dentro de tu expediente';
   try{
     await transporter.sendMail({
+      encoding:'base64',
       from:`Ratio Soluciones <${smtpUser}>`,
       to:message.email,
       replyTo:smtpUser,

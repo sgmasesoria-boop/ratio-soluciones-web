@@ -72,6 +72,7 @@ async function sendCaseNotifications(caseRecord:{id:string;reference:string;full
 
   try{
     await transporter.sendMail({
+      encoding:'base64',
       from:`Ratio Soluciones <${smtpUser}>`,
       to:destination,
       replyTo:caseRecord.email,
@@ -101,6 +102,7 @@ async function sendCaseNotifications(caseRecord:{id:string;reference:string;full
     const customerName=safeHtml(caseRecord.fullName.replace(/[\r\n]+/g,' '));
     const customerReference=safeHtml(caseRecord.reference);
     await transporter.sendMail({
+      encoding:'base64',
       from:`Ratio Soluciones <${smtpUser}>`,
       to:caseRecord.email,
       replyTo:smtpUser,

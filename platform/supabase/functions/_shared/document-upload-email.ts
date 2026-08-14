@@ -37,6 +37,7 @@ export async function sendDocumentUploadEmail(message:DocumentUploadEmail){
   const reference=message.reference.replace(/[\r\n]+/g,' ').trim();
   try{
     await transporter.sendMail({
+      encoding:'base64',
       from:`Ratio Soluciones <${smtpUser}>`,
       to:recipient,
       replyTo:smtpUser,
