@@ -86,6 +86,7 @@ No se reutiliza una copia anterior sin aplicar de nuevo todas las supresiones re
 - No incluir datos personales en tickets, capturas, commits o mensajes de error.
 - No conservar exportaciones «por si acaso».
 - No borrar auditoría necesaria para acreditar una reclamación o un incidente.
+- Al suprimir un expediente, la relación `audit_events.case_id` se desliga automáticamente. La fila de auditoría continúa siendo inmutable; no debe conservar nombre, correo, teléfono, contenido libre ni archivos. El identificador técnico aislado no permite reconstruir el expediente eliminado.
 - No automatizar la destrucción de expedientes reales hasta que los plazos jurídicos por servicio estén aprobados.
 
 ## 8. Revisión

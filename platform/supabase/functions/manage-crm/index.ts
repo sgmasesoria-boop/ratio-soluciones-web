@@ -52,17 +52,12 @@ Deno.serve(async request=>{
       const lifecycle=clean(body.lifecycle,20),phone=clean(body.phone,30),email=clean(body.email,254).toLowerCase();
       const amount=Number(body.amount||0);
       if(!validUuid(caseId)||!['open','not_contracted','archived'].includes(lifecycle)||!phone||!email||!validPhone(phone)||!validEmail(email)||!Number.isFinite(amount)||amount<0)return respond({error:'INVALID_FIELDS'},400);
-      const {data:previous,error:previousError}=await serviceClient.from('cases').select('manual_phase,status').eq('id',caseId).single();
-      if(previousError||!previous)return respond({error:'CASE_NOT_FOUND'},404);
-      const {error}=await serviceClient.from('cases').update({manual_phase:manualPhase,status:lifecycle,contact_phone:phone,contact_email:email,quoted_amount:amount,closed_at:lifecycle==='open'?null:new Date().toISOString()}).eq('id',caseId);
+      const {data,error}=await serviceClient.rpc('server_update_case_record',{
+        p_case_id:caseId,p_admin_id:admin.id,p_phone:phone,p_email:email,p_manual_phase:manualPhase,
+        p_lifecycle:lifecycle,p_amount:amount,p_note:note
+      });
       if(error)throw error;
-      const events=[] as Array<Record<string,unknown>>;
-      if(previous.manual_phase!==manualPhase)events.push({case_id:caseId,event_type:'internal_phase_changed',title:manualPhase||'Situación interna sin indicación',description:'',visibility:'internal',actor_id:admin.id,metadata:{previous_label:previous.manual_phase||''}});
-      if(previous.status!==lifecycle)events.push({case_id:caseId,event_type:'case_lifecycle_changed',title:lifecycle==='open'?'Expediente abierto':lifecycle==='not_contracted'?'Expediente cerrado sin contratación':'Expediente archivado tras su terminación',description:'',visibility:'internal',actor_id:admin.id,metadata:{previous_lifecycle:previous.status}});
-      if(note)events.push({case_id:caseId,event_type:'internal_note',title:'Nota interna',description:note,visibility:'internal',actor_id:admin.id});
-      if(events.length){const {error:eventError}=await serviceClient.from('case_events').insert(events);if(eventError)throw eventError;}
-      await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:admin.id,action:'case_record_updated',object_type:'case',object_id:caseId,details:{manual_phase:manualPhase,lifecycle,phase_changed:previous.manual_phase!==manualPhase}});
-      return respond({ok:true});
+      return respond(data||{ok:true});
     }
     if(body.action==='add_case_context'){
       const caseId=clean(body.caseId,36),title=clean(body.title,160),content=clean(body.content,4000);
