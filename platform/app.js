@@ -987,8 +987,9 @@ async function saveAiDeliverable(result){
   const button=$('#save-case-ai-deliverable'),original=button.textContent;button.disabled=true;button.textContent='Guardando…';
   try{
     if(productionMode&&platformApi){
-      const created=await platformApi.invoke('manage-crm',{action:'create_working_document',caseId:caseItem.id,title:deliverable.title||'Documento generado desde el expediente',documentType:deliverable.kind||'Documento',statusLabel:'Borrador generado · pendiente de revisión profesional'});
-      await platformApi.invoke('manage-crm',{action:'add_working_document_version',documentId:created.id,statusLabel:'Borrador generado · pendiente de revisión profesional',changeSummary:'Primera versión generada por el asistente integral del expediente.',draftContent:deliverable.content,sourceAiRunId:result.run_id});
+      const documentType=deliverable.kind==='analysis'?'Informe':deliverable.kind||'Documento';
+      const created=await platformApi.invoke('manage-crm',{action:'create_working_document',caseId:caseItem.id,title:deliverable.title||'Documento generado desde el expediente',documentType,statusLabel:'Documento generado'});
+      await platformApi.invoke('manage-crm',{action:'add_working_document_version',documentId:created.id,statusLabel:'Documento generado',changeSummary:'Primera versión generada por el asistente integral del expediente.',draftContent:deliverable.content,sourceAiRunId:result.run_id});
       await enterProduction();renderShell();toast('Borrador guardado y vinculado al análisis. Debe revisarlo el profesional.');
     }else toast('En demostración el borrador no se guarda de forma permanente.');
   }catch{setModalFeedback('#case-ai-feedback','No se ha podido guardar el borrador. El análisis sigue visible para poder copiarlo.');button.disabled=false;button.textContent=original;}
@@ -1119,7 +1120,7 @@ function configureApplicationMode() {
     adminButton.hidden=true;clientButton.hidden=false;
     $('.demo-access p').textContent='Portal de cliente de prueba con datos ficticios';
     $('.test-banner').textContent='PORTAL DE CLIENTE · DATOS FICTICIOS · SIN DOCUMENTACIÓN';
-    document.title='Portal de clientes | Ratio Soluciones';
+    document.title='Portal privado de clientes | Ratio Soluciones';
   }
 }
 configureApplicationMode();

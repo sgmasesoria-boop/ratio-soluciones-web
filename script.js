@@ -43,6 +43,18 @@ const progress = document.querySelector('.form-progress');
 const progressBars = [...document.querySelectorAll('.form-progress span')];
 let currentStep = 1;
 
+const requestedArea = new URLSearchParams(window.location.search).get('area');
+const campaignAreas = {
+  deudas: 'Deudas y segunda oportunidad',
+  bancos: 'Bancos, tarjetas e hipotecas',
+  hacienda: 'Hacienda e impuestos'
+};
+if (form && requestedArea && campaignAreas[requestedArea]) {
+  const areaInput = [...form.querySelectorAll('input[name="area"]')]
+    .find((input) => input.value === campaignAreas[requestedArea]);
+  if (areaInput) areaInput.checked = true;
+}
+
 function showStep(number) {
   currentStep = number;
   steps.forEach((step) => {
@@ -110,15 +122,23 @@ form?.addEventListener('submit', async (event) => {
       })
     });
     const result = await response.json().catch(() => ({}));
+    if (response.status === 429) {
+      const rateError = new Error('TOO_MANY_REQUESTS');
+      rateError.code = 'TOO_MANY_REQUESTS';
+      throw rateError;
+    }
     if (!response.ok || !result.ok || !result.reference) throw new Error(result.error || `HTTP ${response.status}`);
     window.location.assign(`gracias.html?ref=${encodeURIComponent(result.reference)}`);
   } catch (error) {
     console.error('No se pudo registrar la consulta', error);
+    const rateLimited = error?.code === 'TOO_MANY_REQUESTS';
     if (submitButton) {
-      submitButton.disabled = false;
-      submitButton.innerHTML = 'Volver a intentar <span>↗</span>';
+      submitButton.disabled = rateLimited;
+      submitButton.innerHTML = rateLimited ? 'Consulta no reenviada' : 'Volver a intentar <span>↗</span>';
     }
-    if (status) status.innerHTML = 'No hemos podido registrar la consulta. Vuelve a intentarlo o escríbenos a <a href="mailto:clientes@ratiosoluciones.es">clientes@ratiosoluciones.es</a>.';
+    if (status) status.innerHTML = rateLimited
+      ? 'Se han realizado varios envíos en poco tiempo. Si ya recibiste una referencia, no necesitas repetir la consulta. Si necesitas corregirla, escríbenos a <a href="mailto:clientes@ratiosoluciones.es">clientes@ratiosoluciones.es</a>.'
+      : 'No hemos podido registrar la consulta. Vuelve a intentarlo o escríbenos a <a href="mailto:clientes@ratiosoluciones.es">clientes@ratiosoluciones.es</a>.';
   }
 });
 

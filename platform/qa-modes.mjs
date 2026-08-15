@@ -12,6 +12,8 @@ for(const mode of ['portal','crm']){
     const page=await context.newPage();
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto(pathToFileURL(resolve('dist/index.html')).href,{waitUntil:'load'});
+    const expectedTitle=mode==='crm'?'CRM privado | Ratio Soluciones':'Portal privado de clientes | Ratio Soluciones';
+    const titleCorrect=await page.title()===expectedTitle;
     const expectedRole=mode==='crm'?'admin':'client',forbiddenRole=mode==='crm'?'client':'admin';
     const expectedVisible=await page.locator(`[data-demo-role="${expectedRole}"]`).isVisible();
     const forbiddenHidden=!(await page.locator(`[data-demo-role="${forbiddenRole}"]`).isVisible());
@@ -20,10 +22,10 @@ for(const mode of ['portal','crm']){
     const correctNavigation=mode==='crm'?crmNavigation:!crmNavigation;
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);
     await page.screenshot({path:`preview-${mode}-separated-${viewport.name}.png`,fullPage:true});
-    results.push({mode,viewport:viewport.name,expectedVisible,forbiddenHidden,correctNavigation,overflow,errors});
+    results.push({mode,viewport:viewport.name,titleCorrect,expectedVisible,forbiddenHidden,correctNavigation,overflow,errors});
     await context.close();
   }
 }
 await browser.close();
 console.log(JSON.stringify(results,null,2));
-if(results.some(item=>!item.expectedVisible||!item.forbiddenHidden||!item.correctNavigation||item.overflow||item.errors.length))process.exitCode=1;
+if(results.some(item=>!item.titleCorrect||!item.expectedVisible||!item.forbiddenHidden||!item.correctNavigation||item.overflow||item.errors.length))process.exitCode=1;

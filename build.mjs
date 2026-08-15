@@ -37,6 +37,10 @@ for (const page of ['bancos','deudas','vivienda','seguros','familia','consumo','
 const worker = `const routes = ${JSON.stringify(routes)};
 export default { async fetch(request) {
   const url = new URL(request.url);
+  if (url.hostname === 'ratiosoluciones.es') {
+    url.hostname = 'www.ratiosoluciones.es';
+    return Response.redirect(url.toString(), 301);
+  }
   const route = routes[url.pathname.replace(/\\/$/, '') || '/'];
   if (!route) return new Response('Página no encontrada', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
   const headers = {

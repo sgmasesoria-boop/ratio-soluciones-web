@@ -30,11 +30,26 @@ const noBorder=()=>({style:BorderStyle.NONE,color:WHITE,size:0});
 const noBorders={top:noBorder(),bottom:noBorder(),left:noBorder(),right:noBorder(),insideHorizontal:noBorder(),insideVertical:noBorder()};
 
 function runsFromInline(text,{bold=false,italics=false,color=INK,size=22}={}){
-  const parts=String(text||'').split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  const parts=String(text||'').replace(/`([^`]+)`/g,'$1').split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
   return parts.map(part=>{
     const marked=part.startsWith('**')&&part.endsWith('**');
-    return new TextRun({text:marked?part.slice(2,-2):part,bold:bold||marked,italics,color,size,font:'Aptos'});
+    const clean=(marked?part.slice(2,-2):part).replace(/\*\*/g,'');
+    return new TextRun({text:clean,bold:bold||marked,italics,color,size,font:'Aptos'});
   });
+}
+
+const PRESENTATION_NOTE=/Nota de presentaci[oó]n\.\s*Este documento est[aá] preparado para su maquetaci[oó]n y exportaci[oó]n a PDF profesional\.\s*El logotipo corporativo no se incorpora todav[ií]a porque no se ha facilitado el archivo o plantilla gr[aá]fica correspondiente\.?/giu;
+
+export function sanitizeDocumentContent(content){
+  return String(content||'')
+    .replace(/\r\n?/g,'\n')
+    .replace(PRESENTATION_NOTE,'')
+    .split('\n')
+    .filter(line=>!/^\s*(?:-{3,}|_{3,}|\*{3,}|```.*)\s*$/.test(line))
+    .map(line=>line.replace(/^\s*>\s?/,'').replace(/\s+$/,''))
+    .join('\n')
+    .replace(/\n{3,}/g,'\n\n')
+    .trim();
 }
 
 function heading(text,level=HeadingLevel.HEADING_1){
@@ -46,12 +61,69 @@ function heading(text,level=HeadingLevel.HEADING_1){
   });
 }
 
-function bodyParagraphs(content){
-  const lines=String(content||'').replace(/\r\n?/g,'\n').split('\n');
+function markdownCells(line){
+  return line.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(cell=>cell.trim());
+}
+
+function isMarkdownDivider(line,columnCount){
+  const cells=markdownCells(line);
+  return cells.length===columnCount&&cells.every(cell=>/^:?-{3,}:?$/.test(cell));
+}
+
+function tableColumnWidths(rows){
+  const columnCount=Math.max(...rows.map(row=>row.length));
+  const weights=Array.from({length:columnCount},(_,index)=>Math.max(8,...rows.map(row=>String(row[index]||'').length)));
+  const total=weights.reduce((sum,value)=>sum+value,0);
+  const minimum=1000;
+  const available=CONTENT_WIDTH-(minimum*columnCount);
+  const widths=weights.map(weight=>minimum+Math.floor(available*weight/total));
+  widths[widths.length-1]+=CONTENT_WIDTH-widths.reduce((sum,value)=>sum+value,0);
+  return widths;
+}
+
+function contentTable(rows){
+  const widths=tableColumnWidths(rows);
+  return new Table({
+    width:{size:CONTENT_WIDTH,type:WidthType.DXA},
+    columnWidths:widths,
+    borders:{top:border(),bottom:border(),left:border(),right:border(),insideHorizontal:border('E2E9E6',3),insideVertical:border('E2E9E6',3)},
+    rows:rows.map((row,rowIndex)=>new TableRow({
+      cantSplit:true,
+      tableHeader:rowIndex===0,
+      children:widths.map((width,index)=>new TableCell({
+        width:{size:width,type:WidthType.DXA},
+        verticalAlign:VerticalAlign.CENTER,
+        shading:rowIndex===0?{fill:PALE}:undefined,
+        margins:{top:105,bottom:105,left:130,right:130},
+        children:[new Paragraph({spacing:{after:0},children:runsFromInline(row[index]||'',{bold:rowIndex===0,color:rowIndex===0?GREEN:INK,size:19})})]
+      }))
+    }))
+  });
+}
+
+function bodyElements(content){
+  const lines=sanitizeDocumentContent(content).split('\n');
   const children=[];
-  for(const raw of lines){
+  for(let index=0;index<lines.length;index+=1){
+    const raw=lines[index];
     const line=raw.trim();
     if(!line){children.push(new Paragraph({spacing:{after:80}}));continue;}
+    if(line.includes('|')&&lines[index+1]?.includes('|')){
+      const header=markdownCells(line);
+      if(header.length>=2&&isMarkdownDivider(lines[index+1],header.length)){
+        const rows=[header];
+        index+=2;
+        while(index<lines.length&&lines[index].includes('|')){
+          const cells=markdownCells(lines[index]);
+          if(cells.length!==header.length)break;
+          rows.push(cells);
+          index+=1;
+        }
+        index-=1;
+        children.push(contentTable(rows),new Paragraph({spacing:{after:100}}));
+        continue;
+      }
+    }
     const markdownHeading=line.match(/^(#{1,3})\s+(.+)$/);
     if(markdownHeading){children.push(heading(markdownHeading[2],markdownHeading[1].length===1?HeadingLevel.HEADING_1:HeadingLevel.HEADING_2));continue;}
     const bullet=line.match(/^[-*•]\s+(.+)$/);
@@ -67,9 +139,8 @@ function bodyParagraphs(content){
 
 function metadataTable(metadata){
   const rows=[
-    ['EXPEDIENTE',metadata.reference||'Sin referencia','DOCUMENTO',metadata.documentType||'Documento de trabajo'],
-    ['CLIENTE',metadata.clientName||'No indicado','VERSIÓN',String(metadata.versionNumber||1)],
-    ['FECHA',metadata.dateLabel||'','ESTADO',metadata.statusLabel||'Borrador para revisión']
+    ['EXPEDIENTE',metadata.reference||'Sin referencia','CLIENTE',metadata.clientName||'No indicado'],
+    ['FECHA',metadata.dateLabel||'','VERSIÓN',String(metadata.versionNumber||1)]
   ];
   return new Table({
     width:{size:CONTENT_WIDTH,type:WidthType.DXA},
@@ -140,10 +211,9 @@ export async function buildBrandedDocument(metadata,content){
       footers:{default:brandFooter(metadata.reference)},
       children:[
         new Paragraph({style:'Title',children:[new TextRun({text:title,bold:true,color:NAVY,size:38,font:'Aptos Display'})]}),
-        new Paragraph({spacing:{after:220},children:[new TextRun({text:'BORRADOR · PENDIENTE DE REVISIÓN PROFESIONAL',bold:true,color:GREEN,size:18,font:'Aptos'})]}),
         metadataTable(metadata),
         new Paragraph({spacing:{after:160}}),
-        ...bodyParagraphs(content)
+        ...bodyElements(content)
       ]
     }]
   });

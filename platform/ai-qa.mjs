@@ -36,7 +36,7 @@ const result={
   noStorage:edge.includes('store:false'),
   documentContentControlled:edge.includes('MAX_DOCUMENTS=3')&&edge.includes('MAX_DOCUMENT_BYTES=5*1024*1024')&&edge.includes('MAX_DOCUMENT_TOTAL_BYTES=10*1024*1024')&&edge.includes("action:'ai_document_content_processed'"),
   workingDocumentsIncluded:edge.includes("from('case_working_documents')")&&edge.includes("from('case_document_versions')"),
-  internalDocumentsIncluded:edge.includes("from('case_internal_documents')")&&edge.includes("storage_bucket:INTERNAL_DOCUMENT_BUCKET")&&edge.includes("internal_document:${document.id}")&&edge.includes("prompt_version:'ratio-case-v7'"),
+  internalDocumentsIncluded:edge.includes("from('case_internal_documents')")&&edge.includes("storage_bucket:INTERNAL_DOCUMENT_BUCKET")&&edge.includes("internal_document:${document.id}")&&edge.includes("prompt_version:'ratio-case-v9'"),
   manualContextIncluded:edge.includes('event_type ai_context')&&edge.includes('corrección explícita'),
   unifiedProfessionalAssistant:app.includes('¿Qué necesitas hacer?')&&app.includes("request=$('#case-ai-request')")&&edge.includes('ratio_professional_case_work')&&edge.includes('requested_work'),
   officialResearchIsSeparated:edge.includes('researchOfficialSources')&&edge.includes('allowed_domains:OFFICIAL_DOMAINS')&&edge.includes('safeResearchQueries')&&edge.includes('official_source_urls'),
