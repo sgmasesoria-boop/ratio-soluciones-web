@@ -3,6 +3,7 @@ import { cryptoSelfTest } from './operations/storage-backup.mjs';
 
 const source=await readFile('operations/storage-backup.mjs','utf8');
 const runbook=await readFile('operations/STORAGE_BACKUP_RUNBOOK.md','utf8');
+const launcher=await readFile('operations/backup-now.ps1','utf8');
 const retention=await readFile('RETENTION_POLICY.md','utf8');
 const failures=[];
 
@@ -15,6 +16,9 @@ if(!source.includes('INVALID_BACKUP_OBJECT_NAME')||!source.includes('tamperBlock
 if(source.includes("console.log(serviceKey")||source.includes("console.log(passphrase"))failures.push('La herramienta puede mostrar secretos.');
 if(!runbook.includes('no los archivos físicos')||!runbook.includes('Prueba trimestral de restauración'))failures.push('El procedimiento no documenta el límite de las copias o la restauración.');
 if(!retention.includes('copia de archivos de Storage se controlan por separado')||!retention.includes('una restauración posterior obliga a repetir la supresión'))failures.push('Conservación y supresión no contemplan la copia física de Storage.');
+if(!launcher.includes('UseSystemPasswordChar = $true')||!launcher.includes('LOS_DESTINOS_DEBEN_SER_DIFERENTES'))failures.push('El asistente no oculta las claves o no exige dos destinos.');
+if(!launcher.includes('FALLO_AL_VERIFICAR_LA_PRIMERA_COPIA')||!launcher.includes('FALLO_AL_VERIFICAR_LA_SEGUNDA_COPIA'))failures.push('El asistente no verifica las dos copias.');
+if(!launcher.includes('Remove-Item Env:RATIO_SUPABASE_SERVICE_ROLE_KEY')||!launcher.includes('$serviceKey = $null'))failures.push('El asistente no limpia las credenciales al finalizar.');
 
 console.log(JSON.stringify({passed:failures.length===0,failures},null,2));
 if(failures.length)process.exitCode=1;

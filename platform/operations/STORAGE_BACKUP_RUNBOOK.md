@@ -22,6 +22,14 @@ Usar una carpeta externa al proyecto y sincronizada con una cuenta corporativa p
 
 ## Crear la copia
 
+### Asistente gráfico recomendado
+
+Ejecutar `operations/backup-now.ps1`. El asistente solicita de forma oculta la clave `service_role` y la contraseña de cifrado, obliga a elegir dos destinos distintos, crea la copia en el primero, la replica en el segundo y verifica ambos conjuntos antes de confirmar el resultado. Ninguna clave se escribe en disco.
+
+Para una recuperación ante desastre, uno de los destinos debe estar fuera del inmueble y bajo una cuenta corporativa con MFA. Un segundo disco interno protege frente a averías parciales, pero no frente a robo, incendio o destrucción del equipo.
+
+### Ejecución manual
+
 Abrir PowerShell solo durante la operación y definir las tres variables sin guardarlas en `.env`, scripts, historial compartido ni Git:
 
 ```powershell
@@ -60,4 +68,3 @@ Remove-Item Env:RATIO_BACKUP_PASSPHRASE
 ## Restauración
 
 No restaurar automáticamente sobre producción. Primero se verifica la copia, se crea un entorno aislado, se revisan permisos y se compara el manifiesto con los metadatos de la base restaurada. La reposición en producción requiere autorización humana, registro de auditoría y comprobación posterior de RLS.
-
