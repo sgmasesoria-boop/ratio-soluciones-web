@@ -19,6 +19,8 @@ Los plazos jurídicos de expedientes cerrados dependen del servicio prestado y d
 
 - Revisión mensual de usuarios internos, factores MFA, accesos fallidos y eventos anómalos.
 - Revisión semestral de consultas cerradas, expedientes, cuentas inactivas y datos del CRM.
+- La copia de base de datos y la copia de archivos de Storage se controlan por separado. Cada copia de archivos debe quedar cifrada, verificada y almacenada fuera de Supabase conforme a `operations/STORAGE_BACKUP_RUNBOOK.md`.
+- La supresión de un expediente debe alcanzar la copia operativa y quedar vinculada a la fecha de expiración de las copias históricas; una restauración posterior obliga a repetir la supresión antes de reabrir el servicio.
 - Borrado mediante una operación administrativa trazable; nunca mediante acceso directo del navegador a tablas.
 - Los registros de auditoría son de solo inserción para la aplicación. Su depuración requiere una tarea administrativa separada y autorizada.
 - Cualquier excepción debe indicar responsable, motivo, fecha de revisión y fecha prevista de eliminación.
