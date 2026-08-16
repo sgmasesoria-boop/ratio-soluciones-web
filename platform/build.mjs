@@ -4,11 +4,14 @@ const targetProjectId=process.argv[3]||'';
 const runtimeMode=process.argv[4]||'production';
 if(!['combined','crm','portal'].includes(buildMode))throw new Error('Build mode must be combined, crm or portal.');
 if(!['demo','production'].includes(runtimeMode))throw new Error('Runtime mode must be demo or production.');
-const publicFiles=['index.html','styles.css','config.js','platform-api.js','app.js'];
+const publicFiles=['index.html','styles.css','config.js','platform-api.js','crm-api.js','app.js'];
 await rm('dist',{recursive:true,force:true});
 await mkdir('dist/server',{recursive:true});
 await mkdir('dist/.openai',{recursive:true});
-for(const file of publicFiles.filter(name=>!['config.js','index.html'].includes(name))) await cp(file,`dist/${file}`);
+for(const file of publicFiles.filter(name=>!['config.js','index.html'].includes(name))){
+  const sourceFile=file==='crm-api.js'?'platform-api.js':file;
+  await cp(sourceFile,`dist/${file}`);
+}
 const pageTitle=buildMode==='crm'
   ? 'CRM privado | Ratio Soluciones'
   : buildMode==='portal'
