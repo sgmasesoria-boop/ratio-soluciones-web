@@ -293,6 +293,25 @@
     </form>
   </dialog>
 
+  <dialog id="manual-signature-dialog" class="modal wide-modal">
+    <form method="dialog" id="manual-signature-form">
+      <div class="modal-head"><div><p class="kicker">Contrato firmado en papel</p><h2>Acreditar firma manual</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <input id="manual-signature-contract" name="contractId" type="hidden">
+      <input name="action" type="hidden" value="register_manual_signature">
+      <p class="upload-warning">Esta operación acredita una contratación y queda auditada. Comprueba el documento completo y conserva el original físico.</p>
+      <div class="form-grid">
+        <label>Fecha que figura en el contrato<input id="manual-signature-date" name="signedOn" type="date" min="2000-01-01" required></label>
+        <label>Localización del original<input id="manual-signature-location" name="originalLocation" required minlength="5" maxlength="300" placeholder="Ej. Archivo físico, armario 2, carpeta del expediente"></label>
+      </div>
+      <label>Nota de comprobación<textarea id="manual-signature-note" name="verificationNote" rows="3" maxlength="1000" placeholder="Incidencias, páginas comprobadas o forma de identificación"></textarea></label>
+      <label class="file-drop"><input id="manual-signature-file" name="file" type="file" accept="application/pdf" required><span class="file-icon">+</span><strong>Seleccionar contrato firmado completo</strong><small>Solo PDF · máximo 15 MB</small><em id="manual-signature-file-name">Ningún archivo seleccionado</em></label>
+      <label class="confirm-reading"><input id="manual-signature-custody" name="custodyConfirmed" type="checkbox" value="true" required><span>He comprobado que el PDF contiene el contrato completo y firmado y he registrado correctamente dónde se conserva el original.</span></label>
+      <div class="privacy-preview"><small>Control interno</small><p>Se guardarán el PDF, sus huellas digitales, un acta de verificación, el usuario que realiza la comprobación y la fecha real de la operación. El portal no se activará automáticamente.</p></div>
+      <div id="manual-signature-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Acreditar firma manual <span>→</span></button></div>
+    </form>
+  </dialog>
+
   <dialog id="document-version-dialog" class="modal wide-modal">
     <form method="dialog" id="document-version-form">
       <div class="modal-head"><div><p class="kicker">Nueva versión</p><h2 id="document-version-title">Añadir versión</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
@@ -348,7 +367,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <script defer src="config.js"></script>
-  <script defer src="crm-api.js?v=20"></script>
-  <script defer src="app.js?v=20"></script>
+  <script defer src="platform-api.js?v=21"></script>
+  <script defer src="app.js?v=21"></script>
 </body>
 </html>

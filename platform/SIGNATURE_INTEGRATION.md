@@ -29,11 +29,17 @@ La producción exige `SIGNATURIT_MODE=production` y `CONTRACT_TEMPLATE_VALIDATED
 1. Ratio completa o modifica la ficha contractual sin estados prefijados.
 2. `Generar PDF` crea una copia exacta, guarda su huella y registra la actuación.
 3. Una persona revisa identidad, causa, alcance y precio.
-4. `Enviar a firma` exige administrador con MFA AAL2 y remite el PDF al proveedor.
+4. Si el cliente firma electrónicamente, `Enviar a firma` exige administrador con MFA AAL2 y remite el PDF al proveedor.
 5. El webhook se registra como aviso no confiable.
 6. El servidor consulta la API del proveedor y solo continúa si el documento figura completado.
 7. Descarga, valida y archiva el PDF firmado y el documento probatorio.
-8. La firma acreditada aparece en la cronología interna. El portal no se activa automáticamente; Ratio conserva esa decisión expresa.
+8. Si el cliente firma en papel, `Registrar firma en papel` exige administrador con MFA AAL2, fecha de firma, localización del original, confirmación de custodia y el contrato firmado completo en PDF.
+9. El servidor calcula las huellas, guarda el PDF en almacenamiento privado, crea un acta interna de verificación y registra la operación de forma transaccional y auditable.
+10. En ambos recorridos, la firma acreditada aparece en la cronología interna. El portal no se activa automáticamente; Ratio conserva esa decisión expresa después de comprobar los datos de contacto del cliente.
+
+## Momento de activación del portal
+
+El expediente se crea desde la primera atención, aunque haya comenzado presencialmente. El acceso del cliente se habilita únicamente cuando Ratio ha verificado una contratación válida, ya sea electrónica o firmada en papel, y ha comprobado el correo del cliente. La apertura del portal es una actuación posterior y expresa: no se produce al crear el expediente, generar el contrato, enviarlo a firma ni recibir un aviso del proveedor.
 
 ## Límites antes de producción
 

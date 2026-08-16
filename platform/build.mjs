@@ -18,7 +18,8 @@ const pageTitle=buildMode==='crm'
     ? 'Portal privado de clientes | Ratio Soluciones'
     : 'Plataforma privada | Ratio Soluciones';
 const sourceIndex=(await readFile('index.html','utf8')).replace(/<title>.*?<\/title>/,`<title>${pageTitle}</title>`);
-await writeFile('dist/index.html',sourceIndex,'utf8');
+const builtIndex=sourceIndex.replace(/src="platform-api\.js[^\"]*"/,'src="crm-api.js?v=21"');
+await writeFile('dist/index.html',builtIndex,'utf8');
 const sourceConfig=await readFile(runtimeMode==='production'?'config.production.public.js':'config.js','utf8');
 const resolvedConfig=sourceConfig
   .replace(/appMode:\s*'[^']+'/,`appMode: '${buildMode}'`)
