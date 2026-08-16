@@ -18,9 +18,12 @@ Se configuran exclusivamente como secretos de las Edge Functions. No se escriben
 
 - `SIGNATURIT_MODE=sandbox`
 - `SIGNATURIT_ACCESS_TOKEN=<token del sandbox>`
-- `SIGNATURIT_WEBHOOK_TOKEN=<valor aleatorio de al menos 32 caracteres>`
-- `SIGNATURIT_EVENTS_URL=https://bvpeztdfwdbiielaione.supabase.co/functions/v1/signaturit-webhook/events.json?token=<mismo valor>`
+- `SIGNATURIT_EVENTS_URL=https://bvpeztdfwdbiielaione.supabase.co/functions/v1/signaturit-webhook/events.json`
 - `CONTRACT_TEMPLATE_VALIDATED=false`
+
+La URL no contiene credenciales. El endpoint solo admite eventos procedentes de
+la IP oficial publicada por Signaturit (`34.241.96.22`) y, aun asi, trata cada
+aviso como no confiable hasta confirmar el estado mediante la API autenticada.
 
 La producción exige `SIGNATURIT_MODE=production` y `CONTRACT_TEMPLATE_VALIDATED=true`. La aplicación rechaza el envío de producción si falta la validación jurídica.
 
@@ -47,5 +50,6 @@ El expediente se crea desde la primera atención, aunque haya comenzado presenci
 - Firma del contrato de encargado y revisión de ubicación, subencargados, retención y exportación con el proveedor.
 - Confirmación comercial de acceso API: los precios públicos reservan la API al plan Enterprise.
 - Prueba completa con identidades y documentos totalmente ficticios en sandbox.
-- Rotación del token del webhook si aparece en registros, capturas o comunicaciones.
+- Eliminación en Supabase del antiguo secreto `SIGNATURIT_WEBHOOK_TOKEN` y revisión
+  de registros o capturas donde pudiera haber aparecido la URL anterior.
 - Prueba de reintentos, evento duplicado, caída temporal y recuperación.

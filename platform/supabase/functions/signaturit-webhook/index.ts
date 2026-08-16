@@ -2,6 +2,8 @@ import {serviceClient} from '../_shared/auth.ts';
 
 const BUCKET='case-documents';
 const MAX_EVENT_BYTES=64*1024,MAX_PDF_BYTES=15*1024*1024;
+const SIGNATURIT_EVENT_IP='34.241.96.22';
+const COMPLETION_EVENTS=new Set(['document_signed','document_completed','audit_trail_completed']);
 const clean=(value:unknown,max:number)=>String(value??'').trim().slice(0,max);
 const validProviderId=(value:string)=>/^[A-Za-z0-9_-]{3,240}$/.test(value);
 
@@ -10,20 +12,18 @@ async function sha256(bytes:Uint8Array){
   return [...new Uint8Array(digest)].map(value=>value.toString(16).padStart(2,'0')).join('');
 }
 
-function sameSecret(left:string,right:string){
-  const a=new TextEncoder().encode(left),b=new TextEncoder().encode(right);
-  if(a.length!==b.length)return false;let difference=0;
-  for(let index=0;index<a.length;index++)difference|=a[index]^b[index];
-  return difference===0;
-}
-
 function providerConfig(){
   const token=Deno.env.get('SIGNATURIT_ACCESS_TOKEN')||'';
-  const webhookToken=Deno.env.get('SIGNATURIT_WEBHOOK_TOKEN')||'';
   const mode=(Deno.env.get('SIGNATURIT_MODE')||'sandbox').toLowerCase();
   const base=mode==='production'?'https://api.signaturit.com':'https://api.sandbox.signaturit.com';
-  if(!token||webhookToken.length<32)throw new Error('NOT_CONFIGURED');
-  return {token,webhookToken,base};
+  if(!token)throw new Error('NOT_CONFIGURED');
+  return {token,base};
+}
+
+function trustedSourceIp(request:Request){
+  // Supabase recibe las funciones a traves de Cloudflare. Este encabezado lo
+  // fija el proxy de borde y evita depender de secretos incluidos en la URL.
+  return clean(request.headers.get('cf-connecting-ip'),64);
 }
 
 async function providerGet(url:string,token:string){
@@ -37,8 +37,8 @@ function jsonResponse(body:unknown,status=200){return new Response(JSON.stringif
 Deno.serve(async request=>{
   if(request.method!=='POST')return jsonResponse({error:'METHOD_NOT_ALLOWED'},405);
   try{
-    const config=providerConfig(),url=new URL(request.url);
-    if(!sameSecret(url.searchParams.get('token')||'',config.webhookToken))return jsonResponse({error:'UNAUTHORIZED'},401);
+    const config=providerConfig();
+    if(trustedSourceIp(request)!==SIGNATURIT_EVENT_IP)return jsonResponse({error:'UNAUTHORIZED'},401);
     const declared=Number(request.headers.get('content-length')||0);
     if(declared>MAX_EVENT_BYTES)return jsonResponse({error:'PAYLOAD_TOO_LARGE'},413);
     const raw=await request.text();if(raw.length>MAX_EVENT_BYTES)return jsonResponse({error:'PAYLOAD_TOO_LARGE'},413);
@@ -55,6 +55,8 @@ Deno.serve(async request=>{
     const {error:eventError}=await serviceClient.from('case_contract_signature_events').insert({contract_id:contract.id,provider:'signaturit',provider_event_id:eventId,event_label:eventLabel,payload_sha256:payloadHash,occurred_at:occurredAt});
     if(eventError&&eventError.code!=='23505')throw eventError;
     if(contract.signed_at)return jsonResponse({accepted:true,alreadyVerified:true});
+    if(!COMPLETION_EVENTS.has(eventLabel))return jsonResponse({accepted:true,verified:false},202);
+    if(!validProviderId(contract.provider_request_id))throw new Error('INVALID_PROVIDER_REFERENCE');
 
     // El webhook solo despierta el proceso. La confirmacion procede de una
     // consulta autenticada a Signaturit, nunca de los campos recibidos aqui.
