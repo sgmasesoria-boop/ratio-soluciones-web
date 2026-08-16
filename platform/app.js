@@ -508,7 +508,8 @@ function caseDocumentsPanel(caseItem,isAdmin) {
       return `<article class="document-request"><div class="document-request-head"><div><span class="history-source">Aclaración · ${escapeHtml(clarificationStatus[request.status]||request.status)}</span><h3>${escapeHtml(request.title)}</h3></div>${adminAction}</div>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${response}</article>`;
     }
     const adminAction=isAdmin&&request.status==='pending'?`<button type="button" class="document-download" data-cancel-request="${escapeHtml(request.id)}">Retirar solicitud</button>`:'';
-    return `<article class="document-request"><div class="document-request-head"><div><span class="history-source">Documentación · ${escapeHtml(statusText[request.status]||request.status)}</span><h3>${escapeHtml(request.title)}</h3></div>${adminAction}</div>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${fileList}</article>`;
+    const clientUploadAction=!isAdmin&&request.status==='submitted'?`<button type="button" class="secondary-button" data-upload-request="${escapeHtml(request.id)}">Añadir otro archivo</button>`:'';
+    return `<article class="document-request"><div class="document-request-head"><div><span class="history-source">Documentación · ${escapeHtml(statusText[request.status]||request.status)}</span><h3>${escapeHtml(request.title)}</h3></div><div class="document-actions">${adminAction}${clientUploadAction}</div></div>${request.instructions?`<p>${escapeHtml(request.instructions)}</p>`:''}${fileList}</article>`;
   }).join(''):'';
   const empty=!directContent&&!requestContent?'<div class="empty">Todavía no hay documentación ni solicitudes en este expediente.</div>':'';
   const adminAction=isAdmin?'<button class="secondary-button" id="add-client-document" type="button">Incorporar documento recibido</button>':`<small>${requests.length} ${requests.length===1?'solicitud':'solicitudes'}</small>`;
@@ -1494,21 +1495,21 @@ $('#client-document-intake-form').addEventListener('submit',async event=>{
   if(event.submitter?.value==='cancel'){$('#client-document-intake-dialog').close();return;}
   const file=$('#client-document-intake-file').files?.[0],allowed=['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'];
   if(!$('#client-document-intake-privacy').checked){setModalFeedback('#client-document-intake-feedback','Confirma que se ha facilitado la información de privacidad.');return;}
-  if(!file||file.size<1||file.size>5*1024*1024||!allowed.includes(file.type)){setModalFeedback('#client-document-intake-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 5 MB.');return;}
+  if(!file||file.size<1||file.size>25*1024*1024||!allowed.includes(file.type)){setModalFeedback('#client-document-intake-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 25 MB.');return;}
   const button=event.submitter||$('#client-document-intake-form .primary-button'),original=button.innerHTML,caseId=$('#client-document-intake-case').value;
   button.disabled=true;button.textContent='Incorporando documento…';setModalFeedback('#client-document-intake-feedback','Guardando el archivo, su procedencia y su huella de integridad…','info');
   try{
     if(productionMode&&platformApi){await platformApi.invokeMultipart('document-workflow',new FormData(event.currentTarget));await enterProduction();activeCaseId=caseId;activeSection='cases';renderShell();}
     else{const at=new Date().toISOString();state.caseDocuments.unshift({id:crypto.randomUUID(),caseId,requestId:'',originalName:file.name,mimeType:file.type,sizeBytes:file.size,status:'accepted',visibility:'client',intakeChannel:'received_by_ratio',uploadedBy:currentUser().id,privacyNoticeAt:at,createdAt:at,reviewedAt:at});state.events.push({id:crypto.randomUUID(),caseId,kind:'document_uploaded',title:'Documentación incorporada al expediente',description:file.name,at,current:true});state.notifications.push({id:crypto.randomUUID(),userId:state.users.client.id,caseId,title:'Documento incorporado a tu expediente',body:file.name,at,read:false});log('client_document_received_by_ratio','case_document',state.caseDocuments[0].id);saveState();renderShell();}
     $('#client-document-intake-form').reset();$('#client-document-intake-dialog').close();toast('Documento del cliente incorporado y registrado correctamente.');
-  }catch(error){const messages={PRIVACY_NOTICE_REQUIRED:'Confirma que se ha facilitado la información de privacidad.',INVALID_DOCUMENT_FILE:'El archivo no es válido, no coincide con su formato o supera 5 MB.',INVALID_ADMIN_CLIENT_DOCUMENT:'No se ha podido registrar la procedencia del documento.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.'};setModalFeedback('#client-document-intake-feedback',messages[error?.code]||'No se ha podido incorporar el documento del cliente.');}
+  }catch(error){const messages={PRIVACY_NOTICE_REQUIRED:'Confirma que se ha facilitado la información de privacidad.',INVALID_DOCUMENT_FILE:'El archivo no es válido, no coincide con su formato o supera 25 MB.',INVALID_ADMIN_CLIENT_DOCUMENT:'No se ha podido registrar la procedencia del documento.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.'};setModalFeedback('#client-document-intake-feedback',messages[error?.code]||'No se ha podido incorporar el documento del cliente.');}
   finally{button.disabled=false;button.innerHTML=original;}
 });
 $('#internal-document-form').addEventListener('submit',async event=>{
   event.preventDefault();
   if(event.submitter?.value==='cancel'){$('#internal-document-dialog').close();return;}
   const file=$('#internal-document-file').files?.[0],allowed=['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'];
-  if(!file||file.size<1||file.size>15*1024*1024||!allowed.includes(file.type)){setModalFeedback('#internal-document-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 15 MB.');return;}
+  if(!file||file.size<1||file.size>25*1024*1024||!allowed.includes(file.type)){setModalFeedback('#internal-document-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 25 MB.');return;}
   if($('#internal-document-title').value.trim().length<2){setModalFeedback('#internal-document-feedback','Indica un título para identificar el documento.');return;}
   const button=event.submitter||$('#internal-document-form .primary-button'),original=button.innerHTML,caseId=$('#internal-document-case').value;
   button.disabled=true;button.textContent='Adjuntando archivo…';setModalFeedback('#internal-document-feedback','Guardando en el archivo privado y calculando su huella…','info');
@@ -1516,7 +1517,7 @@ $('#internal-document-form').addEventListener('submit',async event=>{
     if(productionMode&&platformApi){await platformApi.invokeMultipart('internal-document-workflow',new FormData(event.currentTarget));await enterProduction();activeCaseId=caseId;activeSection='cases';renderShell();}
     else{const at=new Date().toISOString();state.internalDocuments.unshift({id:crypto.randomUUID(),caseId,title:$('#internal-document-title').value.trim(),note:$('#internal-document-note').value.trim(),originalName:file.name,mimeType:file.type,sizeBytes:file.size,sha256:'d'.repeat(64),uploadedBy:currentUser().id,securityStatus:'pending_review',securityReviewedAt:'',createdAt:at});log('internal_document_uploaded','case_internal_document',state.internalDocuments[0].id);saveState();renderShell();}
     $('#internal-document-form').reset();$('#internal-document-dialog').close();toast('Documento interno adjuntado al expediente.');
-  }catch(error){const messages={INVALID_INTERNAL_DOCUMENT:'Revisa el título y el expediente.',INVALID_INTERNAL_DOCUMENT_FILE:'El archivo no es válido, su contenido no coincide con el formato o supera 15 MB.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.'};setModalFeedback('#internal-document-feedback',messages[error?.code]||'No se ha podido adjuntar el documento interno.');}
+  }catch(error){const messages={INVALID_INTERNAL_DOCUMENT:'Revisa el título y el expediente.',INVALID_INTERNAL_DOCUMENT_FILE:'El archivo no es válido, su contenido no coincide con el formato o supera 25 MB.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.'};setModalFeedback('#internal-document-feedback',messages[error?.code]||'No se ha podido adjuntar el documento interno.');}
   finally{button.disabled=false;button.innerHTML=original;}
 });
 async function downloadInternalDocument(documentId,button){
@@ -1545,7 +1546,7 @@ $('#document-upload-form').addEventListener('submit',async event=>{
   if(event.submitter?.value==='cancel'){$('#document-upload-dialog').close();return;}
   const file=$('#document-file').files?.[0];
   if(!$('#document-privacy-notice').checked){setModalFeedback('#document-upload-feedback','Lee y acepta la información de privacidad antes de continuar.');return;}
-  if(!file||file.size<1||file.size>5*1024*1024||!['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'].includes(file.type)){setModalFeedback('#document-upload-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 5 MB.');return;}
+  if(!file||file.size<1||file.size>25*1024*1024||!['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'].includes(file.type)){setModalFeedback('#document-upload-feedback','Selecciona un PDF, DOCX, JPG o PNG de hasta 25 MB.');return;}
   const button=event.submitter||$('#document-upload-form .primary-button');const original=button.innerHTML;button.disabled=true;button.textContent='Entregando archivo…';
   setModalFeedback('#document-upload-feedback','Cifrando la conexión y entregando el archivo…','info');
   try{
@@ -1562,7 +1563,7 @@ $('#document-upload-form').addEventListener('submit',async event=>{
     }
     $('#document-upload-form').reset();$('#document-upload-dialog').close();toast('Archivo entregado correctamente y registrado en tu expediente.');
   }catch(error){
-    const messages={PRIVACY_NOTICE_REQUIRED:'Debes leer y aceptar la información de privacidad.',INVALID_DOCUMENT_FILE:'El archivo no es válido o supera 5 MB.',DOCUMENT_REQUEST_UNAVAILABLE:'Esta solicitud ya no admite entregas.',DOCUMENT_ACCESS_DENIED:'No tienes acceso a esta solicitud.'};
+    const messages={PRIVACY_NOTICE_REQUIRED:'Debes leer y aceptar la información de privacidad.',INVALID_DOCUMENT_FILE:'El archivo no es válido o supera 25 MB.',DOCUMENT_REQUEST_UNAVAILABLE:'Esta solicitud ya no admite entregas.',DOCUMENT_ACCESS_DENIED:'No tienes acceso a esta solicitud.'};
     setModalFeedback('#document-upload-feedback',messages[error?.code]||'No se ha podido entregar el archivo. No lo envíes por correo; vuelve a intentarlo.');
   }finally{button.disabled=false;button.innerHTML=original;}
 });

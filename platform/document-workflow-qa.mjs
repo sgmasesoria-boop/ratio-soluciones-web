@@ -6,11 +6,13 @@ import {resolve} from 'node:path';
 
 const migration=await readFile('supabase/migrations/20260810134257_case_document_workflow.sql','utf8');
 const intakeMigration=await readFile('supabase/migrations/20260812232733_admin_client_documents_and_ai_internal_sources.sql','utf8');
+const capacityMigration=await readFile('supabase/migrations/20260817143000_expand_case_document_capacity.sql','utf8');
 const clientActionMigration=await readFile('supabase/migrations/20260811213000_client_action_requests.sql','utf8');
 const edge=await readFile('supabase/functions/document-workflow/index.ts','utf8');
 const uploadEmail=await readFile('supabase/functions/_shared/document-upload-email.ts','utf8');
 const http=await readFile('supabase/functions/_shared/http.ts','utf8');
 const api=await readFile('platform-api.js','utf8');
+const app=await readFile('app.js','utf8');
 const staticChecks={
   privateBucket:/\'case-documents\',\r?\n\s*\'case-documents\',\r?\n\s*false/.test(migration),
   noStorageObjectPolicy:!migration.includes('create policy')||!migration.includes('on storage.objects'),
@@ -19,7 +21,10 @@ const staticChecks={
   serviceOnlyRpc:migration.includes('to service_role')&&migration.includes('from public,anon,authenticated'),
   privacyRecorded:migration.includes('privacy_notice_version')&&migration.includes('privacy_notice_at'),
   appendOnlyAccess:migration.includes('document_access_no_update'),
-  sizeAndMimeLimits:edge.includes('MAX_BYTES=5*1024*1024')&&edge.includes("'application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'"),
+  sizeAndMimeLimits:edge.includes('MAX_BYTES=25*1024*1024')&&edge.includes("'application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png'"),
+  judicialFileCapacity:capacityMigration.includes('case_documents_size_bytes_check')&&capacityMigration.includes('case_internal_documents_size_bytes_check')&&capacityMigration.includes('26214400')&&capacityMigration.includes("where id in ('case-documents','case-internal-documents')"),
+  adminUploadCapacity:capacityMigration.includes('server_register_admin_client_document')&&capacityMigration.includes('p_size_bytes not between 1 and 26214400')&&capacityMigration.includes('to service_role'),
+  repeatedUploadsAllowed:migration.includes("status in ('pending','submitted')")&&app.includes("request.status==='submitted'")&&app.includes('Añadir otro archivo'),
   adminClientIntake:edge.includes('uploadClientDocumentByAdmin')&&edge.includes("action')==='upload_client_document_by_admin")&&intakeMigration.includes('server_register_admin_client_document'),
   intakeAttribution:intakeMigration.includes("intake_channel in ('client_portal','received_by_ratio')")&&intakeMigration.includes("'client_document_received_by_ratio'")&&intakeMigration.includes("'received_by_ratio'"),
   adminIntakeServiceOnly:intakeMigration.includes('server_register_admin_client_document')&&intakeMigration.includes('from public,anon,authenticated')&&intakeMigration.includes('to service_role'),
@@ -54,6 +59,7 @@ await page.locator('#document-privacy-notice').check();
 await page.locator('#document-upload-form .primary-button').click();
 const uploadVisible=await page.getByText('contrato-prueba.pdf',{exact:true}).isVisible();
 const uploadInTimeline=await page.getByText('Documentación entregada: Contrato de la tarjeta',{exact:true}).isVisible();
+const secondUploadAvailable=await page.getByRole('button',{name:'Añadir otro archivo',exact:true}).isVisible();
 
 await page.locator('#logout').click();
 await page.locator('[data-demo-role="admin"]').click();
@@ -99,8 +105,8 @@ const noOverflow=await page.evaluate(()=>document.documentElement.scrollWidth<=d
 await browser.close();
 
 const result={
-  passed:Object.values(staticChecks).every(Boolean)&&privacyTextVisible&&blockedUntilPrivacy&&uploadVisible&&uploadInTimeline&&clarificationVisible&&clarificationInTimeline&&noPendingAction&&escapedRequestVisible&&xssSafe&&requestInTimeline&&receivedByRatioVisible&&receivedByRatioLabel&&receivedByRatioTimeline&&receivedDocumentVisibleToClient&&internalPanelHiddenFromClient&&noOverflow&&!errors.length,
-  staticChecks,privacyTextVisible,blockedUntilPrivacy,uploadVisible,uploadInTimeline,clarificationVisible,clarificationInTimeline,noPendingAction,escapedRequestVisible,xssSafe,requestInTimeline,receivedByRatioVisible,receivedByRatioLabel,receivedByRatioTimeline,receivedDocumentVisibleToClient,internalPanelHiddenFromClient,noOverflow,errors
+  passed:Object.values(staticChecks).every(Boolean)&&privacyTextVisible&&blockedUntilPrivacy&&uploadVisible&&uploadInTimeline&&secondUploadAvailable&&clarificationVisible&&clarificationInTimeline&&noPendingAction&&escapedRequestVisible&&xssSafe&&requestInTimeline&&receivedByRatioVisible&&receivedByRatioLabel&&receivedByRatioTimeline&&receivedDocumentVisibleToClient&&internalPanelHiddenFromClient&&noOverflow&&!errors.length,
+  staticChecks,privacyTextVisible,blockedUntilPrivacy,uploadVisible,uploadInTimeline,secondUploadAvailable,clarificationVisible,clarificationInTimeline,noPendingAction,escapedRequestVisible,xssSafe,requestInTimeline,receivedByRatioVisible,receivedByRatioLabel,receivedByRatioTimeline,receivedDocumentVisibleToClient,internalPanelHiddenFromClient,noOverflow,errors
 };
 console.log(JSON.stringify(result,null,2));
 if(!result.passed)process.exitCode=1;

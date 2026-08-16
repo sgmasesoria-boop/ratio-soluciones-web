@@ -76,7 +76,7 @@ No se introducen fechas previstas que no puedan garantizarse.
 
 1. «Documentación interna» se reserva para archivos de trabajo de Ratio: informes internos, borradores auxiliares, notas técnicas o material que no deba mostrarse al cliente.
 2. Un documento aportado por el cliente nunca se clasifica como interno, aunque Ratio lo reciba en papel o en mano.
-3. Se admiten PDF, DOCX, JPG y PNG de hasta 15 MB; se rechazan extensiones ejecutables y contenidos cuya firma no coincide con el formato declarado.
+3. Se admiten PDF, DOCX, JPG y PNG de hasta 25 MB por archivo; se rechazan extensiones ejecutables y contenidos cuya firma no coincide con el formato declarado.
 4. Cada archivo conserva título, nota, autor, fecha, tamaño y huella SHA-256.
 5. La subida y cada descarga exigen cuenta administrativa con AAL2 y quedan auditadas. Los enlaces de descarga caducan a los 60 segundos.
 6. Los archivos no deben abrirse fuera de equipos protegidos. La validación de formato no sustituye un sistema antimalware; antes de ampliar el uso a archivos de terceros deberá incorporarse escaneo de malware.
@@ -88,7 +88,7 @@ La documentación se solicita y entrega exclusivamente dentro del portal privado
 1. El administrador crea una solicitud vinculada al expediente.
 2. El cliente recibe un aviso y consulta el detalle en su plataforma.
 3. Antes de subir el archivo, el cliente debe leer y confirmar el aviso de privacidad vigente.
-4. El portal admite PDF, DOCX, JPG y PNG, con un máximo de 5 MB por archivo.
+4. El portal admite PDF, DOCX, JPG y PNG, con un máximo de 25 MB por archivo. No existe un límite artificial de tres documentos por expediente y una misma solicitud admite entregas sucesivas hasta que Ratio la revise.
 5. El archivo se guarda en un contenedor privado y el acceso genera una URL temporal de corta duración.
 6. Solicitud, entrega, revisión y descarga quedan registradas cronológicamente.
 
@@ -117,7 +117,7 @@ El gestor marca el expediente como cerrado y registra el último avance. La cuen
 - Las fuentes oficiales deben mostrarse como enlaces visibles. Una referencia normativa sin URL oficial verificada no debe presentarse como comprobada.
 - La función usa `store:false`, exige administrador con AAL2 y nunca modifica el expediente ni envía comunicaciones.
 - El piloto comenzó con un PDF ficticio y continuó con un único expediente autorizado. Tras verificar la lectura y los eventos de auditoría, el 12 de agosto de 2026 se autorizó la lectura documental para todos los expedientes.
-- El análisis siempre se inicia manualmente por un administrador con AAL2. Solo lee el contenido de PDF validados o incorporados por el equipo: toma los tres más recientes entre documentación del cliente e interna, con 5 MB por archivo y 10 MB combinados. DOCX e imágenes se incluyen como metadatos, pero su contenido no se lee todavía. Se usa `store:false`, se registra cada documento procesado y toda salida requiere revisión humana.
+- El análisis siempre se inicia manualmente por un administrador con AAL2. El expediente conserva todos sus archivos; el límite técnico se aplica únicamente a cada ejecución de IA. Esta puede leer hasta diez PDF validados, con 25 MB por archivo y 45 MB combinados, dejando margen respecto del máximo de 50 MB de la API. DOCX e imágenes se incluyen como metadatos, pero su contenido no se lee todavía. Los expedientes que superen ese volumen requerirán selección o búsqueda documental por fragmentos; nunca se afirmará que se ha revisado un archivo omitido. Se usa `store:false`, se registra cada documento procesado y toda salida requiere revisión humana.
 - Interruptor de emergencia: establecer `OPENAI_DOCUMENT_ANALYSIS_DISABLED=true` detiene la lectura de documentos en todos los expedientes sin desactivar el resto del asistente.
 - El resultado es una sugerencia: no decide viabilidad, no envía mensajes y no cambia datos automáticamente.
 - Cada uso queda auditado con modelo, consumo y coste estimado.

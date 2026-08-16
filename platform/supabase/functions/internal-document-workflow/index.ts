@@ -2,7 +2,7 @@ import {requireAdmin,serviceClient} from '../_shared/auth.ts';
 import {errorJson,handleOptions,json} from '../_shared/http.ts';
 
 const BUCKET='case-internal-documents';
-const MAX_BYTES=15*1024*1024;
+const MAX_BYTES=25*1024*1024;
 const allowedMimeTypes=new Set(['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png']);
 const extensions:Record<string,string>={'application/pdf':'pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx','image/jpeg':'jpg','image/png':'png'};
 const clean=(value:unknown,max:number)=>String(value??'').trim().slice(0,max);

@@ -4,7 +4,7 @@ import {sendDocumentRequestEmail} from '../_shared/document-email.ts';
 import {sendDocumentUploadEmail} from '../_shared/document-upload-email.ts';
 
 const BUCKET='case-documents';
-const MAX_BYTES=5*1024*1024;
+const MAX_BYTES=25*1024*1024;
 const PRIVACY_VERSION='portal-documents-v1';
 const allowedMimeTypes=new Set(['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png']);
 const extensions:Record<string,string>={'application/pdf':'pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx','image/jpeg':'jpg','image/png':'png'};
