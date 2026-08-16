@@ -8,7 +8,7 @@ const CONTEXT_STATUS:Record<string,Record<string,string>>={
   case:{open:'expediente abierto',study:'expediente en estudio',action:'expediente en gestión',response:'respuesta recibida',resolution:'expediente en resolución',closed:'expediente cerrado',archived:'expediente archivado'},
   lead:{new:'consulta nueva',review:'consulta en estudio',waiting:'consulta pendiente de información',viable:'consulta viable',proposal:'propuesta enviada',contract:'contrato pendiente',won:'consulta contratada',lost:'consulta no viable o cerrada'},
   request:{pending:'petición pendiente',submitted:'respuesta entregada',accepted:'petición revisada',cancelled:'petición cancelada'},
-  document:{uploaded:'documento recibido',submitted:'documento entregado',accepted:'documento revisado',rejected:'documento rechazado'}
+  document:{uploaded:'documento recibido',submitted:'documento entregado',pending_review:'pendiente de comprobación de seguridad',accepted:'documento revisado',rejected:'documento rechazado'}
 };
 
 const INTERNAL_REFERENCE=/\[(?:case|lead|lead_note|event|request|document):[^\]]+\]/gi;

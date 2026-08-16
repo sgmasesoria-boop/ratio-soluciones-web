@@ -6,6 +6,7 @@ import {resolve} from 'node:path';
 import {chromium} from 'file:///C:/Users/PC/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
 
 const migration=await readFile('supabase/migrations/20260812193000_internal_case_documents.sql','utf8');
+const securityMigration=await readFile('supabase/migrations/20260816183000_internal_document_security_review.sql','utf8');
 const workflow=await readFile('supabase/functions/internal-document-workflow/index.ts','utf8');
 const contracts=await readFile('supabase/functions/contract-signature/index.ts','utf8');
 const api=await readFile('platform-api.js','utf8');
@@ -24,6 +25,10 @@ const staticChecks={
   hashRecorded:workflow.includes("crypto.subtle.digest('SHA-256'")&&migration.includes("sha256 text not null"),
   auditedAccess:workflow.includes("action:'internal_document_uploaded'")&&workflow.includes("action:'internal_document_download_link_created'"),
   temporaryDownload:workflow.includes('createSignedUrl(document.storage_path,60'),
+  quarantineByDefault:securityMigration.includes("default 'pending_review'")&&workflow.includes("security_status:'pending_review'"),
+  immutableHumanReview:securityMigration.includes("target.security_status <> 'pending_review'")&&securityMigration.includes('server_review_internal_document_security'),
+  rejectedDownloadBlocked:workflow.includes("document.security_status==='rejected'"),
+  reviewAction:workflow.includes("input.action==='review_internal_document_security'")&&app.includes('data-review-internal-document'),
   crmOnlyQuery:api.includes("includeCrm ? this.select('case_internal_documents'")&&api.includes('internalDocuments'),
   functionConfigured:config.includes('[functions.internal-document-workflow]'),
   contractDownload:contracts.includes("input.action==='download_contract_pdf'")&&contracts.includes('contract_pdf_download_link_created'),
@@ -46,11 +51,15 @@ await page.locator('#internal-document-note').fill('Archivo interno sin datos pe
 await page.locator('#internal-document-file').setInputFiles({name:'borrador-prueba.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\nprueba segura')});
 await page.locator('#internal-document-form .primary-button').click();
 const uploadedVisible=await page.getByText('Borrador ficticio de prueba',{exact:true}).isVisible();
+const quarantineVisible=await page.locator('.document-actions em').filter({hasText:'Pendiente de comprobación'}).isVisible();
+page.once('dialog',dialog=>dialog.accept());
+await page.getByRole('button',{name:'Marcar como seguro',exact:true}).click();
+const acceptedVisible=await page.locator('.document-actions em').filter({hasText:'Comprobado'}).isVisible();
 await page.locator('#logout').click();
 await page.locator('[data-demo-role="client"]').click();
 const clientCannotSeePanel=await page.getByRole('heading',{name:'Documentación interna',exact:true}).count()===0;
 await browser.close();
 
-const result={passed:Object.values(staticChecks).every(Boolean)&&panelVisible&&uploadedVisible&&clientCannotSeePanel&&!errors.length,staticChecks,panelVisible,uploadedVisible,clientCannotSeePanel,errors};
+const result={passed:Object.values(staticChecks).every(Boolean)&&panelVisible&&uploadedVisible&&quarantineVisible&&acceptedVisible&&clientCannotSeePanel&&!errors.length,staticChecks,panelVisible,uploadedVisible,quarantineVisible,acceptedVisible,clientCannotSeePanel,errors};
 console.log(JSON.stringify(result,null,2));
 if(!result.passed)process.exitCode=1;

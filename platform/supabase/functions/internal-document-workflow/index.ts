@@ -32,22 +32,35 @@ async function uploadInternalDocument(request:Request,form:FormData){
   const {error:uploadError}=await serviceClient.storage.from(BUCKET).upload(storagePath,bytes,{contentType:file.type,cacheControl:'0',upsert:false});
   if(uploadError)throw uploadError;
   try{
-    const {data:document,error}=await serviceClient.from('case_internal_documents').insert({case_id:caseId,storage_path:storagePath,title,note,original_name:safeOriginalName,mime_type:file.type,size_bytes:file.size,sha256:hash,uploaded_by:admin.id}).select('id').single();
+    const {data:document,error}=await serviceClient.from('case_internal_documents').insert({case_id:caseId,storage_path:storagePath,title,note,original_name:safeOriginalName,mime_type:file.type,size_bytes:file.size,sha256:hash,uploaded_by:admin.id,security_status:'pending_review'}).select('id').single();
     if(error||!document)throw error||new Error('INTERNAL_DOCUMENT_UPLOAD_FAILED');
     await serviceClient.from('audit_events').insert({case_id:caseId,actor_id:admin.id,action:'internal_document_uploaded',object_type:'case_internal_document',object_id:document.id,details:{sha256:hash,mime_type:file.type,size_bytes:file.size,reference:caseRecord.reference}});
-    return {documentId:document.id,sha256:hash};
+    return {documentId:document.id,sha256:hash,securityStatus:'pending_review'};
   }catch(error){await serviceClient.storage.from(BUCKET).remove([storagePath]);throw error;}
 }
 
 async function downloadInternalDocument(request:Request,input:Record<string,unknown>){
   const admin=await requireAdmin(request),documentId=clean(input.documentId,36);
   if(!validUuid(documentId))throw new Error('INVALID_FIELDS');
-  const {data:document,error}=await serviceClient.from('case_internal_documents').select('id,case_id,storage_path,original_name').eq('id',documentId).single();
-  if(error||!document)throw new Error('INTERNAL_DOCUMENT_NOT_FOUND');
+  const {data:document,error}=await serviceClient.from('case_internal_documents').select('id,case_id,storage_path,original_name,security_status').eq('id',documentId).single();
+  if(error||!document||document.security_status==='rejected')throw new Error('INTERNAL_DOCUMENT_NOT_FOUND');
   const {data:signed,error:signedError}=await serviceClient.storage.from(BUCKET).createSignedUrl(document.storage_path,60,{download:document.original_name});
   if(signedError||!signed?.signedUrl)throw signedError||new Error('DOCUMENT_DOWNLOAD_FAILED');
   await serviceClient.from('audit_events').insert({case_id:document.case_id,actor_id:admin.id,action:'internal_document_download_link_created',object_type:'case_internal_document',object_id:document.id,details:{expires_in_seconds:60}});
   return {url:signed.signedUrl,expiresIn:60};
+}
+
+async function reviewInternalDocumentSecurity(request:Request,input:Record<string,unknown>){
+  const admin=await requireAdmin(request),documentId=clean(input.documentId,36),status=clean(input.status,20),note=clean(input.note,500);
+  if(!validUuid(documentId)||!['accepted','rejected'].includes(status))throw new Error('INVALID_INTERNAL_DOCUMENT_SECURITY_STATUS');
+  const {error}=await serviceClient.rpc('server_review_internal_document_security',{
+    p_document_id:documentId,p_admin_id:admin.id,p_status:status,p_note:note
+  });
+  if(error){
+    const known=['INTERNAL_DOCUMENT_ALREADY_REVIEWED','INVALID_INTERNAL_DOCUMENT_SECURITY_STATUS'].find(code=>error.message?.includes(code));
+    throw new Error(known||'INTERNAL_DOCUMENT_SECURITY_REVIEW_FAILED');
+  }
+  return {ok:true,status};
 }
 
 Deno.serve(async request=>{
@@ -58,6 +71,7 @@ Deno.serve(async request=>{
     if(contentType.includes('multipart/form-data')){const form=await request.formData();if(form.get('action')!=='upload_internal_document')return json(request,{error:'UNKNOWN_ACTION'},400);return json(request,await uploadInternalDocument(request,form),201);}
     const input=await request.json();
     if(input.action==='download_internal_document')return json(request,await downloadInternalDocument(request,input));
+    if(input.action==='review_internal_document_security')return json(request,await reviewInternalDocumentSecurity(request,input));
     return json(request,{error:'UNKNOWN_ACTION'},400);
   }catch(error){return errorJson(request,error);}
 });

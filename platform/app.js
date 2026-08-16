@@ -168,7 +168,7 @@ function mapProductionWorkspace(workspace, authUser) {
     tasks:(workspace.tasks || []).map(item => ({ id:item.id, caseId:item.case_id, title:item.title, dueDate:item.due_on, priority:item.priority, completed:Boolean(item.completed_at), createdAt:item.created_at })),
     documentRequests:(workspace.documentRequests || []).map(item => ({id:item.id,caseId:item.case_id,requestType:item.request_type||'document',title:item.title,instructions:item.instructions||'',status:item.status,responseText:item.response_text||'',responseAt:item.response_at||'',requestedBy:item.requested_by,requestedAt:item.requested_at,fulfilledAt:item.fulfilled_at||''})),
     caseDocuments:(workspace.caseDocuments || []).map(item => ({id:item.id,caseId:item.case_id,requestId:item.request_id||'',originalName:item.original_name,mimeType:item.mime_type,sizeBytes:Number(item.size_bytes||0),status:item.status,visibility:item.visibility||'client',intakeChannel:item.intake_channel||'client_portal',uploadedBy:item.uploaded_by,privacyNoticeAt:item.privacy_notice_at,createdAt:item.created_at,reviewedAt:item.reviewed_at||''})),
-    internalDocuments:(workspace.internalDocuments||[]).map(item=>({id:item.id,caseId:item.case_id,title:item.title,note:item.note||'',originalName:item.original_name,mimeType:item.mime_type,sizeBytes:Number(item.size_bytes||0),sha256:item.sha256,uploadedBy:item.uploaded_by,createdAt:item.created_at})),
+    internalDocuments:(workspace.internalDocuments||[]).map(item=>({id:item.id,caseId:item.case_id,title:item.title,note:item.note||'',originalName:item.original_name,mimeType:item.mime_type,sizeBytes:Number(item.size_bytes||0),sha256:item.sha256,uploadedBy:item.uploaded_by,securityStatus:item.security_status||'pending_review',securityReviewedAt:item.security_reviewed_at||'',securityReviewedBy:item.security_reviewed_by||'',securityReviewNote:item.security_review_note||'',createdAt:item.created_at})),
     communicationRequests:(workspace.communicationRequests||[]).map(item=>({id:item.id,caseId:item.case_id,requestedBy:item.requested_by,subject:item.subject,message:item.message,deadlineContext:item.deadline_context||'',availabilityNote:item.availability_note||'',responseText:item.response_text||'',respondedBy:item.responded_by||'',respondedAt:item.responded_at||'',createdAt:item.created_at})),
     workingDocuments:(workspace.workingDocuments||[]).map(item=>({id:item.id,caseId:item.case_id,title:item.title,documentType:item.document_type||'',statusLabel:item.current_status_label||'',visibility:item.visibility,publishedAt:item.published_at||'',createdAt:item.created_at,updatedAt:item.updated_at})),
     documentVersions:(workspace.documentVersions||[]).map(item=>({id:item.id,documentId:item.working_document_id,versionNumber:item.version_number,statusLabel:item.status_label||'',changeSummary:item.change_summary||'',draftContent:item.draft_content||'',originalName:item.original_name||'',mimeType:item.mime_type||'',sizeBytes:Number(item.size_bytes||0),sourceAiRunId:item.source_ai_run_id||'',createdAt:item.created_at})),
@@ -598,8 +598,9 @@ function contractPanel(c){
 function internalDocumentsPanel(c){
   const documents=(state.internalDocuments||[]).filter(item=>item.caseId===c.id);
   const fileType=item=>item.mimeType==='application/pdf'?'PDF':item.mimeType.includes('wordprocessingml')?'DOCX':'IMG';
-  const content=documents.length?`<ul class="document-list">${documents.map(item=>`<li><span>${fileType(item)}</span><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.originalName)} · ${escapeHtml(formatFileSize(item.sizeBytes))} · ${escapeHtml(formatDate(item.createdAt))}</small>${item.note?`<small>${escapeHtml(item.note)}</small>`:''}</div><div class="document-actions"><em>Interno · ${escapeHtml(String(item.sha256||'').slice(0,10))}…</em><button type="button" class="document-download" data-download-internal-document="${escapeHtml(item.id)}">Descargar</button></div></li>`).join('')}</ul>`:'<div class="empty">Todavía no hay archivos internos adjuntos.</div>';
-  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Archivo privado de Ratio</p><h2>Documentación interna</h2><p>Archivos creados o recibidos por el equipo. Nunca se muestran al cliente por defecto.</p></div><button class="secondary-button" id="add-internal-document" type="button">Adjuntar archivo</button></div>${content}</section>`;
+  const securityText={pending_review:'Pendiente de comprobación',accepted:'Comprobado',rejected:'Rechazado'};
+  const content=documents.length?`<ul class="document-list">${documents.map(item=>`<li><span>${fileType(item)}</span><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.originalName)} · ${escapeHtml(formatFileSize(item.sizeBytes))} · ${escapeHtml(formatDate(item.createdAt))}</small>${item.note?`<small>${escapeHtml(item.note)}</small>`:''}</div><div class="document-actions"><em>${escapeHtml(securityText[item.securityStatus]||item.securityStatus)} · ${escapeHtml(String(item.sha256||'').slice(0,10))}…</em>${item.securityStatus!=='rejected'?`<button type="button" class="document-download" data-download-internal-document="${escapeHtml(item.id)}">${item.securityStatus==='pending_review'?'Descargar para comprobar':'Descargar'}</button>`:''}${item.securityStatus==='pending_review'?`<button type="button" class="document-download" data-review-internal-document="${escapeHtml(item.id)}" data-review-internal-status="accepted">Marcar como seguro</button><button type="button" class="document-download" data-review-internal-document="${escapeHtml(item.id)}" data-review-internal-status="rejected">Rechazar</button>`:''}</div></li>`).join('')}</ul>`:'<div class="empty">Todavía no hay archivos internos adjuntos.</div>';
+  return `<section class="panel case-documents"><div class="panel-head"><div><p class="kicker">Archivo privado de Ratio</p><h2>Documentación interna</h2><p>Los archivos nuevos quedan pendientes de comprobación y no se envían a la IA hasta que una persona los marca como seguros.</p></div><button class="secondary-button" id="add-internal-document" type="button">Adjuntar archivo</button></div>${content}</section>`;
 }
 
 function workingDocumentsPanel(c){
@@ -783,6 +784,7 @@ document.addEventListener('click',event=>{
   else if(target.id==='download-signature-evidence'){const item=currentCase();if(item)downloadVerifiedContract(item,target,'evidence');}
   else if(target.id==='send-contract-signature'){const item=currentCase();if(item)sendContractSignature(item,target);}
   else if(target.dataset.downloadInternalDocument)downloadInternalDocument(target.dataset.downloadInternalDocument,target);
+  else if(target.dataset.reviewInternalDocument)reviewInternalDocumentSecurity(target.dataset.reviewInternalDocument,target.dataset.reviewInternalStatus,target);
   else if(target.classList.contains('open-working-document'))openWorkingDocumentViewer(target.dataset.workingDocumentId);
   else if(target.classList.contains('add-document-version'))openDocumentVersionDialog(target.dataset.workingDocumentId);
 });
@@ -1512,7 +1514,7 @@ $('#internal-document-form').addEventListener('submit',async event=>{
   button.disabled=true;button.textContent='Adjuntando archivo…';setModalFeedback('#internal-document-feedback','Guardando en el archivo privado y calculando su huella…','info');
   try{
     if(productionMode&&platformApi){await platformApi.invokeMultipart('internal-document-workflow',new FormData(event.currentTarget));await enterProduction();activeCaseId=caseId;activeSection='cases';renderShell();}
-    else{const at=new Date().toISOString();state.internalDocuments.unshift({id:crypto.randomUUID(),caseId,title:$('#internal-document-title').value.trim(),note:$('#internal-document-note').value.trim(),originalName:file.name,mimeType:file.type,sizeBytes:file.size,sha256:'d'.repeat(64),uploadedBy:currentUser().id,createdAt:at});log('internal_document_uploaded','case_internal_document',state.internalDocuments[0].id);saveState();renderShell();}
+    else{const at=new Date().toISOString();state.internalDocuments.unshift({id:crypto.randomUUID(),caseId,title:$('#internal-document-title').value.trim(),note:$('#internal-document-note').value.trim(),originalName:file.name,mimeType:file.type,sizeBytes:file.size,sha256:'d'.repeat(64),uploadedBy:currentUser().id,securityStatus:'pending_review',securityReviewedAt:'',createdAt:at});log('internal_document_uploaded','case_internal_document',state.internalDocuments[0].id);saveState();renderShell();}
     $('#internal-document-form').reset();$('#internal-document-dialog').close();toast('Documento interno adjuntado al expediente.');
   }catch(error){const messages={INVALID_INTERNAL_DOCUMENT:'Revisa el título y el expediente.',INVALID_INTERNAL_DOCUMENT_FILE:'El archivo no es válido, su contenido no coincide con el formato o supera 15 MB.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.'};setModalFeedback('#internal-document-feedback',messages[error?.code]||'No se ha podido adjuntar el documento interno.');}
   finally{button.disabled=false;button.innerHTML=original;}
@@ -1521,6 +1523,17 @@ async function downloadInternalDocument(documentId,button){
   const original=button.textContent;button.disabled=true;button.textContent='Preparando…';
   try{if(!productionMode||!platformApi){toast('En modo de prueba no existe un archivo binario.');return;}const result=await platformApi.invoke('internal-document-workflow',{action:'download_internal_document',documentId});openSecureDownload(result.url);toast('Enlace privado creado durante 60 segundos.');}
   catch{toast('No se ha podido descargar el documento interno.');}
+  finally{button.disabled=false;button.textContent=original;}
+}
+async function reviewInternalDocumentSecurity(documentId,status,button){
+  const verb=status==='accepted'?'marcar como seguro':'rechazar';
+  if(!window.confirm(`¿Quieres ${verb} este archivo? La decisión quedará registrada.`))return;
+  const original=button.textContent;button.disabled=true;button.textContent='Guardando…';
+  try{
+    if(productionMode&&platformApi){await platformApi.invoke('internal-document-workflow',{action:'review_internal_document_security',documentId,status,note:''});await enterProduction();activeSection='cases';activeCaseId=state.internalDocuments.find(item=>item.id===documentId)?.caseId||activeCaseId;renderShell();}
+    else{const item=state.internalDocuments.find(document=>document.id===documentId);if(item){item.securityStatus=status;item.securityReviewedAt=new Date().toISOString();}saveState();renderShell();}
+    toast(status==='accepted'?'Archivo habilitado para el trabajo interno y la IA.':'Archivo rechazado y bloqueado.');
+  }catch{toast('No se ha podido registrar la comprobación del archivo.');}
   finally{button.disabled=false;button.textContent=original;}
 }
 $('#document-file').addEventListener('change',event=>{
