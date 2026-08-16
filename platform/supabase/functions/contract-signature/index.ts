@@ -94,6 +94,66 @@ async function renderPdf(snapshot:string){
   return new Uint8Array(await pdf.save({useObjectStreams:false}));
 }
 
+function validManualDate(value:string){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const parsed=Date.parse(`${value}T12:00:00.000Z`),today=new Date().toISOString().slice(0,10);
+  return Number.isFinite(parsed)&&value>='2000-01-01'&&value<=today;
+}
+
+function isPdf(bytes:Uint8Array){
+  return bytes.length>=5&&new TextDecoder().decode(bytes.slice(0,5))==='%PDF-';
+}
+
+async function registerManualSignature(request:Request,form:FormData){
+  const admin=await requireAdmin(request);
+  const contractId=clean(form.get('contractId'),36),signedOn=clean(form.get('signedOn'),10);
+  const originalLocation=clean(form.get('originalLocation'),300),verificationNote=clean(form.get('verificationNote'),1000);
+  const custodyConfirmed=String(form.get('custodyConfirmed')||'')==='true',file=form.get('file');
+  if(!validUuid(contractId)||!validManualDate(signedOn)||originalLocation.length<5||!custodyConfirmed)throw new Error('INVALID_MANUAL_SIGNATURE');
+  if(!(file instanceof File)||file.size<100||file.size>MAX_PDF_BYTES)throw new Error('INVALID_MANUAL_SIGNATURE_FILE');
+  const contract=await getContract(contractId);
+  if(contract.provider_request_id||contract.signed_at||contract.invalidated_at)throw new Error('CONTRACT_NOT_EDITABLE');
+  if(!contract.unsigned_storage_path||!contract.unsigned_sha256)throw new Error('CONTRACT_PDF_REQUIRED');
+  const signed=new Uint8Array(await file.arrayBuffer());
+  if(!isPdf(signed))throw new Error('INVALID_MANUAL_SIGNATURE_FILE');
+  const signedHash=await sha256(signed),verifiedAt=new Date().toISOString();
+  const providerRequestId=`manual-${crypto.randomUUID()}`,providerDocumentId=`manual-doc-${crypto.randomUUID()}`;
+  const signedPath=`${contract.case_id}/contracts/${contract.id}/${providerDocumentId}-signed.pdf`;
+  const evidenceText=`ACTA INTERNA DE VERIFICACION DE FIRMA MANUAL - RATIO SOLUCIONES
+
+Expediente: ${contract.cases.reference}
+Contrato: ${contract.id}
+Firmante: ${contract.signer_full_name}
+Fecha declarada de firma: ${signedOn}
+Verificado por usuario interno: ${admin.id}
+Fecha y hora de verificacion: ${verifiedAt}
+Localizacion declarada del original: ${originalLocation}
+Huella SHA-256 del PDF firmado: ${signedHash}
+Nota interna: ${verificationNote||'Sin observaciones adicionales.'}
+
+Esta acta registra la comprobacion interna y la custodia declarada. No sustituye al contrato firmado ni al original fisico.`;
+  const evidence=await renderPdf(evidenceText),evidenceHash=await sha256(evidence);
+  const evidencePath=`${contract.case_id}/contracts/${contract.id}/${providerDocumentId}-manual-evidence.pdf`;
+  const first=await serviceClient.storage.from(BUCKET).upload(signedPath,signed,{contentType:'application/pdf',cacheControl:'0',upsert:false});
+  if(first.error)throw first.error;
+  const second=await serviceClient.storage.from(BUCKET).upload(evidencePath,evidence,{contentType:'application/pdf',cacheControl:'0',upsert:false});
+  if(second.error){await serviceClient.storage.from(BUCKET).remove([signedPath]);throw second.error;}
+  const eventPayload=JSON.stringify({contractId,signedOn,verifiedAt,signedHash,evidenceHash,providerRequestId,providerDocumentId});
+  const eventHash=await sha256(new TextEncoder().encode(eventPayload));
+  const {data:registered,error:registerError}=await serviceClient.rpc('server_register_manual_contract_signature',{
+    p_contract_id:contract.id,p_admin_id:admin.id,p_signed_storage_path:signedPath,p_signed_sha256:signedHash,
+    p_evidence_storage_path:evidencePath,p_evidence_sha256:evidenceHash,p_manual_signed_on:signedOn,
+    p_original_location:originalLocation,p_verification_note:verificationNote,p_provider_request_id:providerRequestId,
+    p_provider_document_id:providerDocumentId,p_event_sha256:eventHash
+  });
+  if(registerError||!registered){
+    await serviceClient.storage.from(BUCKET).remove([signedPath,evidencePath]);
+    const known=['CONTRACT_NOT_FOUND','CONTRACT_NOT_EDITABLE','CONTRACT_PDF_REQUIRED','INVALID_MANUAL_SIGNATURE_DATE'].find(code=>registerError?.message?.includes(code));
+    throw new Error(known||'INVALID_MANUAL_SIGNATURE');
+  }
+  return {contractId:contract.id,provider:'manual',signedOn,verifiedAt,signedSha256:signedHash,evidenceSha256:evidenceHash};
+}
+
 async function getContract(contractId:string){
   const {data,error}=await serviceClient.from('case_contracts').select('*,cases!inner(id,reference,client_name,contact_email,status)').eq('id',contractId).single();
   if(error||!data)throw new Error('CONTRACT_NOT_FOUND');
@@ -129,6 +189,20 @@ async function downloadContractPdf(request:Request,input:Record<string,unknown>)
   if(error||!signed?.signedUrl)throw error||new Error('CONTRACT_PDF_REQUIRED');
   await serviceClient.from('audit_events').insert({case_id:contract.case_id,actor_id:admin.id,action:'contract_pdf_download_link_created',object_type:'case_contract',object_id:contract.id,details:{expires_in_seconds:60,sha256:contract.unsigned_sha256}});
   return {url:signed.signedUrl,expiresIn:60};
+}
+
+async function downloadVerifiedContractFile(request:Request,input:Record<string,unknown>,kind:'signed'|'evidence'){
+  const admin=await requireAdmin(request),contractId=clean(input.contractId,36);
+  if(!validUuid(contractId))throw new Error('INVALID_FIELDS');
+  const contract=await getContract(contractId);
+  const path=kind==='signed'?contract.signed_storage_path:contract.evidence_storage_path;
+  if(!path||!contract.signed_at)throw new Error('CONTRACT_PDF_REQUIRED');
+  const suffix=kind==='signed'?'firmado':'verificacion';
+  const filename=`Contrato-${suffix}-${clean(contract.cases.reference,80).replace(/[^A-Za-z0-9_-]+/g,'-')}.pdf`;
+  const {data,error}=await serviceClient.storage.from(BUCKET).createSignedUrl(path,60,{download:filename});
+  if(error||!data?.signedUrl)throw error||new Error('CONTRACT_PDF_REQUIRED');
+  await serviceClient.from('audit_events').insert({case_id:contract.case_id,actor_id:admin.id,action:`contract_${suffix}_download_link_created`,object_type:'case_contract',object_id:contract.id,details:{expires_in_seconds:60}});
+  return {url:data.signedUrl,expiresIn:60};
 }
 
 async function sendForSignature(request:Request,input:Record<string,unknown>){
@@ -174,9 +248,16 @@ Deno.serve(async request=>{
   const options=handleOptions(request);if(options)return options;
   if(request.method!=='POST')return json(request,{error:'METHOD_NOT_ALLOWED'},405);
   try{
+    if((request.headers.get('content-type')||'').toLowerCase().includes('multipart/form-data')){
+      const form=await request.formData();
+      if(clean(form.get('action'),80)==='register_manual_signature')return json(request,await registerManualSignature(request,form),201);
+      return json(request,{error:'UNKNOWN_ACTION'},400);
+    }
     const input=await request.json();
     if(input.action==='generate_contract_pdf')return json(request,await generateContractPdf(request,input),201);
     if(input.action==='download_contract_pdf')return json(request,await downloadContractPdf(request,input));
+    if(input.action==='download_signed_contract')return json(request,await downloadVerifiedContractFile(request,input,'signed'));
+    if(input.action==='download_signature_evidence')return json(request,await downloadVerifiedContractFile(request,input,'evidence'));
     if(input.action==='send_contract_signature')return json(request,await sendForSignature(request,input),201);
     return json(request,{error:'UNKNOWN_ACTION'},400);
   }catch(error){return errorJson(request,error);}
