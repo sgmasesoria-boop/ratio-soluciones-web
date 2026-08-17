@@ -39,12 +39,12 @@ const professionalOutputRate=Math.max(0,Number(Deno.env.get('OPENAI_PROFESSIONAL
 const documentAnalysisEnabled=Deno.env.get('OPENAI_DOCUMENT_ANALYSIS_DISABLED')!=='true';
 const CLIENT_DOCUMENT_BUCKET='case-documents';
 const INTERNAL_DOCUMENT_BUCKET='case-internal-documents';
-// OpenAI admite hasta 50 MB combinados en una petición con archivos. Dejamos
-// margen para la codificación y el resto del contexto, y evitamos confundir el
-// límite de una ejecución con la capacidad documental del expediente.
-const MAX_DOCUMENTS=10;
-const MAX_DOCUMENT_BYTES=25*1024*1024;
-const MAX_DOCUMENT_TOTAL_BYTES=45*1024*1024;
+// Este límite protege una ejecución, no limita los documentos del expediente.
+// La codificación base64 y las copias en memoria amplían mucho el tamaño real;
+// se mantiene una tanda conservadora hasta disponer del índice documental.
+const MAX_DOCUMENTS=3;
+const MAX_DOCUMENT_BYTES=5*1024*1024;
+const MAX_DOCUMENT_TOTAL_BYTES=10*1024*1024;
 const MAX_WORKING_DOCUMENTS=12;
 const MAX_WORKING_DRAFT_TOTAL_CHARS=60000;
 const OFFICIAL_DOMAINS=['boe.es','hacienda.gob.es','agenciatributaria.es','poderjudicial.es','fiscal.es','aepd.es','bde.es','cnmv.es','dgsfp.mineco.es','consumo.gob.es','administracion.gob.es','seg-social.es','juntadeandalucia.es','comunidad.madrid','europa.eu','eur-lex.europa.eu','curia.europa.eu'];

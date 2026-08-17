@@ -34,7 +34,7 @@ const result={
   budgetCap:edge.includes('OPENAI_MONTHLY_HARD_LIMIT_USD')&&edge.includes('AI_BUDGET_EXCEEDED'),
   contextCap:edge.includes('MAX_WORKING_DOCUMENTS=12')&&edge.includes('MAX_WORKING_DRAFT_TOTAL_CHARS=60000')&&edge.includes('draft_content_truncated'),
   noStorage:edge.includes('store:false'),
-  documentContentControlled:edge.includes('MAX_DOCUMENTS=10')&&edge.includes('MAX_DOCUMENT_BYTES=25*1024*1024')&&edge.includes('MAX_DOCUMENT_TOTAL_BYTES=45*1024*1024')&&edge.includes("action:'ai_document_content_processed'"),
+  documentContentControlled:edge.includes('MAX_DOCUMENTS=3')&&edge.includes('MAX_DOCUMENT_BYTES=5*1024*1024')&&edge.includes('MAX_DOCUMENT_TOTAL_BYTES=10*1024*1024')&&edge.includes('protege una ejecución')&&edge.includes("action:'ai_document_content_processed'"),
   workingDocumentsIncluded:edge.includes("from('case_working_documents')")&&edge.includes("from('case_document_versions')"),
   internalDocumentsIncluded:edge.includes("from('case_internal_documents')")&&edge.includes("storage_bucket:INTERNAL_DOCUMENT_BUCKET")&&edge.includes("internal_document:${document.id}")&&edge.includes("prompt_version:'ratio-case-v9'"),
   internalDocumentsRequireSecurityReview:edge.includes("analysis_eligible:document.security_status==='accepted'")&&edge.includes('security_reviewed_at'),

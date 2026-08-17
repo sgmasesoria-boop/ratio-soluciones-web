@@ -7,7 +7,9 @@ Fecha: 17 de agosto de 2026.
 - Se elimina el límite funcional de tres documentos por expediente.
 - Se eleva a 25 MB el tamaño máximo por archivo de cliente e interno.
 - Una petición documental admite entregas sucesivas.
-- El asistente analiza como máximo 10 PDF y 45 MB combinados en una ejecución.
+- El expediente conserva todos sus documentos, pero el asistente procesa
+  temporalmente tandas de hasta 3 PDF y 10 MB combinados por ejecución para
+  evitar agotamiento de memoria mientras se implanta el índice documental.
 
 ## Fuente
 
@@ -47,3 +49,16 @@ No se utilizaron datos personales ni expedientes reales en estas pruebas.
 
 La publicación de interfaz no se declara terminada hasta completar esas tres
 comprobaciones.
+
+## Incidencia posterior y corrección
+
+La primera prueba real de la versión 46 devolvió
+`AI_TEMPORARILY_UNAVAILABLE`. El único cambio de esa versión frente a la que
+funcionaba era elevar de 3 PDF y 10 MB a 10 PDF y 45 MB el contenido cargado en
+una sola ejecución. Debido a la expansión de base64 y las copias en memoria, se
+prepara una versión de corrección que recupera la tanda estable sin reducir la
+capacidad de almacenamiento del expediente ni el límite de 25 MB por archivo.
+
+La corrección se desplegó como `ai-assist` versión 47 y quedó activa. La prueba
+funcional autenticada posterior sigue siendo obligatoria antes de cerrar la
+incidencia.
