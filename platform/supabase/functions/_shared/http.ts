@@ -63,6 +63,12 @@ export function errorJson(request:Request,error:unknown){
   if(message==='AI_QUOTA_EXCEEDED')return json(request,{error:'AI_QUOTA_EXCEEDED'},429);
   if(message==='AI_MODEL_UNAVAILABLE')return json(request,{error:'AI_MODEL_UNAVAILABLE'},502);
   if(message==='AI_REQUEST_INVALID')return json(request,{error:'AI_REQUEST_INVALID'},502);
+  if(message==='DOCUMENT_INDEX_INCOMPLETE')return json(request,{error:'DOCUMENT_INDEX_INCOMPLETE'},409);
+  if(message==='DOCUMENT_REVIEW_PENDING')return json(request,{error:'DOCUMENT_REVIEW_PENDING'},409);
+  if(message==='DOCUMENT_FORMAT_UNSUPPORTED')return json(request,{error:'DOCUMENT_FORMAT_UNSUPPORTED'},409);
+  if(message==='INDEX_RESPONSE_INCOMPLETE')return json(request,{error:'INDEX_RESPONSE_INCOMPLETE'},502);
+  if(message==='INDEX_STORAGE_ERROR')return json(request,{error:'INDEX_STORAGE_ERROR'},502);
+  if(message==='INDEX_TEMPORARILY_UNAVAILABLE')return json(request,{error:'INDEX_TEMPORARILY_UNAVAILABLE'},502);
   if(message==='AI_UPSTREAM_ERROR'||message==='AI_INVALID_RESPONSE')return json(request,{error:'AI_TEMPORARILY_UNAVAILABLE'},502);
   const requestId=crypto.randomUUID();
   console.error('Ratio Edge error',{requestId,error});
