@@ -62,3 +62,28 @@ capacidad de almacenamiento del expediente ni el límite de 25 MB por archivo.
 La corrección se desplegó como `ai-assist` versión 47 y quedó activa. La prueba
 funcional autenticada posterior sigue siendo obligatoria antes de cerrar la
 incidencia.
+
+## Causa raíz confirmada
+
+La consulta técnica posterior confirmó que el fallo de las versiones 46 y 47
+se producía antes de contactar con el servicio de IA. La función consultaba los
+campos de revisión de seguridad de `case_internal_documents`, pero la migración
+`20260816183000_internal_document_security_review.sql` todavía no constaba en
+la base de datos de producción. El error se convertía en el mensaje genérico y
+no se emitía una traza de fallo, por lo que no aparecía como registro rojo.
+
+Correcciones aplicadas:
+
+- migración de revisión de seguridad aplicada con éxito, sin eliminar archivos;
+- cuatro columnas de seguridad comprobadas en producción;
+- `ai-assist` versión 48 activa;
+- registro seguro de fase, código técnico y referencia de trabajo, sin nombres,
+  textos de consulta ni contenido documental;
+- respuesta incompleta y fallo de guardado diferenciados del fallo temporal;
+- aviso visible cuando la cobertura documental de una ejecución no es completa.
+
+Los documentos internos existentes quedan en `pending_review` por diseño. No
+se envían al análisis hasta que un administrador los descargue, compruebe y
+marque expresamente como seguros. La prueba autenticada y la revisión de los
+documentos del expediente siguen pendientes; no se declara aún el análisis
+integral como verificado.
