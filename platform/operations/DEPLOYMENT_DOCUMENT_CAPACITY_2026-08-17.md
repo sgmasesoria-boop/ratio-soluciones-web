@@ -87,3 +87,37 @@ se envían al análisis hasta que un administrador los descargue, compruebe y
 marque expresamente como seguros. La prueba autenticada y la revisión de los
 documentos del expediente siguen pendientes; no se declara aún el análisis
 integral como verificado.
+
+## Índice documental completo
+
+La revisión de trabajos anteriores confirmó que el expediente de control tenía
+27 documentos y que las dos últimas ejecuciones únicamente habían incorporado
+3; los otros 24 figuraban como omitidos. Por tanto, aquellos resultados no se
+consideran análisis documentales completos.
+
+Se ha implantado la siguiente corrección estructural:
+
+- tabla privada `case_ai_document_index`, sin acceso directo para `anon` ni
+  `authenticated` y protegida por RLS;
+- procesamiento individual de PDF, DOCX, JPG y PNG mediante URL firmada de
+  cinco minutos y `store:false`;
+- índice minimizado por archivo, ligado a su huella SHA-256 para impedir que se
+  reutilice después de sustituir el documento;
+- reintentos limitados y un único trabajo activo por expediente;
+- bloqueo del análisis final si hay documentos pendientes de comprobación,
+  sin indexar, fallidos o en un formato incompatible;
+- cobertura visible en el CRM con recuentos de documentos admitidos,
+  preparados, en proceso, pendientes y fallidos.
+
+Producción de backend:
+
+- migración `case_document_ai_index`: aplicada;
+- migración `index_document_review_actors`: aplicada;
+- `document-indexer`: activa, versión 1;
+- `ai-assist`: activa, versión 49.
+
+Las pruebas automáticas de índice, asistente, seguridad, documentos internos y
+compilación de CRM/portal han resultado correctas. Sigue pendiente publicar la
+interfaz desde el mismo commit y realizar la prueba autenticada de cobertura
+con documentos previamente revisados. No se han marcado en bloque como seguros
+los documentos reales existentes.

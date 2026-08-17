@@ -381,6 +381,8 @@ function renderAdmin() {
       $('#request-document')?.addEventListener('click',openDocumentRequestDialog);
       $('#analyze-case-ai')?.addEventListener('click',()=>analyzeCurrentCase(c));
       $('#load-latest-case-ai')?.addEventListener('click',()=>loadLatestCaseAnalysis(c));
+      $('#prepare-case-documents')?.addEventListener('click',()=>prepareCaseDocuments(c));
+      loadCaseDocumentCoverage(c);
       resumePendingCaseAnalysis(c);
       $('#add-ai-context')?.addEventListener('click',()=>openAiContextDialog(c));
       $('#test-document-ai')?.addEventListener('click',testSyntheticDocumentPipeline);
@@ -956,7 +958,7 @@ function renderAiAssistant(result) {
 }
 
 function caseAiPanel() {
-  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente integral del expediente · revisión profesional</p><h3>Analizar, resolver o redactar</h3><p>Conoce la ficha, cronología, aclaraciones, solicitudes, documentos del cliente, archivos internos y borradores anteriores.</p></div><div class="ai-result-actions"><button class="secondary-button" id="load-latest-case-ai" type="button">Ver último análisis guardado</button><button class="secondary-button" id="add-ai-context" type="button">Añadir o corregir un dato</button></div></div><label class="ai-request-label">¿Qué necesitas hacer?<textarea id="case-ai-request" rows="4" maxlength="4000" placeholder="Déjalo vacío para una revisión completa, o escribe por ejemplo: calcula el reparto; comprueba la legislación; redacta una reclamación; prepara la demanda; revisa el último borrador…"></textarea></label><div class="ai-submit-row"><p class="ai-data-scope">La investigación jurídica se realiza con consultas anónimas en fuentes oficiales. El resultado no modifica ni envía nada y queda listo para una única revisión profesional.</p><button class="primary-button" id="analyze-case-ai" type="button">Trabajar con el expediente <span>→</span></button></div><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
+  return `<section class="panel case-ai-panel"><div class="ai-assistant"><div><p class="kicker">Asistente integral del expediente · revisión profesional</p><h3>Analizar, resolver o redactar</h3><p>Conoce la ficha, cronología, aclaraciones, solicitudes, documentos del cliente, archivos internos y borradores anteriores.</p></div><div class="ai-result-actions"><button class="secondary-button" id="load-latest-case-ai" type="button">Ver último análisis guardado</button><button class="secondary-button" id="add-ai-context" type="button">Añadir o corregir un dato</button></div></div><section class="ai-document-coverage" aria-labelledby="case-ai-document-title"><div><small>Control documental</small><h4 id="case-ai-document-title">Cobertura del expediente</h4><p id="case-ai-document-coverage" aria-live="polite">Comprobando qué documentos están preparados para el análisis…</p></div><button class="secondary-button" id="prepare-case-documents" type="button">Preparar documentación</button></section><label class="ai-request-label">¿Qué necesitas hacer?<textarea id="case-ai-request" rows="4" maxlength="4000" placeholder="Déjalo vacío para una revisión completa, o escribe por ejemplo: calcula el reparto; comprueba la legislación; redacta una reclamación; prepara la demanda; revisa el último borrador…"></textarea></label><div class="ai-submit-row"><p class="ai-data-scope">La investigación jurídica se realiza con consultas anónimas en fuentes oficiales. El resultado no modifica ni envía nada y queda listo para una única revisión profesional.</p><button class="primary-button" id="analyze-case-ai" type="button">Trabajar con el expediente <span>→</span></button></div><div id="case-ai-result" class="ai-assistant-result" aria-live="polite" hidden></div><div id="case-ai-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div></section>`;
 }
 
 function renderCaseAiAssistant(result) {
@@ -987,7 +989,7 @@ function renderCaseAiAssistant(result) {
     ${deliverable.content?`<section class="ai-deliverable"><small>${escapeHtml(deliverable.kind==='analysis'?'Informe preparado':'Borrador generado')}</small><h4>${escapeHtml(deliverable.title)}</h4><pre>${escapeHtml(deliverable.content)}</pre></section>`:''}
     <section class="ai-draft"><small>Borrador de actualización al cliente</small><p>${escapeHtml(result.draft_client_update)}</p></section>
     ${(result.official_sources||[]).length?`<section class="ai-draft"><small>Fuentes oficiales consultadas</small><div class="ai-official-sources">${(result.official_sources||[]).map(source=>`<a class="ai-official-source" href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title||source.url)}</a>`).join(' ')}</div></section>`:''}
-    <p class="ai-caution">${escapeHtml(result.caution)} ${result.document_content_analyzed?`${Number(result.skipped_document_count||0)+Number(result.failed_document_count||0)>0?'ANÁLISIS DOCUMENTAL PARCIAL. No debe considerarse una revisión completa del expediente. ':''}PDF leídos en esta ejecución: ${Number(result.analyzed_document_count||0)}. Archivos pendientes, omitidos o no legibles: ${Number(result.skipped_document_count||0)+Number(result.failed_document_count||0)}.`:'El contenido de los archivos no ha sido analizado; este resultado no constituye una revisión documental completa.'}</p>
+    <p class="ai-caution">${escapeHtml(result.caution)} ${result.document_content_analyzed?`${!result.document_index_complete||Number(result.skipped_document_count||0)+Number(result.failed_document_count||0)>0?'ANÁLISIS DOCUMENTAL PARCIAL. No debe considerarse una revisión completa del expediente. ':''}Documentos incorporados al análisis: ${Number(result.analyzed_document_count||0)}. Documentos admitidos pendientes o con incidencia: ${Number(result.skipped_document_count||0)+Number(result.failed_document_count||0)}.`:'El expediente no contiene documentos admitidos para analizar o su contenido todavía no está preparado.'}</p>
     <div class="ai-result-actions">${deliverable.content?'<button class="secondary-button" id="save-case-ai-deliverable" type="button">Guardar como documento de trabajo</button>':''}<button class="secondary-button" id="copy-case-ai-draft" type="button">Copiar respuesta al cliente</button></div>`;
   $('#case-ai-result').hidden=false;
   $('#copy-case-ai-draft').addEventListener('click',async()=>{
@@ -1035,8 +1037,84 @@ const caseAiPolls=new Set();
 const caseAiJobKey=caseId=>`ratio-case-ai-job:${caseId}`;
 const wait=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds));
 
+function renderCaseDocumentCoverage(coverage={}){
+  const target=$('#case-ai-document-coverage'),button=$('#prepare-case-documents');if(!target)return;
+  const eligible=Number(coverage.eligible||0),indexed=Number(coverage.indexed||0),processing=Number(coverage.processing||0),failed=Number(coverage.failed||0),awaitingReview=Number(coverage.awaiting_review||0),unsupported=Number(coverage.unsupported||0);
+  const details=[];
+  if(eligible)details.push(`${indexed} de ${eligible} preparados`);
+  else details.push('No hay documentos admitidos para preparar');
+  if(processing)details.push(`${processing} en proceso`);
+  if(awaitingReview)details.push(`${awaitingReview} pendientes de comprobación humana`);
+  if(failed)details.push(`${failed} con incidencia`);
+  if(unsupported)details.push(`${unsupported} en un formato no compatible`);
+  target.textContent=details.join(' · ')+'.';
+  target.dataset.complete=coverage.complete?'true':'false';
+  if(button){
+    button.hidden=Boolean(coverage.complete)||(!eligible&&!awaitingReview);
+    if(!button.disabled)button.textContent=awaitingReview?'Revisar documentos pendientes':'Preparar documentación';
+  }
+}
+
+async function loadCaseDocumentCoverage(caseItem){
+  const target=$('#case-ai-document-coverage');if(!target)return;
+  if(!productionMode||!platformApi){renderCaseDocumentCoverage({eligible:0,indexed:0,complete:true});return;}
+  try{
+    const result=await platformApi.invoke('document-indexer',{action:'index_status',caseId:caseItem.id});
+    if(document.body.contains(target))renderCaseDocumentCoverage(result.coverage||{});
+  }catch(error){
+    if(document.body.contains(target))target.textContent=documentIndexErrorMessage(error?.code,error?.details?.requestId);
+  }
+}
+
+function documentIndexErrorMessage(code,requestId=''){
+  const messages={AI_NOT_CONFIGURED:'Falta configurar el servicio de análisis.',AI_BUDGET_EXCEEDED:'Se ha alcanzado el límite mensual configurado.',AI_KEY_INVALID:'La clave del servicio de análisis no es válida.',AI_QUOTA_EXCEEDED:'La cuenta del servicio de análisis no tiene cuota disponible.',AI_MODEL_UNAVAILABLE:'El modelo documental configurado no está disponible.',AI_REQUEST_INVALID:'El servicio rechazó uno de los documentos.',INDEX_RESPONSE_INCOMPLETE:'El servicio no terminó de leer un documento. Se puede volver a intentar.',INDEX_STORAGE_ERROR:'No se pudo abrir temporalmente uno de los archivos.',INDEX_TEMPORARILY_UNAVAILABLE:'La preparación documental no está disponible temporalmente.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.',FORBIDDEN:'Tu usuario no tiene permiso para preparar documentos.',CASE_NOT_FOUND:'El expediente ya no está disponible.'};
+  return messages[code]||`No se ha podido comprobar la documentación${requestId?` (referencia ${requestId})`:''}.`;
+}
+
+async function prepareCaseDocuments(caseItem){
+  const button=$('#prepare-case-documents'),target=$('#case-ai-document-coverage');if(!button||!target)return;
+  const original=button.textContent;button.disabled=true;button.textContent='Preparando…';
+  try{
+    for(let documentNumber=0;documentNumber<500;documentNumber++){
+      const started=await platformApi.invoke('document-indexer',{action:'start_next',caseId:caseItem.id});
+      renderCaseDocumentCoverage(started.coverage||{});
+      if(started.coverage?.awaiting_review){
+        setModalFeedback('#case-ai-feedback','Antes de preparar el análisis, comprueba los documentos pendientes y marca como seguros únicamente los que hayas revisado.','info');
+        return;
+      }
+      if(!started.accepted){
+        const finalStatus=await platformApi.invoke('document-indexer',{action:'index_status',caseId:caseItem.id});
+        renderCaseDocumentCoverage(finalStatus.coverage||{});
+        if(finalStatus.coverage?.complete)setModalFeedback('#case-ai-feedback','Documentación preparada por completo. Ya puedes trabajar con todo el expediente.','info');
+        else if(finalStatus.coverage?.unsupported)setModalFeedback('#case-ai-feedback','Hay documentos en un formato no compatible. Sustitúyelos por PDF, DOCX, JPG o PNG antes de analizar el expediente.');
+        else setModalFeedback('#case-ai-feedback','La preparación se ha detenido porque queda algún documento con incidencia. Ningún análisis se presentará como completo hasta resolverlo.');
+        return;
+      }
+      let currentStatus=null;
+      for(let attempt=0;attempt<155;attempt++){
+        await wait(attempt===0?1200:4000);
+        if(!document.body.contains(button))return;
+        currentStatus=await platformApi.invoke('document-indexer',{action:'index_status',caseId:caseItem.id,indexId:started.index_id});
+        renderCaseDocumentCoverage(currentStatus.coverage||{});
+        button.textContent=`Preparando ${Number(currentStatus.coverage?.indexed||0)+Number(currentStatus.coverage?.processing||0)} de ${Number(currentStatus.coverage?.eligible||0)}…`;
+        if(['completed','failed'].includes(currentStatus.status)||!currentStatus.status)break;
+      }
+      if(currentStatus?.status==='queued'||currentStatus?.status==='processing'){
+        setModalFeedback('#case-ai-feedback','El documento sigue procesándose. Puedes volver a pulsar «Preparar documentación» más tarde para continuar.','info');
+        return;
+      }
+    }
+    setModalFeedback('#case-ai-feedback','La preparación se ha detenido por seguridad al alcanzar el límite de documentos de una sesión. Puedes continuar después.','info');
+  }catch(error){
+    setModalFeedback('#case-ai-feedback',documentIndexErrorMessage(error?.code,error?.details?.requestId));
+    await loadCaseDocumentCoverage(caseItem);
+  }finally{
+    if(document.body.contains(button)){button.disabled=false;button.textContent=original;}
+  }
+}
+
 function caseAiErrorMessage(code,requestId=''){
-  const messages={AI_NOT_CONFIGURED:'Falta configurar la clave privada del servicio de análisis.',AI_BUDGET_EXCEEDED:'Se ha alcanzado el límite mensual configurado.',AI_KEY_INVALID:'La clave del servicio de análisis no es válida.',AI_QUOTA_EXCEEDED:'La cuenta del servicio de análisis no tiene cuota disponible.',AI_MODEL_UNAVAILABLE:'El modelo configurado no está disponible.',AI_REQUEST_INVALID:'El servicio rechazó la configuración del análisis.',AI_RESPONSE_INCOMPLETE:'El servicio no terminó de componer el análisis. No se ha guardado un resultado parcial.',AI_DATA_ACCESS_FAILED:'No se pudieron reunir todos los datos del expediente para analizarlos.',AI_DOCUMENT_PREPARATION_FAILED:'No se pudo preparar correctamente la documentación del expediente.',AI_RESULT_SAVE_FAILED:'El análisis terminó, pero no pudo guardarse de forma segura.',AI_TEMPORARILY_UNAVAILABLE:'El servicio de análisis no está disponible temporalmente.',AI_TIMEOUT:'El análisis ha superado el tiempo máximo y se ha detenido sin realizar cambios.',UNAUTHENTICATED:'Tu sesión ha caducado.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.',FORBIDDEN:'Tu usuario no tiene permiso para analizar expedientes.',CASE_NOT_FOUND:'El expediente ya no está disponible.'};
+  const messages={AI_NOT_CONFIGURED:'Falta configurar la clave privada del servicio de análisis.',AI_BUDGET_EXCEEDED:'Se ha alcanzado el límite mensual configurado.',AI_KEY_INVALID:'La clave del servicio de análisis no es válida.',AI_QUOTA_EXCEEDED:'La cuenta del servicio de análisis no tiene cuota disponible.',AI_MODEL_UNAVAILABLE:'El modelo configurado no está disponible.',AI_REQUEST_INVALID:'El servicio rechazó la configuración del análisis.',AI_RESPONSE_INCOMPLETE:'El servicio no terminó de componer el análisis. No se ha guardado un resultado parcial.',AI_DATA_ACCESS_FAILED:'No se pudieron reunir todos los datos del expediente para analizarlos.',AI_DOCUMENT_PREPARATION_FAILED:'No se pudo preparar correctamente la documentación del expediente.',AI_RESULT_SAVE_FAILED:'El análisis terminó, pero no pudo guardarse de forma segura.',AI_TEMPORARILY_UNAVAILABLE:'El servicio de análisis no está disponible temporalmente.',AI_TIMEOUT:'El análisis ha superado el tiempo máximo y se ha detenido sin realizar cambios.',DOCUMENT_REVIEW_PENDING:'Hay documentos pendientes de comprobación humana. Revísalos y marca como seguros solo los que correspondan.',DOCUMENT_INDEX_INCOMPLETE:'La documentación todavía no está preparada por completo. Pulsa «Preparar documentación» antes de analizar.',DOCUMENT_FORMAT_UNSUPPORTED:'Hay documentos en un formato no compatible. Sustitúyelos por PDF, DOCX, JPG o PNG.',UNAUTHENTICATED:'Tu sesión ha caducado.',MFA_REQUIRED:'Vuelve a confirmar el segundo factor.',FORBIDDEN:'Tu usuario no tiene permiso para analizar expedientes.',CASE_NOT_FOUND:'El expediente ya no está disponible.'};
   return messages[code]||`No se ha podido analizar el expediente${requestId?` (referencia ${requestId})`:''}.`;
 }
 
