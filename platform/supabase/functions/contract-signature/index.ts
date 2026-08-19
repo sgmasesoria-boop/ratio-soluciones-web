@@ -14,9 +14,9 @@ async function sha256(bytes:Uint8Array){
 }
 
 function providerConfig(){
-  const token=Deno.env.get('SIGNATURIT_ACCESS_TOKEN')||'';
-  const eventsUrl=Deno.env.get('SIGNATURIT_EVENTS_URL')||'';
-  const mode=(Deno.env.get('SIGNATURIT_MODE')||'sandbox').toLowerCase();
+  const token=(Deno.env.get('SIGNATURIT_ACCESS_TOKEN')||'').trim();
+  const eventsUrl=(Deno.env.get('SIGNATURIT_EVENTS_URL')||'').trim();
+  const mode=(Deno.env.get('SIGNATURIT_MODE')||'sandbox').trim().toLowerCase();
   const base=mode==='production'?'https://api.signaturit.com':'https://api.sandbox.signaturit.com';
   if(!token||!eventsUrl||!eventsUrl.startsWith('https://'))throw new Error('SIGNATURE_PROVIDER_NOT_CONFIGURED');
   if(mode==='production'&&Deno.env.get('CONTRACT_TEMPLATE_VALIDATED')!=='true')throw new Error('SIGNATURE_PROVIDER_NOT_CONFIGURED');
