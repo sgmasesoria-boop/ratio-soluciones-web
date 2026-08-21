@@ -11,9 +11,9 @@ async function requestCommunication(request:Request,input:Record<string,unknown>
   const deadlineContext=clean(input.deadlineContext,1000),availabilityNote=clean(input.availabilityNote,500);
   if(!uuid.test(caseId)||subject.length<3||message.length<10)throw new Error('INVALID_COMMUNICATION_REQUEST');
   const {data:caseRecord,error:caseError}=await serviceClient.from('cases')
-    .select('id,reference,client_id,portal_status,status').eq('id',caseId).single();
+    .select('id,reference,client_id,portal_status,status,contract_confirmed_at').eq('id',caseId).single();
   if(caseError||!caseRecord)throw new Error('CASE_NOT_FOUND');
-  if(caseRecord.client_id!==user.id||!['invited','active'].includes(caseRecord.portal_status))throw new Error('COMMUNICATION_ACCESS_DENIED');
+  if(caseRecord.client_id!==user.id||!['invited','active'].includes(caseRecord.portal_status)||!caseRecord.contract_confirmed_at)throw new Error('COMMUNICATION_ACCESS_DENIED');
   if(caseRecord.status!=='open')throw new Error('CASE_CLOSED');
   const {data:record,error}=await serviceClient.from('case_communication_requests').insert({
     case_id:caseId,requested_by:user.id,subject,message,deadline_context:deadlineContext,availability_note:availabilityNote
@@ -70,4 +70,5 @@ Deno.serve(async request=>{
     return json(request,{error:'UNKNOWN_ACTION'},400);
   }catch(error){return errorJson(request,error);}
 });
+
 
