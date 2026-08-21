@@ -15,8 +15,8 @@
 
 ## Bloqueos que requieren intervención externa
 
-- La cuenta empresarial actual de Codex no tiene acceso a los proyectos Sites históricos de CRM y portal. Sites devuelve `project_not_found` y no lista proyectos. Los dominios funcionan, pero sirven una interfaz anterior sin el nuevo control documental.
-- Debe recuperarse o transferirse la propiedad de los proyectos Sites antes de publicar la interfaz fusionada.
+- La cuenta empresarial actual de Codex no tiene acceso a los proyectos Sites históricos de web pública, CRM y portal. Sites devuelve `project_not_found` y no lista proyectos. Los tres dominios funcionan, pero CRM y portal sirven una interfaz anterior sin el nuevo control documental.
+- Debe recuperarse o transferirse la propiedad de los tres proyectos Sites antes de publicar la interfaz fusionada y la actualización legal.
 
 ## Pendiente antes de producción completa
 
