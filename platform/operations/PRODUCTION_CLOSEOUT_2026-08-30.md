@@ -1,6 +1,6 @@
 # Cierre de producción de Ratio — límite 30 de agosto de 2026
 
-Última actualización: 21 de agosto de 2026.
+Última actualización: 22 de agosto de 2026.
 
 ## Completado y comprobado
 
@@ -12,6 +12,7 @@
 - 26 controles locales y de producción aprobados sin fallos.
 - Cabeceras de seguridad activas en web, CRM y portal: HSTS, CSP, bloqueo de marcos, `nosniff`, política de referencia y permisos de cámara, micrófono y ubicación desactivados.
 - Copia cifrada real del 15 de agosto verificada entonces en OneDrive y Google Drive.
+- Restauración aislada implementada y comprobada de extremo a extremo con datos ficticios: verifica manifiesto, integridad y recuentos, recupera los archivos sin sobrescribir datos y deja un informe de la prueba.
 
 ## Bloqueos que requieren intervención externa
 
@@ -22,7 +23,7 @@
 
 - Publicar CRM y portal desde la cuenta propietaria y verificar contenido con consulta sin caché.
 - Ejecutar un recorrido real controlado: formulario, alta, contrato, invitación, MFA administrativo, portal, solicitud, documento, avance y cierre.
-- Realizar una restauración controlada de la copia cifrada en un destino aislado.
+- Ejecutar el asistente de restauración con la copia cifrada real del 15 de agosto y conservar su `restore-report.json` como evidencia. La herramienta está preparada, pero esta prueba real no se considerará superada hasta completarla con la contraseña de la copia.
 - Confirmar acceso actual al segundo destino de Google Drive y definir ejecución diaria sin guardar secretos en scripts.
 - Revisar la información legal final y los contratos con proveedores que tratan datos.
 - Repetir Security Advisor, los 26 controles y la prueba pública inmediatamente antes del lanzamiento.
