@@ -33,10 +33,12 @@
 - [x] Escrituras restringidas a funciones Edge; navegador en modo lectura salvo marca de notificaciones.
 - [x] Miembros internos ocultos a clientes; teléfono y correo obligatorios conforme a la operativa aprobada.
 - [x] CORS separado para portal y CRM y errores internos no expuestos al navegador.
+- [x] Control de acceso de funciones Edge alineado con RLS: contrato confirmado,
+  portal habilitado y expediente abierto para documentos y comunicaciones del cliente.
 
 ## Pendiente de servicios externos
 
-- [ ] Aplicar la migración y desplegar `case-communications` antes de probar el flujo con cuentas reales.
+- [x] Aplicar la migración y desplegar `case-communications`.
 
 - [x] Crear proyecto Supabase europeo.
 - [x] Aplicar las migraciones de base y verificar permisos y RLS con el cliente ficticio publicado.
@@ -59,3 +61,8 @@
 - [ ] Aplicar y verificar en producción la migración de expediente único y documentos versionados.
 - [ ] Validar jurídicamente `CONTRACT_TEMPLATE_V1.md` y confirmar los datos fiscales y domicilio exactos.
 - [ ] Contratar el acceso API de producción de Signaturit y configurar sus secretos después de validar jurídicamente la plantilla.
+- [ ] Desplegar las funciones Edge con el control de acceso contractual reforzado y
+  repetir una prueba autenticada de documento y comunicación con portal deshabilitado.
+- [ ] Aplicar una migración específica que revoque permisos heredados de ejecución
+  en funciones auxiliares privadas y añada denegación RLS explícita a las tres tablas internas de IA.
+
