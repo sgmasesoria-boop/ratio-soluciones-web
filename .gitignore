@@ -1,3 +1,5 @@
 node_modules/
 dist/
 preview-*.png
+platform/.tools/
+
