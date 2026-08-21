@@ -9,6 +9,7 @@
 - Acceso del cliente condicionado a expediente abierto, contrato confirmado y portal habilitado.
 - Permisos internos endurecidos y políticas restrictivas explícitas en las tres tablas privadas de IA.
 - Supabase Security Advisor sin alertas.
+- Revisión de seguridad, rendimiento y registros del 22 de agosto documentada en `SECURITY_SNAPSHOT_2026-08-22.md`, sin indicios de un incidente activo.
 - 26 controles locales y de producción aprobados sin fallos.
 - Cabeceras de seguridad activas en web, CRM y portal: HSTS, CSP, bloqueo de marcos, `nosniff`, política de referencia y permisos de cámara, micrófono y ubicación desactivados.
 - Copia cifrada real del 15 de agosto verificada entonces en OneDrive y Google Drive.
