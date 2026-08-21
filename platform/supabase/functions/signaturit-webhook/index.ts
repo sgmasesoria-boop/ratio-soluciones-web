@@ -13,8 +13,8 @@ async function sha256(bytes:Uint8Array){
 }
 
 function providerConfig(){
-  const token=Deno.env.get('SIGNATURIT_ACCESS_TOKEN')||'';
-  const mode=(Deno.env.get('SIGNATURIT_MODE')||'sandbox').toLowerCase();
+  const token=(Deno.env.get('SIGNATURIT_ACCESS_TOKEN')||'').trim();
+  const mode=(Deno.env.get('SIGNATURIT_MODE')||'sandbox').trim().toLowerCase();
   const base=mode==='production'?'https://api.signaturit.com':'https://api.sandbox.signaturit.com';
   if(!token)throw new Error('NOT_CONFIGURED');
   return {token,base};
@@ -90,3 +90,4 @@ Deno.serve(async request=>{
     return jsonResponse({accepted:true,verified:true});
   }catch(error){console.error('Signaturit webhook failure',{error});return jsonResponse({error:'TEMPORARY_FAILURE'},503);}
 });
+
