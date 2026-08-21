@@ -33,10 +33,13 @@ export async function requireAdmin(request:Request){
 }
 
 export async function canAccessCase(userId:string,caseId:string){
-  const [{data:profile},{data:caseRow},{data:member}]=await Promise.all([
+  const [{data:profile},{data:caseRow}]=await Promise.all([
     serviceClient.from('profiles').select('internal_role,active').eq('id',userId).maybeSingle(),
-    serviceClient.from('cases').select('client_id').eq('id',caseId).maybeSingle(),
-    serviceClient.from('case_members').select('membership_role').eq('case_id',caseId).eq('user_id',userId).is('revoked_at',null).maybeSingle()
+    serviceClient.from('cases').select('client_id,portal_status,contract_confirmed_at,status').eq('id',caseId).maybeSingle()
   ]);
-  return Boolean(profile?.active&&(profile.internal_role==='admin'||caseRow?.client_id===userId||member));
+  const activeClientAccess=caseRow?.client_id===userId
+    &&['invited','active'].includes(caseRow.portal_status)
+    &&Boolean(caseRow.contract_confirmed_at)
+    &&caseRow.status==='open';
+  return Boolean(profile?.active&&(profile.internal_role==='admin'||activeClientAccess));
 }
