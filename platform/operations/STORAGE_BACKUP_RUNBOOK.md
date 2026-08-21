@@ -1,6 +1,6 @@
 # Copia cifrada de los documentos de Ratio
 
-Estado: procedimiento técnico preparado; pendiente de elegir el destino externo y custodiar la contraseña de respaldo antes de la primera copia real.
+Estado comprobado el 21 de agosto de 2026: existe una copia real creada el 15 de agosto de 2026, cifrada y verificada en dos destinos (OneDrive y Google Drive), con 2 objetos y 2.166.659 bytes. La evidencia de verificación confirma ambos destinos en aquella fecha. Sigue pendiente una restauración controlada en entorno aislado y volver a comprobar la disponibilidad actual de Google Drive, cuya unidad virtual no resulta accesible desde la sesión técnica de Codex.
 
 ## Qué protege
 
@@ -68,3 +68,4 @@ Remove-Item Env:RATIO_BACKUP_PASSPHRASE
 ## Restauración
 
 No restaurar automáticamente sobre producción. Primero se verifica la copia, se crea un entorno aislado, se revisan permisos y se compara el manifiesto con los metadatos de la base restaurada. La reposición en producción requiere autorización humana, registro de auditoría y comprobación posterior de RLS.
+
