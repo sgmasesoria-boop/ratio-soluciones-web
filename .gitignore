@@ -2,3 +2,4 @@ node_modules/
 dist/
 preview-*.png
 platform/.tools/
+platform/.qa-document-export/
