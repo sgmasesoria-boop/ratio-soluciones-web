@@ -94,6 +94,36 @@ function externalDestination(path){
   return destination;
 }
 
+function safeRestorePath(root,bucket,objectPath){
+  if(typeof bucket!=='string'||!bucket||/[\\/\0]/u.test(bucket)||bucket==='.'||bucket==='..')throw new Error('INVALID_RESTORE_BUCKET');
+  if(typeof objectPath!=='string'||!objectPath||/[\\\0]/u.test(objectPath))throw new Error('INVALID_RESTORE_PATH');
+  const segments=objectPath.split('/');
+  if(segments.some(segment=>!segment||segment==='.'||segment==='..'))throw new Error('INVALID_RESTORE_PATH');
+  const destination=resolve(root,bucket,...segments);
+  const rel=relative(root,destination);
+  if(!rel||rel.startsWith('..')||isAbsolute(rel))throw new Error('RESTORE_PATH_ESCAPE');
+  return destination;
+}
+
+async function openBackup(passphrase,target){
+  const root=resolve(target);
+  const index=JSON.parse(await readFile(join(root,'backup.json'),'utf8'));
+  if(index.version!==1||index.projectRef!==EXPECTED_PROJECT_REF)throw new Error('INVALID_BACKUP_INDEX');
+  const encryptedManifest=await readFile(join(root,'manifest.enc'));
+  if(sha256(encryptedManifest)!==index.manifestSha256)throw new Error('MANIFEST_HASH_MISMATCH');
+  const key=deriveKey(passphrase,Buffer.from(index.salt,'base64'));
+  try{
+    const clearManifest=decryptBuffer(encryptedManifest,key,'ratio-storage-manifest-v1');
+    const manifest=JSON.parse(clearManifest.toString('utf8'));
+    clearManifest.fill(0);
+    if(manifest.version!==1||manifest.projectRef!==EXPECTED_PROJECT_REF||!Array.isArray(manifest.objects))throw new Error('INVALID_BACKUP_MANIFEST');
+    return {root,index,manifest,key};
+  }catch(error){
+    key.fill(0);
+    throw error;
+  }
+}
+
 export async function createBackup({baseUrl,serviceKey,passphrase,output}){
   const parsed=new URL(baseUrl);
   if(parsed.protocol!=='https:'||parsed.hostname!==`${EXPECTED_PROJECT_REF}.supabase.co`)throw new Error('UNEXPECTED_SUPABASE_PROJECT');
@@ -136,16 +166,8 @@ export async function createBackup({baseUrl,serviceKey,passphrase,output}){
 }
 
 export async function verifyBackup({passphrase,target}){
-  const root=resolve(target);
-  const index=JSON.parse(await readFile(join(root,'backup.json'),'utf8'));
-  if(index.version!==1||index.projectRef!==EXPECTED_PROJECT_REF)throw new Error('INVALID_BACKUP_INDEX');
-  const encryptedManifest=await readFile(join(root,'manifest.enc'));
-  if(sha256(encryptedManifest)!==index.manifestSha256)throw new Error('MANIFEST_HASH_MISMATCH');
-  const key=deriveKey(passphrase,Buffer.from(index.salt,'base64'));
+  const {root,index,manifest,key}=await openBackup(passphrase,target);
   try{
-    const clearManifest=decryptBuffer(encryptedManifest,key,'ratio-storage-manifest-v1');
-    const manifest=JSON.parse(clearManifest.toString('utf8'));
-    clearManifest.fill(0);
     let totalBytes=0;
     for(const item of manifest.objects){
       if(!/^object-[0-9a-f]{64}\.enc$/.test(item.encryptedFile))throw new Error('INVALID_BACKUP_OBJECT_NAME');
@@ -157,6 +179,45 @@ export async function verifyBackup({passphrase,target}){
     }
     if(manifest.objects.length!==index.objectCount||totalBytes!==index.totalBytes)throw new Error('BACKUP_TOTAL_MISMATCH');
     return {verified:true,objectCount:manifest.objects.length,totalBytes,createdAt:manifest.createdAt};
+  }finally{
+    key.fill(0);
+  }
+}
+
+export async function restoreBackup({passphrase,target,output}){
+  const backupRoot=resolve(target);
+  const outputRoot=externalDestination(output);
+  const relationToBackup=relative(backupRoot,outputRoot);
+  const relationToOutput=relative(outputRoot,backupRoot);
+  if(!relationToBackup||(!relationToBackup.startsWith('..')&&!isAbsolute(relationToBackup))||(!relationToOutput.startsWith('..')&&!isAbsolute(relationToOutput)))throw new Error('RESTORE_DESTINATION_MUST_BE_SEPARATE');
+  const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+  const restoreRoot=join(outputRoot,`ratio-restore-${stamp}`);
+  await mkdir(restoreRoot,{recursive:false});
+
+  const {root,index,manifest,key}=await openBackup(passphrase,backupRoot);
+  let totalBytes=0;
+  try{
+    for(const item of manifest.objects){
+      if(!/^object-[0-9a-f]{64}\.enc$/.test(item.encryptedFile))throw new Error('INVALID_BACKUP_OBJECT_NAME');
+      const encrypted=await readFile(join(root,item.encryptedFile));
+      const clear=decryptBuffer(encrypted,key,`${item.bucket}\0${item.path}`);
+      try{
+        if(clear.length!==item.size||sha256(clear)!==item.sha256)throw new Error('OBJECT_INTEGRITY_MISMATCH');
+        const destination=safeRestorePath(restoreRoot,item.bucket,item.path);
+        await mkdir(resolve(destination,'..'),{recursive:true});
+        await writeFile(destination,clear,{flag:'wx'});
+        totalBytes+=clear.length;
+      }finally{
+        clear.fill(0);
+      }
+    }
+    if(manifest.objects.length!==index.objectCount||totalBytes!==index.totalBytes)throw new Error('BACKUP_TOTAL_MISMATCH');
+    await writeFile(join(restoreRoot,'restore-report.json'),JSON.stringify({
+      version:1,projectRef:EXPECTED_PROJECT_REF,restoredAt:new Date().toISOString(),
+      sourceCreatedAt:manifest.createdAt,objectCount:manifest.objects.length,totalBytes,
+      integrityVerified:true,productionModified:false
+    },null,2),{encoding:'utf8',flag:'wx'});
+    return {restored:true,target:restoreRoot,objectCount:manifest.objects.length,totalBytes,createdAt:manifest.createdAt};
   }finally{
     key.fill(0);
   }
@@ -200,9 +261,18 @@ async function main(){
     console.log(JSON.stringify(result,null,2));
     return;
   }
-  throw new Error('USAGE: storage-backup.mjs create --output <external-folder> | verify --target <backup-folder> | self-test');
+  if(command==='restore'){
+    const result=await restoreBackup({
+      passphrase:process.env.RATIO_BACKUP_PASSPHRASE||'',
+      target:option('--target'),output:option('--output')
+    });
+    console.log(JSON.stringify(result,null,2));
+    return;
+  }
+  throw new Error('USAGE: storage-backup.mjs create --output <external-folder> | verify --target <backup-folder> | restore --target <backup-folder> --output <isolated-folder> | self-test');
 }
 
 if(process.argv[1]&&fileURLToPath(import.meta.url)===resolve(process.argv[1])){
   main().catch(error=>{console.error(error.message);process.exitCode=1;});
 }
+
