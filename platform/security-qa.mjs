@@ -11,6 +11,9 @@ const documentUploadEmail=await readFile('supabase/functions/_shared/document-up
 const updateCase=await readFile('supabase/functions/update-case/index.ts','utf8');
 const caseUpdateEmail=await readFile('supabase/functions/_shared/case-update-email.ts','utf8');
 const publicIntake=await readFile('supabase/functions/public-intake/index.ts','utf8');
+const documentWorkflow=await readFile('supabase/functions/document-workflow/index.ts','utf8');
+const communications=await readFile('supabase/functions/case-communications/index.ts','utf8');
+const permissionHardening=await readFile('supabase/migrations/20260821150328_harden_internal_function_permissions.sql','utf8');
 const config=await readFile('supabase/config.toml','utf8');
 const api=await readFile('platform-api.js','utf8');
 const app=await readFile('app.js','utf8');
@@ -48,6 +51,15 @@ for(const functionName of ['invite-client','update-case','manage-crm']){
   if(!block.test(config))failures.push(`${functionName} conserva el verificador JWT antiguo incompatible con claves asimétricas.`);
 }
 if(!auth.includes('await requireUser(request)')||!auth.includes("data.internal_role!=='admin'"))failures.push('Las funciones privadas no validan internamente la sesión y el rol administrador.');
+if(!auth.includes("select('client_id,portal_status,contract_confirmed_at,status')")||!auth.includes('Boolean(caseRow.contract_confirmed_at)')||!auth.includes("caseRow.status==='open'"))failures.push('El acceso documental del cliente no exige contrato confirmado, portal habilitado y expediente abierto.');
+if(auth.includes("serviceClient.from('case_members')"))failures.push('El acceso documental del portal permite una vía innecesaria por pertenencia interna.');
+if(!documentWorkflow.includes('await requireCaseAccess(request,user.id,caseId)'))failures.push('El flujo documental no aplica el control central de acceso al expediente.');
+if(!communications.includes('portal_status,status,contract_confirmed_at')||!communications.includes('!caseRecord.contract_confirmed_at'))failures.push('Las comunicaciones del portal no exigen contrato confirmado.');
+if(!permissionHardening.includes('revoke all on function private.is_admin(uuid) from public, anon')||!permissionHardening.includes('revoke all on function private.can_manage_case(uuid,uuid) from public, anon'))failures.push('Las funciones auxiliares internas conservan permisos heredados innecesarios.');
+if(!permissionHardening.includes('set search_path = pg_catalog, pg_temp'))failures.push('Las funciones SECURITY DEFINER no fijan una ruta de búsqueda mínima.');
+for(const table of ['case_ai_document_index','case_ai_jobs','case_ai_runs']){
+  if(!permissionHardening.includes(`revoke all on table public.${table} from public, anon, authenticated`)||!permissionHardening.includes(`deny_direct_access_${table}`))failures.push(`La tabla privada ${table} no tiene denegación directa explícita.`);
+}
 if(!api.includes("this.appMode !== 'portal'"))failures.push('El portal sigue consultando tablas internas del CRM.');
 if(!build.includes("['/app','/restablecer']"))failures.push('Las rutas autenticada y de recuperación no llegan a la aplicación.');
 if(!build.includes("dynamic?'no-store'"))failures.push('HTML y JavaScript pueden conservar una versión antigua del acceso MFA.');
@@ -70,3 +82,4 @@ if(!app.includes("qr.includes('<svg')")||!app.includes('data:image/svg+xml;chars
 const result={passed:failures.length===0,failures};
 console.log(JSON.stringify(result,null,2));
 if(failures.length)process.exitCode=1;
+
