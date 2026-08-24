@@ -1,6 +1,6 @@
 # Copia cifrada de los documentos de Ratio
 
-Estado: procedimiento técnico preparado; pendiente de elegir el destino externo y custodiar la contraseña de respaldo antes de la primera copia real.
+Estado comprobado el 21 de agosto de 2026: existe una copia real creada el 15 de agosto de 2026, cifrada y verificada en dos destinos (OneDrive y Google Drive), con 2 objetos y 2.166.659 bytes. La evidencia de verificación confirma ambos destinos en aquella fecha. Sigue pendiente una restauración controlada en entorno aislado y volver a comprobar la disponibilidad actual de Google Drive, cuya unidad virtual no resulta accesible desde la sesión técnica de Codex.
 
 ## Qué protege
 
@@ -68,3 +68,22 @@ Remove-Item Env:RATIO_BACKUP_PASSPHRASE
 ## Restauración
 
 No restaurar automáticamente sobre producción. Primero se verifica la copia, se crea un entorno aislado, se revisan permisos y se compara el manifiesto con los metadatos de la base restaurada. La reposición en producción requiere autorización humana, registro de auditoría y comprobación posterior de RLS.
+
+### Prueba aislada mediante asistente
+
+Ejecutar `operations/restore-backup.ps1`. El asistente solicita la carpeta exacta de la copia, una carpeta aislada de destino y la contraseña mediante un campo oculto. Primero verifica íntegramente la copia y después crea una carpeta nueva `ratio-restore-...`; nunca sobrescribe archivos ni se conecta a producción.
+
+Al terminar:
+
+1. Confirmar que `restore-report.json` indica `integrityVerified: true` y `productionModified: false`.
+2. Abrir una muestra representativa de archivos restaurados y comprobar su legibilidad.
+3. Registrar la fecha, copia utilizada, número de objetos, tamaño y responsable de la prueba, sin anotar nombres de documentos ni la contraseña.
+4. Eliminar de forma segura la carpeta restaurada cuando termine la comprobación, salvo que exista una necesidad documentada de conservarla.
+
+La restauración también puede ejecutarse manualmente:
+
+```powershell
+$env:RATIO_BACKUP_PASSPHRASE='CONTRASEÑA_LARGA_Y_EXCLUSIVA'
+node operations/storage-backup.mjs restore --target 'D:\Ratio-Backups\ratio-storage-...' --output 'E:\Ratio-Restore-Prueba'
+Remove-Item Env:RATIO_BACKUP_PASSPHRASE
+```
