@@ -13,8 +13,10 @@ La finalidad es poder reconstruir el sistema si se elimina por completo el proye
 - Supabase Pro conserva copias diarias de la base durante siete días.
 - Esas copias no incluyen el contenido físico de Storage.
 - Storage ya dispone de copia cifrada en dos destinos y de una restauración real aislada comprobada.
-- La exportación lógica externa de la base de datos todavía no se ha ejecutado.
-- El ordenador no tiene instalado actualmente Supabase CLI, Docker ni las utilidades PostgreSQL `pg_dump` y `psql`.
+- PostgreSQL Command Line Tools 17.11 está instalado y se han comprobado `pg_dump`, `psql` y `pg_restore`.
+- El asistente local cifra con AES-256-GCM, verifica integridad, permite restaurar en una carpeta aislada y elimina los SQL temporales. Supera 10 de 10 controles con datos ficticios, incluida la detección de contraseña errónea y manipulación.
+- La conexión de red y el servidor Session pooler se alcanzaron desde la ejecución local; Supabase rechazó la contraseña Database utilizada. No se exportó ningún dato ni quedó un archivo temporal.
+- La exportación lógica externa real de la base todavía no se ha ejecutado. Requiere restablecer la contraseña Database y repetir el asistente.
 
 ## Método oficial seleccionado
 
@@ -36,15 +38,15 @@ No se ejecutarán pegando la contraseña en este repositorio, en un archivo `.cm
 
 ## Requisitos pendientes
 
-1. Instalar una herramienta oficial compatible:
-   - opción preferida: Supabase CLI fijada como dependencia del proyecto y Docker Desktop; o
-   - alternativa: cliente PostgreSQL compatible, si se reproduce y valida el comportamiento de exclusión de esquemas gestionados.
-2. Obtener desde `Connect` la cadena `Session pooler` y la contraseña de la base de datos.
-3. Ejecutar la exportación en una carpeta temporal fuera de las carpetas sincronizadas.
-4. Comprobar que los tres archivos existen, no están vacíos y no contienen errores de `pg_dump`.
+1. Restablecer desde `Database > Settings` la contraseña Database y conservarla en el gestor de contraseñas, nunca en el repositorio.
+2. Ejecutar el asistente local. Este identifica el Session pooler europeo sin guardar la dirección ni la contraseña.
+3. Exportar en una carpeta temporal fuera de las carpetas sincronizadas los esquemas `public` y `supabase_migrations`, separados en estructura y datos.
+4. Comprobar que los cinco archivos esperados existen, no están vacíos y no contienen errores de `pg_dump`.
 5. Cifrar el conjunto con AES-256-GCM y una contraseña exclusiva de al menos 20 caracteres.
-6. Copiar el paquete cifrado a dos destinos independientes y verificar tamaño y SHA-256.
-7. Eliminar de forma segura la carpeta temporal sin cifrar.
+6. Copiar el paquete cifrado a OneDrive y Google Drive, y verificar contenido y huellas criptográficas en ambos destinos.
+7. Eliminar la carpeta temporal sin cifrar antes de presentar la operación como completada.
+
+No existen roles PostgreSQL personalizados de Ratio. Las cuentas Auth, sus contraseñas cifradas y la clave raíz del proyecto se recuperan mediante la restauración física de Supabase Pro a otro proyecto. La exportación externa se centra en las tablas, funciones, políticas, relaciones y datos de negocio propios de Ratio; no debe presentarse como sustituto de la copia física administrada.
 
 ## Restauración de prueba
 
