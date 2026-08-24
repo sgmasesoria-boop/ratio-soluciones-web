@@ -1,0 +1,18 @@
+{
+  "evidenceVersion": 1,
+  "testDate": "2026-08-24",
+  "sourceCreatedAt": "2026-08-24T16:33:18.359Z",
+  "restoredAt": "2026-08-24T16:35:22.344Z",
+  "objectCount": 35,
+  "totalBytes": 18993230,
+  "encryptedDestinations": 2,
+  "technicalFilesPerDestination": 38,
+  "encryptedDestinationsIdenticalBySha256": true,
+  "integrityVerified": true,
+  "allRestoredObjectsNonEmpty": true,
+  "allRestoredObjectsReadable": true,
+  "productionModified": false,
+  "containsDocumentNames": false,
+  "containsCredentials": false,
+  "containsPersonalData": false
+}

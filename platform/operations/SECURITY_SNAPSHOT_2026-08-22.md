@@ -30,14 +30,12 @@ También recomienda que la asignación de conexiones de Auth sea porcentual si e
 
 ## Pendiente para cerrar continuidad y producción
 
-1. Ejecutar la restauración aislada sobre la copia real del 15 de agosto y conservar `restore-report.json`.
-2. Confirmar de nuevo el acceso a los dos destinos externos y establecer la ejecución periódica sin guardar secretos en scripts.
-3. Decidir si se añade una exportación lógica independiente de la base de datos. La copia diaria de Supabase protege la operación ordinaria, pero una exportación externa protege mejor frente a la eliminación completa del proyecto o la pérdida de acceso al proveedor.
-4. Recuperar o transferir los proyectos Sites para publicar CRM y portal desde la cuenta propietaria.
-5. Completar un recorrido real controlado de formulario, contrato, invitación, MFA, portal, solicitud documental, avance y cierre.
-6. Formalizar y revisar los contratos de encargado del tratamiento y el registro de proveedores antes de captar expedientes reales.
+1. Establecer la ejecución periódica de las copias sin guardar secretos en scripts. La restauración real quedó superada el 24 de agosto y se documenta en `RESTORE_TEST_EVIDENCE_2026-08-24.json`.
+2. Decidir si se añade una exportación lógica independiente de la base de datos. La copia diaria de Supabase protege la operación ordinaria, pero una exportación externa protege mejor frente a la eliminación completa del proyecto o la pérdida de acceso al proveedor.
+3. Recuperar o transferir los proyectos Sites para publicar CRM y portal desde la cuenta propietaria.
+4. Completar un recorrido real controlado de formulario, contrato, invitación, MFA, portal, solicitud documental, avance y cierre.
+5. Formalizar y revisar los contratos de encargado del tratamiento y el registro de proveedores antes de captar expedientes reales.
 
 ## Criterio de cierre
 
-Este control acredita el estado técnico observado el 22 de agosto de 2026. No acredita por sí solo la restauración de la copia real, la publicación de la interfaz pendiente ni la aprobación jurídica externa.
-
+Este control acredita el estado técnico observado el 22 de agosto de 2026 y se complementa con la restauración real documentada el 24 de agosto. No acredita por sí solo la publicación de la interfaz pendiente ni la aprobación jurídica externa.

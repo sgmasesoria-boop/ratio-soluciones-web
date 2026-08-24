@@ -87,4 +87,3 @@ $env:RATIO_BACKUP_PASSPHRASE='CONTRASEÑA_LARGA_Y_EXCLUSIVA'
 node operations/storage-backup.mjs restore --target 'D:\Ratio-Backups\ratio-storage-...' --output 'E:\Ratio-Restore-Prueba'
 Remove-Item Env:RATIO_BACKUP_PASSPHRASE
 ```
-

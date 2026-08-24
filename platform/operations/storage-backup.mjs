@@ -1,10 +1,11 @@
 import { createHash, randomBytes, scryptSync, createCipheriv, createDecipheriv } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { resolve, relative, isAbsolute, join } from 'node:path';
+import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { resolve, relative, isAbsolute, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const EXPECTED_PROJECT_REF='bvpeztdfwdbiielaione';
 const MAGIC=Buffer.from('RATIOENC1');
+const WORKSPACE_ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..','..');
 
 function sha256(value){
   return createHash('sha256').update(value).digest('hex');
@@ -34,11 +35,25 @@ export function decryptBuffer(encrypted,key,aad){
 }
 
 function apiHeaders(serviceKey,json=false){
-  return {
+  const headers={
     apikey:serviceKey,
-    authorization:`Bearer ${serviceKey}`,
     ...(json?{'content-type':'application/json'}:{})
   };
+  // Las nuevas claves sb_secret_* no son JWT. Enviarlas como Bearer provoca
+  // Invalid JWT. La clave service_role antigua sí necesita Authorization.
+  if(!serviceKey.startsWith('sb_secret_'))headers.authorization=`Bearer ${serviceKey}`;
+  return headers;
+}
+
+function isElevatedApiKey(serviceKey){
+  if(typeof serviceKey!=='string')return false;
+  if(serviceKey.startsWith('sb_secret_'))return serviceKey.length>=40;
+  const parts=serviceKey.split('.');
+  if(parts.length!==3)return false;
+  try{
+    const payload=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'));
+    return payload?.role==='service_role';
+  }catch{return false;}
 }
 
 async function requestJson(url,options){
@@ -88,8 +103,7 @@ async function downloadObject(baseUrl,serviceKey,bucket,path){
 
 function externalDestination(path){
   const destination=resolve(path);
-  const workspace=resolve(process.cwd());
-  const rel=relative(workspace,destination);
+  const rel=relative(WORKSPACE_ROOT,destination);
   if(rel===''||(!rel.startsWith('..')&&!isAbsolute(rel)))throw new Error('BACKUP_DESTINATION_MUST_BE_OUTSIDE_WORKSPACE');
   return destination;
 }
@@ -127,14 +141,14 @@ async function openBackup(passphrase,target){
 export async function createBackup({baseUrl,serviceKey,passphrase,output}){
   const parsed=new URL(baseUrl);
   if(parsed.protocol!=='https:'||parsed.hostname!==`${EXPECTED_PROJECT_REF}.supabase.co`)throw new Error('UNEXPECTED_SUPABASE_PROJECT');
-  if(!serviceKey||serviceKey.length<40)throw new Error('SERVICE_ROLE_KEY_REQUIRED');
+  if(!isElevatedApiKey(serviceKey))throw new Error('ELEVATED_SUPABASE_KEY_REQUIRED');
   const root=externalDestination(output);
   const stamp=new Date().toISOString().replace(/[:.]/g,'-');
   const target=join(root,`ratio-storage-${stamp}`);
-  await mkdir(target,{recursive:false});
-
   const salt=randomBytes(16);
   const key=deriveKey(passphrase,salt);
+  await mkdir(target,{recursive:false});
+  let completed=false;
   const manifest={version:1,projectRef:EXPECTED_PROJECT_REF,createdAt:new Date().toISOString(),objects:[]};
   try{
     const buckets=await privateBuckets(baseUrl,serviceKey);
@@ -159,9 +173,11 @@ export async function createBackup({baseUrl,serviceKey,passphrase,output}){
       salt:salt.toString('base64'),manifestSha256:sha256(manifestEncrypted)
     },null,2),{encoding:'utf8',flag:'wx'});
     manifestClear.fill(0);
+    completed=true;
     return {target,objectCount:manifest.objects.length,totalBytes:manifest.objects.reduce((sum,item)=>sum+item.size,0)};
   }finally{
     key.fill(0);
+    if(!completed)await rm(target,{recursive:true,force:true});
   }
 }
 
@@ -275,4 +291,3 @@ async function main(){
 if(process.argv[1]&&fileURLToPath(import.meta.url)===resolve(process.argv[1])){
   main().catch(error=>{console.error(error.message);process.exitCode=1;});
 }
-

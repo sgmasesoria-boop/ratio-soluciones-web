@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createBackup, cryptoSelfTest, restoreBackup } from './operations/storage-backup.mjs';
@@ -26,7 +26,7 @@ try{
     return {ok:false,status:404};
   };
   const created=await createBackup({
-    baseUrl:'https://bvpeztdfwdbiielaione.supabase.co',serviceKey:'x'.repeat(60),
+    baseUrl:'https://bvpeztdfwdbiielaione.supabase.co',serviceKey:`sb_secret_${'x'.repeat(50)}`,
     passphrase:'prueba-segura-no-usar-123456',output:sourceRoot
   });
   const restored=await restoreBackup({
@@ -35,6 +35,18 @@ try{
   const recovered=await readFile(join(restored.target,'case-documents','pruebas','documento.txt'));
   const report=JSON.parse(await readFile(join(restored.target,'restore-report.json'),'utf8'));
   if(!recovered.equals(fixture)||!report.integrityVerified||report.productionModified!==false||restored.objectCount!==1)failures.push('La prueba completa de copia y restauración aislada no conserva contenido e integridad.');
+
+  const failedRoot=join(temporaryRoot,'failed');
+  await mkdir(failedRoot);
+  globalThis.fetch=async()=>({ok:false,status:401});
+  let failureBlocked=false;
+  try{
+    await createBackup({
+      baseUrl:'https://bvpeztdfwdbiielaione.supabase.co',serviceKey:`sb_secret_${'y'.repeat(50)}`,
+      passphrase:'prueba-segura-no-usar-123456',output:failedRoot
+    });
+  }catch{failureBlocked=true;}
+  if(!failureBlocked||(await readdir(failedRoot)).length!==0)failures.push('Una copia fallida deja residuos o no propaga el error.');
 }catch(error){
   failures.push(`La prueba completa de restauración falla: ${error.message}`);
 }finally{
@@ -44,6 +56,10 @@ try{
 
 if(!cryptoSelfTest())failures.push('La prueba criptográfica en memoria no supera el ciclo cifrar/descifrar.');
 if(!source.includes("createCipheriv('aes-256-gcm'")||!source.includes('scryptSync('))failures.push('La copia no utiliza AES-256-GCM con derivación fuerte.');
+if(!source.includes("if(!serviceKey.startsWith('sb_secret_'))headers.authorization"))failures.push('La copia no diferencia una Secret key moderna de una service_role JWT antigua.');
+if(!source.includes("payload?.role==='service_role'")||!source.includes('ELEVATED_SUPABASE_KEY_REQUIRED'))failures.push('La copia no bloquea claves públicas o JWT sin rol service_role.');
+if(!source.includes("if(!completed)await rm(target,{recursive:true,force:true})"))failures.push('Una copia incompleta puede quedar abandonada en el destino.');
+if(!source.includes("relative(WORKSPACE_ROOT,destination)")||source.includes("relative(workspace,destination)"))failures.push('La validación del destino depende de la carpeta desde la que se abre la consola.');
 if(!source.includes('BACKUP_DESTINATION_MUST_BE_OUTSIDE_WORKSPACE'))failures.push('La copia puede guardarse accidentalmente dentro del repositorio.');
 if(!source.includes("hostname!==`${EXPECTED_PROJECT_REF}.supabase.co`"))failures.push('La herramienta puede apuntar a un proyecto Supabase distinto.');
 if(!source.includes('manifest.enc')||!source.includes('OBJECT_INTEGRITY_MISMATCH'))failures.push('La copia no tiene manifiesto cifrado o verificación individual.');
@@ -61,4 +77,3 @@ if(!restoreLauncher.includes('Remove-Item Env:RATIO_BACKUP_PASSPHRASE')||!restor
 
 console.log(JSON.stringify({passed:failures.length===0,failures},null,2));
 if(failures.length)process.exitCode=1;
-

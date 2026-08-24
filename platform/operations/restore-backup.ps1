@@ -1,4 +1,7 @@
-param()
+param(
+  [string]$BackupRoot,
+  [string]$RestoreRoot
+)
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
@@ -58,8 +61,22 @@ Al finalizar debes revisar el informe y eliminar de forma segura la restauració
 
 if([Windows.Forms.MessageBox]::Show($warning,'Restauración controlada de Ratio',[Windows.Forms.MessageBoxButtons]::OKCancel,[Windows.Forms.MessageBoxIcon]::Warning) -ne [Windows.Forms.DialogResult]::OK){exit 0}
 
-$backupRoot = Select-Folder 'Selecciona la carpeta exacta ratio-storage-... que contiene backup.json y manifest.enc.' 'C:\'
-$restoreRoot = Select-Folder 'Selecciona una carpeta aislada. El asistente creará dentro una carpeta ratio-restore-... nueva.' 'C:\'
+if([string]::IsNullOrWhiteSpace($BackupRoot)){
+  $BackupRoot = Select-Folder 'Selecciona la carpeta exacta ratio-storage-... que contiene backup.json y manifest.enc.' 'C:\'
+}else{
+  $BackupRoot = [IO.Path]::GetFullPath($BackupRoot)
+}
+if([string]::IsNullOrWhiteSpace($RestoreRoot)){
+  $RestoreRoot = Select-Folder 'Selecciona una carpeta aislada. El asistente creará dentro una carpeta ratio-restore-... nueva.' 'C:\'
+}else{
+  $RestoreRoot = [IO.Path]::GetFullPath($RestoreRoot)
+  if(!(Test-Path -LiteralPath $RestoreRoot)){
+    New-Item -ItemType Directory -Path $RestoreRoot -Force | Out-Null
+  }
+}
+if(!(Test-Path -LiteralPath (Join-Path $BackupRoot 'backup.json')) -or !(Test-Path -LiteralPath (Join-Path $BackupRoot 'manifest.enc'))){
+  throw 'LA_CARPETA_DE_COPIA_NO_ES_VALIDA'
+}
 $passphrase = Show-SecretPrompt
 if($passphrase.Length -lt 20){throw 'LA_CONTRASENA_DE_COPIA_ES_DEMASIADO_CORTA'}
 
@@ -87,4 +104,3 @@ try{
   Remove-Item Env:RATIO_BACKUP_PASSPHRASE -ErrorAction SilentlyContinue
   $passphrase = $null
 }
-

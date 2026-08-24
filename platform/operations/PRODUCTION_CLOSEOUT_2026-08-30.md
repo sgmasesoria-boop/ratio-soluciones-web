@@ -1,6 +1,6 @@
 # Cierre de producción de Ratio — límite 30 de agosto de 2026
 
-Última actualización: 22 de agosto de 2026.
+Última actualización: 24 de agosto de 2026.
 
 ## Completado y comprobado
 
@@ -12,8 +12,8 @@
 - Revisión de seguridad, rendimiento y registros del 22 de agosto documentada en `SECURITY_SNAPSHOT_2026-08-22.md`, sin indicios de un incidente activo.
 - 26 controles locales y de producción aprobados sin fallos.
 - Cabeceras de seguridad activas en web, CRM y portal: HSTS, CSP, bloqueo de marcos, `nosniff`, política de referencia y permisos de cámara, micrófono y ubicación desactivados.
-- Copia cifrada real del 15 de agosto verificada entonces en OneDrive y Google Drive.
-- Restauración aislada implementada y comprobada de extremo a extremo con datos ficticios: verifica manifiesto, integridad y recuentos, recupera los archivos sin sobrescribir datos y deja un informe de la prueba.
+- Copia cifrada real renovada el 24 de agosto y verificada en OneDrive y Google Drive: 35 objetos, 18.999.230 bytes y 38 archivos técnicos idénticos en ambos destinos según SHA-256.
+- Restauración real aislada completada el 24 de agosto: 35 objetos recuperados, 18.999.230 bytes, integridad verificada, todos los archivos no vacíos y legibles, y producción no modificada. Evidencia sanitizada en `RESTORE_TEST_EVIDENCE_2026-08-24.json`.
 
 ## Bloqueos que requieren intervención externa
 
@@ -24,8 +24,6 @@
 
 - Publicar CRM y portal desde la cuenta propietaria y verificar contenido con consulta sin caché.
 - Ejecutar un recorrido real controlado: formulario, alta, contrato, invitación, MFA administrativo, portal, solicitud, documento, avance y cierre.
-- Ejecutar el asistente de restauración con la copia cifrada real del 15 de agosto y conservar su `restore-report.json` como evidencia. La herramienta está preparada, pero esta prueba real no se considerará superada hasta completarla con la contraseña de la copia.
-- Confirmar acceso actual al segundo destino de Google Drive y definir ejecución diaria sin guardar secretos en scripts.
+- Definir la ejecución periódica de las copias sin guardar claves ni contraseñas en scripts y repetir una restauración controlada según el calendario del protocolo.
 - Revisar la información legal final y los contratos con proveedores que tratan datos.
 - Repetir Security Advisor, los 26 controles y la prueba pública inmediatamente antes del lanzamiento.
-
