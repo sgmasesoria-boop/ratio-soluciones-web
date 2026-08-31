@@ -28,13 +28,14 @@ const checks={
   asynchronousMobileSafe:assistant.includes('EdgeRuntime')&&assistant.includes("body.action==='start_case_analysis'")&&assistant.includes("body.action==='case_analysis_status'")&&app.includes("action:'start_case_analysis'")&&app.includes("action:'case_analysis_status'")&&app.includes('cerrar el móvil sin perderlo'),
   oneActiveAnalysisPerCase:asyncMigration.includes('case_ai_jobs_one_active_per_case_idx')&&asyncMigration.includes("where status in ('queued','processing')")&&assistant.includes("jobError.code==='23505'"),
   immutableFinalAuditPreserved:asyncMigration.includes('references public.case_ai_runs')&&assistant.includes("status:'completed',result_run_id:result.run_id")&&assistant.includes("from('case_ai_runs').insert"),
-  recoveredDocumentCounts:assistant.includes('result.document_content_analyzed=preparedDocuments.analyzed.length>0')&&assistant.includes('result.analyzed_document_count=preparedDocuments.analyzed.length'),
+  recoveredDocumentCounts:assistant.includes('result.document_content_analyzed=analyzedSources.length>0')&&assistant.includes('result.analyzed_document_count=analyzedSources.length'),
   privateJobQueue:asyncMigration.includes('enable row level security')&&asyncMigration.includes('revoke all privileges on public.case_ai_jobs from public, anon, authenticated'),
   noAutomaticSubmission:!assistant.includes('enviar al juzgado')&&!assistant.includes('presentar automáticamente'),
   citationsAreClickable:app.includes('ai-official-source')&&app.includes('target="_blank"')&&styles.includes('.ai-official-source'),
-  auditTrail:assistant.includes("prompt_version:'ratio-case-v9'")&&assistant.includes('official_source_count')&&assistant.includes('research_query_count')&&assistant.includes('tool_cost_excluded:true')
+  auditTrail:assistant.includes("prompt_version:'ratio-case-v10'")&&assistant.includes('official_source_count')&&assistant.includes('research_query_count')&&assistant.includes('tool_cost_excluded:true')&&assistant.includes('library_precedent_count')
 };
 
 const failures=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
 console.log(JSON.stringify({passed:!failures.length,checks,failures},null,2));
 if(failures.length)process.exit(1);
+
