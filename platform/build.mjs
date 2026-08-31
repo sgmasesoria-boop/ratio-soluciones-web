@@ -34,8 +34,12 @@ for(const file of publicFiles){const ext=file.split('.').pop();routes[`/${file}`
 routes['/']=routes['/index.html'];
 for(const path of ['/app','/restablecer'])routes[path]=routes['/index.html'];
 const worker=`const routes=${JSON.stringify(routes)};export default{async fetch(request){const url=new URL(request.url);const route=routes[url.pathname.replace(/\\/$/,'')||'/'];if(!route)return new Response('Página no encontrada',{status:404});const dynamic=route.contentType.startsWith('text/html')||route.contentType.startsWith('text/javascript');const headers={'content-type':route.contentType,'cache-control':dynamic?'no-store':'public, max-age=3600','x-content-type-options':'nosniff','referrer-policy':'no-referrer','x-frame-options':'DENY','permissions-policy':'camera=(), microphone=(), geolocation=()','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"};return new Response(request.method==='HEAD'?null:route.body,{status:200,headers});}};`;
-const securedWorker=worker
+let securedWorker=worker
   .replace("'x-frame-options':'DENY',","'x-frame-options':'DENY','strict-transport-security':'max-age=31536000; includeSubDomains','cross-origin-opener-policy':'same-origin',")
   .replace("connect-src 'self' https://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'","connect-src 'self' https://bvpeztdfwdbiielaione.supabase.co; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests");
+if(buildMode==='crm')securedWorker=securedWorker
+  .replace("connect-src 'self' https://bvpeztdfwdbiielaione.supabase.co;","connect-src 'self' https://bvpeztdfwdbiielaione.supabase.co http://127.0.0.1:*;")
+  .replace("; upgrade-insecure-requests","");
 await writeFile('dist/server/index.js',securedWorker,'utf8');
 console.log(`Built ${buildMode} mode for ${runtimeMode} with ${publicFiles.length} files and ${Object.keys(routes).length} routes.`);
+
