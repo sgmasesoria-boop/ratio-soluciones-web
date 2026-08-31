@@ -245,31 +245,25 @@
     </form>
   </dialog>
 
-  <dialog id="internal-document-dialog" class="modal">
-    <form method="dialog" id="internal-document-form">
-      <div class="modal-head"><div><p class="kicker">Archivo interno del expediente</p><h2>Adjuntar documento de Ratio</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
-      <input id="internal-document-case" name="caseId" type="hidden">
-      <input name="action" type="hidden" value="upload_internal_document">
-      <label>Título del documento<input id="internal-document-title" name="title" required minlength="2" maxlength="180" placeholder="Ej. Borrador de reclamación"></label>
-      <label>Nota interna opcional<textarea id="internal-document-note" name="note" rows="3" maxlength="1000" placeholder="Indica su finalidad o procedencia"></textarea></label>
-      <label class="file-drop"><input id="internal-document-file" name="file" type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png" required><span class="file-icon">+</span><strong>Seleccionar archivo interno</strong><small>PDF, DOCX, JPG o PNG · máximo 25 MB por archivo</small><em id="internal-document-file-name">Ningún archivo seleccionado</em></label>
-      <div class="privacy-preview"><small>Solo equipo de Ratio</small><p>Este archivo no se mostrará al cliente. El acceso exige cuenta interna, doble factor y queda auditado.</p></div>
-      <div id="internal-document-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
-      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Adjuntar al expediente <span>→</span></button></div>
-    </form>
-  </dialog>
-
-  <dialog id="client-document-intake-dialog" class="modal">
-    <form method="dialog" id="client-document-intake-form">
-      <div class="modal-head"><div><p class="kicker">Documentación aportada por el cliente</p><h2>Incorporar documento recibido por Ratio</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
-      <input id="client-document-intake-case" name="caseId" type="hidden">
-      <input name="action" type="hidden" value="upload_client_document_by_admin">
-      <p class="upload-warning">Utiliza esta opción para documentación que pertenece al cliente y que Ratio ha recibido en papel, en mano o por otra vía autorizada. No la guardes como documentación interna.</p>
-      <label class="file-drop"><input id="client-document-intake-file" name="file" type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png" required><span class="file-icon">+</span><strong>Seleccionar documento del cliente</strong><small>PDF, DOCX, JPG o PNG · máximo 25 MB por archivo</small><em id="client-document-intake-file-name">Ningún archivo seleccionado</em></label>
-      <label class="confirm-reading"><input id="client-document-intake-privacy" name="privacyNoticeAcknowledged" type="checkbox" value="true" required><span>He comprobado que la persona ha recibido la información de privacidad aplicable antes de incorporar este documento a su expediente.</span></label>
-      <div class="privacy-preview"><small>Visibilidad y trazabilidad</small><p>Se registrará como documentación del cliente, podrá mostrarse en su portal cuando tenga acceso y quedará constancia de que fue incorporado por Ratio.</p></div>
-      <div id="client-document-intake-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
-      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Incorporar al expediente <span>→</span></button></div>
+  <dialog id="case-document-intake-dialog" class="modal">
+    <form method="dialog" id="case-document-intake-form">
+      <div class="modal-head"><div><p class="kicker">Archivo único del expediente</p><h2>Añadir documento</h2></div><button class="close-button" value="cancel" aria-label="Cerrar">×</button></div>
+      <input id="case-document-intake-case" name="caseId" type="hidden">
+      <label>Quién puede verlo
+        <select id="case-document-access" name="documentAccess">
+          <option value="internal">Solo Ratio</option>
+          <option value="client">Ratio y cliente</option>
+        </select>
+      </label>
+      <div id="case-document-internal-fields">
+        <label>Título del documento<input id="case-document-title" name="title" required minlength="2" maxlength="180" placeholder="Ej. Informe recibido"></label>
+        <label>Nota opcional<textarea id="case-document-note" name="note" rows="3" maxlength="1000" placeholder="Indica su finalidad o procedencia"></textarea></label>
+      </div>
+      <label class="file-drop"><input id="case-document-intake-file" name="file" type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png" required><span class="file-icon">+</span><strong>Seleccionar archivo</strong><small>PDF, DOCX, JPG o PNG · máximo 25 MB por archivo</small><em id="case-document-intake-file-name">Ningún archivo seleccionado</em></label>
+      <label id="case-document-client-privacy" class="confirm-reading" hidden><input id="case-document-intake-privacy" name="privacyNoticeAcknowledged" type="checkbox" value="true"><span>He comprobado que la persona ha recibido la información de privacidad aplicable antes de incorporar este documento a su expediente.</span></label>
+      <div class="privacy-preview"><small id="case-document-access-title">Solo equipo de Ratio</small><p id="case-document-access-description">Este archivo no se mostrará al cliente. Primero quedará pendiente de una comprobación de seguridad.</p></div>
+      <div id="case-document-intake-feedback" class="modal-feedback" role="status" aria-live="polite" hidden></div>
+      <div class="modal-actions"><button class="secondary-button" value="cancel">Cancelar</button><button class="primary-button" value="default">Añadir al expediente <span>→</span></button></div>
     </form>
   </dialog>
 

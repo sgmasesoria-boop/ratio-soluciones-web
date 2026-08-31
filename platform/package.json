@@ -33,6 +33,7 @@
     "test:crm-priority-layout": "node crm-priority-layout-qa.mjs",
     "test:database-performance": "node database-performance-qa.mjs",
     "test:public-intake-rate-limit": "node public-intake-rate-limit-qa.mjs",
-    "test:storage-backup": "node storage-backup-qa.mjs"
+    "test:storage-backup": "node storage-backup-qa.mjs",
+    "test:database-backup": "node database-backup-qa.mjs"
   }
 }
