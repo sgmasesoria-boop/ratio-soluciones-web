@@ -29,6 +29,8 @@ const staticChecks={
   immutableHumanReview:securityMigration.includes("target.security_status <> 'pending_review'")&&securityMigration.includes('server_review_internal_document_security'),
   rejectedDownloadBlocked:workflow.includes("document.security_status==='rejected'"),
   reviewAction:workflow.includes("input.action==='review_internal_document_security'")&&app.includes('data-review-internal-document'),
+  unifiedDocumentArea:app.includes('Archivo único del expediente')&&app.includes('id="add-case-document"')&&!app.includes('function internalDocumentsPanel'),
+  privacyPreserved:app.includes("shared?'document-workflow':'internal-document-workflow'")&&app.includes("shared?'upload_client_document_by_admin':'upload_internal_document'"),
   crmOnlyQuery:api.includes("includeCrm ? this.select('case_internal_documents'")&&api.includes('internalDocuments'),
   functionConfigured:config.includes('[functions.internal-document-workflow]'),
   contractDownload:contracts.includes("input.action==='download_contract_pdf'")&&contracts.includes('contract_pdf_download_link_created'),
@@ -44,12 +46,12 @@ await page.goto(pathToFileURL(resolve('dist/index.html')).href,{waitUntil:'load'
 await page.locator('[data-demo-role="admin"]').click();
 await page.locator('[data-section="cases"]').click();
 await page.locator('[data-case-id="case_01"]').click();
-const panelVisible=await page.getByRole('heading',{name:'Documentación interna',exact:true}).isVisible();
-await page.locator('#add-internal-document').click();
-await page.locator('#internal-document-title').fill('Borrador ficticio de prueba');
-await page.locator('#internal-document-note').fill('Archivo interno sin datos personales.');
-await page.locator('#internal-document-file').setInputFiles({name:'borrador-prueba.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\nprueba segura')});
-await page.locator('#internal-document-form .primary-button').click();
+const panelVisible=await page.getByRole('heading',{name:'Documentación del expediente',exact:true}).isVisible();
+await page.locator('#add-case-document').click();
+await page.locator('#case-document-title').fill('Borrador ficticio de prueba');
+await page.locator('#case-document-note').fill('Archivo interno sin datos personales.');
+await page.locator('#case-document-intake-file').setInputFiles({name:'borrador-prueba.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\nprueba segura')});
+await page.locator('#case-document-intake-form .primary-button').click();
 const uploadedVisible=await page.getByText('Borrador ficticio de prueba',{exact:true}).isVisible();
 const quarantineVisible=await page.locator('.document-actions em').filter({hasText:'Pendiente de comprobación'}).isVisible();
 page.once('dialog',dialog=>dialog.accept());
@@ -57,9 +59,9 @@ await page.getByRole('button',{name:'Marcar como seguro',exact:true}).click();
 const acceptedVisible=await page.locator('.document-actions em').filter({hasText:'Comprobado'}).isVisible();
 await page.locator('#logout').click();
 await page.locator('[data-demo-role="client"]').click();
-const clientCannotSeePanel=await page.getByRole('heading',{name:'Documentación interna',exact:true}).count()===0;
+const clientCannotSeeInternalFile=await page.getByText('Borrador ficticio de prueba',{exact:true}).count()===0;
 await browser.close();
 
-const result={passed:Object.values(staticChecks).every(Boolean)&&panelVisible&&uploadedVisible&&quarantineVisible&&acceptedVisible&&clientCannotSeePanel&&!errors.length,staticChecks,panelVisible,uploadedVisible,quarantineVisible,acceptedVisible,clientCannotSeePanel,errors};
+const result={passed:Object.values(staticChecks).every(Boolean)&&panelVisible&&uploadedVisible&&quarantineVisible&&acceptedVisible&&clientCannotSeeInternalFile&&!errors.length,staticChecks,panelVisible,uploadedVisible,quarantineVisible,acceptedVisible,clientCannotSeeInternalFile,errors};
 console.log(JSON.stringify(result,null,2));
 if(!result.passed)process.exitCode=1;

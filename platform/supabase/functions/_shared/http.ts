@@ -63,6 +63,9 @@ export function errorJson(request:Request,error:unknown){
   if(message==='AI_QUOTA_EXCEEDED')return json(request,{error:'AI_QUOTA_EXCEEDED'},429);
   if(message==='AI_MODEL_UNAVAILABLE')return json(request,{error:'AI_MODEL_UNAVAILABLE'},502);
   if(message==='AI_REQUEST_INVALID')return json(request,{error:'AI_REQUEST_INVALID'},502);
+  if(message==='INVALID_LIBRARY_CONTEXT')return json(request,{error:'INVALID_LIBRARY_CONTEXT'},400);
+  if(message==='LIBRARY_CONTEXT_IDENTIFIERS_DETECTED')return json(request,{error:'LIBRARY_CONTEXT_IDENTIFIERS_DETECTED'},400);
+  if(message==='LIBRARY_CONTEXT_TOO_LARGE')return json(request,{error:'LIBRARY_CONTEXT_TOO_LARGE'},413);
   if(message==='DOCUMENT_INDEX_INCOMPLETE')return json(request,{error:'DOCUMENT_INDEX_INCOMPLETE'},409);
   if(message==='DOCUMENT_REVIEW_PENDING')return json(request,{error:'DOCUMENT_REVIEW_PENDING'},409);
   if(message==='DOCUMENT_FORMAT_UNSUPPORTED')return json(request,{error:'DOCUMENT_FORMAT_UNSUPPORTED'},409);
