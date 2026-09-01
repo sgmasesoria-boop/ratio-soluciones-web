@@ -90,23 +90,24 @@ await page.locator('#document-request-form .primary-button').click();
 const escapedRequestVisible=await page.getByText('<img src=x onerror="window.__documentXss=1">',{exact:true}).first().isVisible();
 const xssSafe=await page.evaluate(()=>window.__documentXss===undefined);
 const requestInTimeline=await page.getByText('Documentación solicitada: <img src=x onerror="window.__documentXss=1">',{exact:true}).isVisible();
-await page.locator('#add-client-document').click();
-await page.locator('#client-document-intake-file').setInputFiles({name:'escritura-recibida.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 documento entregado en mano')});
-await page.locator('#client-document-intake-privacy').check();
-await page.locator('#client-document-intake-form .primary-button').click();
+await page.locator('#add-case-document').click();
+await page.locator('#case-document-access').selectOption('client');
+await page.locator('#case-document-intake-file').setInputFiles({name:'escritura-recibida.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 documento entregado en mano')});
+await page.locator('#case-document-intake-privacy').check();
+await page.locator('#case-document-intake-form .primary-button').click();
 const receivedByRatioVisible=await page.getByRole('strong').filter({hasText:'escritura-recibida.pdf'}).first().isVisible();
 const receivedByRatioLabel=await page.locator('small').filter({hasText:'Recibido por Ratio'}).first().isVisible();
 const receivedByRatioTimeline=await page.getByText('Documentación incorporada al expediente',{exact:true}).isVisible();
 await page.locator('#logout').click();
 await page.locator('[data-demo-role="client"]').click();
 const receivedDocumentVisibleToClient=await page.getByRole('strong').filter({hasText:'escritura-recibida.pdf'}).first().isVisible();
-const internalPanelHiddenFromClient=await page.getByRole('heading',{name:'Documentación interna',exact:true}).count()===0;
+const internalControlsHiddenFromClient=await page.getByRole('button',{name:'Marcar como seguro',exact:true}).count()===0;
 const noOverflow=await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth);
 await browser.close();
 
 const result={
-  passed:Object.values(staticChecks).every(Boolean)&&privacyTextVisible&&blockedUntilPrivacy&&uploadVisible&&uploadInTimeline&&secondUploadAvailable&&clarificationVisible&&clarificationInTimeline&&noPendingAction&&escapedRequestVisible&&xssSafe&&requestInTimeline&&receivedByRatioVisible&&receivedByRatioLabel&&receivedByRatioTimeline&&receivedDocumentVisibleToClient&&internalPanelHiddenFromClient&&noOverflow&&!errors.length,
-  staticChecks,privacyTextVisible,blockedUntilPrivacy,uploadVisible,uploadInTimeline,secondUploadAvailable,clarificationVisible,clarificationInTimeline,noPendingAction,escapedRequestVisible,xssSafe,requestInTimeline,receivedByRatioVisible,receivedByRatioLabel,receivedByRatioTimeline,receivedDocumentVisibleToClient,internalPanelHiddenFromClient,noOverflow,errors
+  passed:Object.values(staticChecks).every(Boolean)&&privacyTextVisible&&blockedUntilPrivacy&&uploadVisible&&uploadInTimeline&&secondUploadAvailable&&clarificationVisible&&clarificationInTimeline&&noPendingAction&&escapedRequestVisible&&xssSafe&&requestInTimeline&&receivedByRatioVisible&&receivedByRatioLabel&&receivedByRatioTimeline&&receivedDocumentVisibleToClient&&internalControlsHiddenFromClient&&noOverflow&&!errors.length,
+  staticChecks,privacyTextVisible,blockedUntilPrivacy,uploadVisible,uploadInTimeline,secondUploadAvailable,clarificationVisible,clarificationInTimeline,noPendingAction,escapedRequestVisible,xssSafe,requestInTimeline,receivedByRatioVisible,receivedByRatioLabel,receivedByRatioTimeline,receivedDocumentVisibleToClient,internalControlsHiddenFromClient,noOverflow,errors
 };
 console.log(JSON.stringify(result,null,2));
 if(!result.passed)process.exitCode=1;
