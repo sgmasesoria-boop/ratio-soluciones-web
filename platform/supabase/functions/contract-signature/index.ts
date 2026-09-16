@@ -1,3 +1,4 @@
+import {contractIssuer,contractReplyTo} from './issuer.ts';
 import {PDFDocument,StandardFonts,rgb} from 'npm:pdf-lib@1.17.1';
 import {requireAdmin,serviceClient} from '../_shared/auth.ts';
 import {errorJson,handleOptions,json} from '../_shared/http.ts';
@@ -24,11 +25,12 @@ function providerConfig(){
 }
 
 function contractSnapshot(contract:Record<string,unknown>,caseRecord:Record<string,unknown>,validated:boolean){
+  const issuer=contractIssuer(name=>Deno.env.get(name));
   const warning=validated?'':'PENDIENTE DE VALIDACION JURIDICA - SOLO PRUEBAS - NO ENVIAR A CLIENTES\n\n';
   return `${warning}CONTRATO DE PRESTACION DE SERVICIOS - RATIO SOLUCIONES
 
 PARTES
-De una parte, Sergio Guerrero Martinez, NIF 74645438L, actuando bajo la denominacion Ratio Soluciones. Los datos fiscales y el domicilio definitivo deben constar en la version juridicamente validada.
+De una parte, ${issuer.name}, con identificacion fiscal ${issuer.identifier} y domicilio en ${issuer.address}, actuando bajo la denominacion Ratio Soluciones.
 
 De otra parte, ${contract.signer_full_name}, con identificacion ${contract.signer_identifier} y domicilio en ${contract.signer_address}.
 
@@ -214,6 +216,7 @@ async function sendForSignature(request:Request,input:Record<string,unknown>){
   if(!contract.unsigned_storage_path||!contract.unsigned_sha256)throw new Error('CONTRACT_PDF_REQUIRED');
   if(!contract.cases.contact_email)throw new Error('EMAIL_REQUIRED_FOR_PORTAL');
   const provider=providerConfig();
+  const replyTo=contractReplyTo(name=>Deno.env.get(name));
   const {data:blob,error:downloadError}=await serviceClient.storage.from(BUCKET).download(contract.unsigned_storage_path,{}, {cache:'no-store'});
   if(downloadError||!blob)throw downloadError||new Error('CONTRACT_PDF_REQUIRED');
   const bytes=new Uint8Array(await blob.arrayBuffer());
@@ -225,7 +228,7 @@ async function sendForSignature(request:Request,input:Record<string,unknown>){
   form.append('name',`Contrato ${contract.cases.reference}`);
   form.append('subject','Ratio Soluciones · Firma de contrato');
   form.append('body','Hola. Ratio Soluciones te envía el contrato acordado para que puedas revisarlo y firmarlo desde tu móvil u ordenador.');
-  form.append('reply_to','clientes@ratiosoluciones.es');
+  form.append('reply_to',replyTo);
   form.append('events_url',provider.eventsUrl);
   form.append('data[ratio_contract_id]',contract.id);
   form.append('data[ratio_case_reference]',contract.cases.reference);

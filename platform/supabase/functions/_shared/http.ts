@@ -55,6 +55,7 @@ export function errorJson(request:Request,error:unknown){
   if(message==='INVALID_MANUAL_SIGNATURE')return json(request,{error:'INVALID_MANUAL_SIGNATURE'},400);
   if(message==='INVALID_MANUAL_SIGNATURE_DATE')return json(request,{error:'INVALID_MANUAL_SIGNATURE_DATE'},400);
   if(message==='INVALID_MANUAL_SIGNATURE_FILE')return json(request,{error:'INVALID_MANUAL_SIGNATURE_FILE'},400);
+  if(message==='CONTRACT_ISSUER_NOT_CONFIGURED')return json(request,{error:'CONTRACT_ISSUER_NOT_CONFIGURED'},503);
   if(message==='SIGNATURE_PROVIDER_NOT_CONFIGURED')return json(request,{error:'SIGNATURE_PROVIDER_NOT_CONFIGURED'},503);
   if(message==='SIGNATURE_PROVIDER_ERROR')return json(request,{error:'SIGNATURE_PROVIDER_ERROR'},502);
   if(message==='AI_NOT_CONFIGURED')return json(request,{error:'AI_NOT_CONFIGURED'},503);

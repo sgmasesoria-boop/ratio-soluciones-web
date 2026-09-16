@@ -4,7 +4,7 @@
 
 ## Partes
 
-De una parte, Sergio Guerrero Martínez, NIF 74645438L, actuando bajo la denominación Ratio Soluciones, con domicilio pendiente de validación antes del primer uso.
+De una parte, **[TITULAR CONFIGURADO]**, con identificación fiscal **[IDENTIFICADOR CONFIGURADO]** y domicilio **[DOMICILIO CONFIGURADO]**, bajo la denominación Ratio Soluciones. La función requiere RATIO_CONTRACT_ISSUER_NAME, RATIO_CONTRACT_ISSUER_IDENTIFIER y RATIO_CONTRACT_ISSUER_ADDRESS; no incorpora valores personales por defecto.
 
 De otra parte, `{{signer_full_name}}`, con identificación `{{signer_identifier}}` y domicilio en `{{signer_address}}`.
 
