@@ -3,3 +3,8 @@ dist/
 preview-*.png
 platform/.tools/
 platform/.qa-document-export/
+
+# Local credentials and private migration artifacts
+.env
+.env.*
+!.env.example

@@ -82,9 +82,16 @@ while($true){
   break
 }
 
-$pgRoot='C:\Program Files\PostgreSQL\17\bin'
+# Resolve installed tools without depending on a drive or user directory.
+if($env:RATIO_POSTGRES_BIN){
+  $pgRoot=[IO.Path]::GetFullPath($env:RATIO_POSTGRES_BIN)
+}elseif(Get-Command pg_dump.exe -ErrorAction SilentlyContinue){
+  $pgRoot=Split-Path -Parent (Get-Command pg_dump.exe -ErrorAction Stop).Source
+}elseif($env:ProgramFiles){
+  $pgRoot=Join-Path $env:ProgramFiles 'PostgreSQL\17\bin'
+}else{throw 'CONFIGURA_RATIO_POSTGRES_BIN_O_PATH'}
 $psql=Join-Path $pgRoot 'psql.exe'; $pgDump=Join-Path $pgRoot 'pg_dump.exe'
-if(!(Test-Path -LiteralPath $psql) -or !(Test-Path -LiteralPath $pgDump)){throw 'HERRAMIENTAS_POSTGRESQL_17_NO_DISPONIBLES'}
+if(!(Test-Path -LiteralPath $psql) -or !(Test-Path -LiteralPath $pgDump)){throw 'CONFIGURA_RATIO_POSTGRES_BIN_O_PATH'}
 $scriptRoot=Split-Path -Parent $MyInvocation.MyCommand.Path
 $packScript=Join-Path $scriptRoot 'database-backup.mjs'
 $node = (Get-Command node.exe -ErrorAction Stop).Source
