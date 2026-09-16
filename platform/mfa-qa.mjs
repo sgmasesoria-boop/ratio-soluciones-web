@@ -1,4 +1,4 @@
-import {chromium} from 'playwright';
+import {launchQaBrowser} from '../qa-browser.mjs';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
@@ -8,7 +8,7 @@ const jwt=payload=>`header.${Buffer.from(JSON.stringify(payload)).toString('base
 let mfaVerified=false;
 let verificationAttempts=0;
 const calls=[];
-const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
+const browser=await launchQaBrowser({headless:true,args:['--allow-file-access-from-files']});
 const page=await browser.newPage({viewport:{width:1280,height:900}});
 const errors=[];page.on('pageerror',error=>errors.push(error.message));
 

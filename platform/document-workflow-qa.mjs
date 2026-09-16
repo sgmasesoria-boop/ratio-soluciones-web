@@ -1,5 +1,5 @@
 import {readFile} from 'node:fs/promises';
-import {chromium} from 'playwright';
+import {launchQaBrowser} from '../qa-browser.mjs';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
@@ -44,7 +44,7 @@ const staticChecks={
 };
 
 execFileSync(process.execPath,['build.mjs','combined','','demo'],{stdio:'inherit'});
-const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
+const browser=await launchQaBrowser({headless:true,args:['--allow-file-access-from-files']});
 const page=await browser.newPage({viewport:{width:1280,height:980}});
 const errors=[];page.on('pageerror',error=>errors.push(error.message));
 await page.goto(pathToFileURL(resolve('dist/index.html')).href,{waitUntil:'load'});

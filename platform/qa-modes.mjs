@@ -1,9 +1,9 @@
-import {chromium} from 'playwright';
+import {launchQaBrowser} from '../qa-browser.mjs';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
-const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
+const browser=await launchQaBrowser({headless:true,args:['--allow-file-access-from-files']});
 const results=[];
 for(const mode of ['portal','crm']){
   execFileSync(process.execPath,['build.mjs',mode,'','demo'],{stdio:'inherit'});

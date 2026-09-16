@@ -1,10 +1,10 @@
-import {chromium} from 'playwright';
+import {launchQaBrowser} from '../qa-browser.mjs';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
 execFileSync(process.execPath,['build.mjs','portal','','production'],{stdio:'inherit'});
-const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
+const browser=await launchQaBrowser({headless:true,args:['--allow-file-access-from-files']});
 const results=[];
 for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile',width:390,height:844}]){
   const context=await browser.newContext({viewport});

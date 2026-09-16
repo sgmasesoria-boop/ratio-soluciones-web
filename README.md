@@ -1,5 +1,7 @@
 # Ratio Soluciones
 
+Instalación reproducible y QA offline: [Desarrollo local](LOCAL_DEVELOPMENT.md).
+
 Repositorio privado de la web pública y de la plataforma de gestión de Ratio Soluciones.
 
 - La raíz contiene la web orientada a particulares en Andalucía y la Comunidad de Madrid.

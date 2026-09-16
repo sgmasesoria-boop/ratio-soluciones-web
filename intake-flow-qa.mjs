@@ -1,14 +1,14 @@
 import {createServer} from 'node:http';
 import {readFile,stat} from 'node:fs/promises';
 import {extname,join,normalize} from 'node:path';
-import {chromium} from 'playwright';
+import {launchQaBrowser} from './qa-browser.mjs';
 
 const root=process.cwd();
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript'};
 const server=createServer(async(request,response)=>{try{const pathname=new URL(request.url,'http://127.0.0.1').pathname;const relative=pathname==='/'?'index.html':pathname.replace(/^\//,'');const path=normalize(join(root,relative));if(!path.startsWith(root))throw new Error('Invalid path');await stat(path);response.writeHead(200,{'content-type':mime[extname(path)]||'application/octet-stream'});response.end(await readFile(path));}catch{response.writeHead(404);response.end('Not found');}});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const origin=`http://127.0.0.1:${server.address().port}`;
-const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'});
+const browser=await launchQaBrowser({headless:true});
 
 async function completeForm(page){
   await page.goto(origin);
