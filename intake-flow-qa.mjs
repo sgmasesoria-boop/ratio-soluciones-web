@@ -1,7 +1,7 @@
 import {createServer} from 'node:http';
 import {readFile,stat} from 'node:fs/promises';
 import {extname,join,normalize} from 'node:path';
-import {chromium} from 'file:///C:/Users/PC/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
+import {chromium} from 'playwright';
 
 const root=process.cwd();
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript'};

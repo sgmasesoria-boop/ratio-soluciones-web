@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
-import {chromium} from 'file:///C:/Users/PC/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
+import {chromium} from 'playwright';
 
 const migration=await readFile('supabase/migrations/20260812193000_internal_case_documents.sql','utf8');
 const securityMigration=await readFile('supabase/migrations/20260816183000_internal_document_security_review.sql','utf8');

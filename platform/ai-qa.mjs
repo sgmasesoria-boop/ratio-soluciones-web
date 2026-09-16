@@ -1,4 +1,4 @@
-import {chromium} from 'file:///C:/Users/PC/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
+import {chromium} from 'playwright';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 import {readFile} from 'node:fs/promises';

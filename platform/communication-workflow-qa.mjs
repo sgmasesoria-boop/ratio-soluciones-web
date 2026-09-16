@@ -1,5 +1,5 @@
 import {readFile} from 'node:fs/promises';
-import {chromium} from 'file:///C:/Users/PC/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
+import {chromium} from 'playwright';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
