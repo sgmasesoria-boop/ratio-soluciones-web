@@ -1,4 +1,4 @@
-import {chromium} from 'playwright';
+import {launchQaBrowser} from '../qa-browser.mjs';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 import {readFile} from 'node:fs/promises';
@@ -11,7 +11,7 @@ const migration=await readFile('supabase/migrations/20260812003000_case_ai_audit
 const hostileDraft='Estado «won» y open. [case:record] [event:c13c7744-a2c8-4fb2-9b08-ea12e4d7189cc] Los metadatos indican que el documento no está analizado.';
 const safeDraft=sanitizeClientDraft(hostileDraft);
 
-const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
+const browser=await launchQaBrowser({headless:true,args:['--allow-file-access-from-files']});
 const page=await browser.newPage({viewport:{width:1280,height:900}});
 page.setDefaultTimeout(10000);
 const errors=[];page.on('pageerror',error=>errors.push(error.message));

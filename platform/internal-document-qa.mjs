@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
-import {chromium} from 'playwright';
+import {launchQaBrowser} from '../qa-browser.mjs';
 
 const migration=await readFile('supabase/migrations/20260812193000_internal_case_documents.sql','utf8');
 const securityMigration=await readFile('supabase/migrations/20260816183000_internal_document_security_review.sql','utf8');
@@ -39,7 +39,7 @@ const staticChecks={
 Object.entries(staticChecks).forEach(([name,value])=>assert.equal(value,true,name));
 
 execFileSync(process.execPath,['build.mjs','combined','','demo'],{stdio:'inherit'});
-const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
+const browser=await launchQaBrowser({headless:true,args:['--allow-file-access-from-files']});
 const page=await browser.newPage({viewport:{width:1280,height:980}}),errors=[];
 page.on('pageerror',error=>errors.push(error.message));
 await page.goto(pathToFileURL(resolve('dist/index.html')).href,{waitUntil:'load'});

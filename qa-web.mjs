@@ -1,10 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
-import { createRequire } from 'node:module';
-import { existsSync } from 'node:fs';
-const require = createRequire(import.meta.url);
-const { chromium } = require('playwright');
+import { launchQaBrowser } from './qa-browser.mjs';
 
 const root = process.cwd();
 const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css', '.js':'text/javascript', '.svg':'image/svg+xml', '.png':'image/png', '.txt':'text/plain', '.xml':'application/xml' };
@@ -25,13 +22,7 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const { port } = server.address();
 const origin = `http://127.0.0.1:${port}`;
-const browserPath = [
-  process.env.CHROME_PATH,
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
-].find((path) => path && existsSync(path));
-const browser = await chromium.launch({ headless: true, ...(browserPath ? { executablePath: browserPath } : {}) });
+const browser = await launchQaBrowser();
 const findings = [];
 
 async function audit(viewport) {
