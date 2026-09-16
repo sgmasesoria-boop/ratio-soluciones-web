@@ -1,10 +1,17 @@
-import {mkdir,readFile,rm,writeFile} from 'node:fs/promises';
-import {resolve} from 'node:path';
+import {mkdir,mkdtemp,readFile,writeFile} from 'node:fs/promises';
+import {resolve,relative,isAbsolute,join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {buildBrandedDocument,safeDocumentFileName,sanitizeDocumentContent} from './supabase/functions/document-export/document-builder.mjs';
 
-const outputDirectory=resolve(process.argv[2]||'.qa-document-export');
-await rm(outputDirectory,{recursive:true,force:true});
-await mkdir(outputDirectory,{recursive:true});
+const outputRoot=fileURLToPath(new URL('./.qa-document-export/',import.meta.url));
+await mkdir(outputRoot,{recursive:true});
+let outputDirectory;
+if(process.argv[2]){
+  outputDirectory=resolve(process.argv[2]);
+  const relation=relative(outputRoot,outputDirectory);
+  if(!relation||relation.startsWith('..')||isAbsolute(relation))throw new Error('QA_OUTPUT_MUST_BE_NEW_CHILD_DIRECTORY');
+  await mkdir(outputDirectory,{recursive:false});
+}else outputDirectory=await mkdtemp(join(outputRoot,'offline-'));
 const content=`# Informe de valoración
 
 Nota de presentación. Este documento está preparado para su maquetación y exportación a PDF profesional. El logotipo corporativo no se incorpora todavía porque no se ha facilitado el archivo o plantilla gráfica correspondiente.
@@ -24,7 +31,7 @@ El usufructo se valora en el 10 % de la mitad afectada, equivalente al 5 % del p
 ## Base del porcentaje
 
 El 10 % no se suma al 50 % del total: se aplica exclusivamente a la mitad usufructuada.`;
-const metadata={title:'Informe de valoración del usufructo',documentType:'analysis',reference:'RS-2026-PRUEBA',clientName:'Sandra Torres Moreno',versionNumber:3,statusLabel:'Borrador generado · pendiente de revisión profesional',dateLabel:'15 de agosto de 2026'};
+const metadata={title:'Informe de valoración del usufructo',documentType:'analysis',reference:'RS-2026-PRUEBA',clientName:'Persona ficticia de prueba',versionNumber:3,statusLabel:'Borrador generado · pendiente de revisión profesional',dateLabel:'15 de agosto de 2026'};
 const bytes=await buildBrandedDocument(metadata,content);
 if(bytes.length<5000||bytes[0]!==0x50||bytes[1]!==0x4b)throw new Error('El generador no produjo un DOCX válido.');
 const filename=safeDocumentFileName(metadata.title,metadata.reference,metadata.versionNumber);

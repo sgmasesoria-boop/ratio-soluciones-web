@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
-import { readdirSync, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
+import { platformOfflineTests } from './qa-offline-tests.mjs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 const root = fileURLToPath(new URL('.', import.meta.url));
@@ -13,12 +14,12 @@ function run(name, args, cwd = root) {
   if (!ok) console.error(result.error?.message || result.stderr || result.stdout);
   return ok;
 }
-run('offline browser guard', ['qa-browser.test.mjs']);
+if (!run('offline test selection', ['qa-offline-tests.test.mjs'])) process.exit(1);
+if (!run('offline browser guard', ['qa-browser.test.mjs'])) process.exit(1);
 run('web build', ['build.mjs']);
 for (const name of ['qa-web.mjs', 'intake-flow-qa.mjs', 'seo-audit.mjs']) run(name, [name]);
 for (const mode of ['crm', 'portal']) run(`build ${mode}`, ['build.mjs', mode], platform);
-const tests = readdirSync(platform).filter(name =>
-  !name.includes('live') && (name.endsWith('-qa.mjs') || ['qa.mjs', 'qa-modes.mjs'].includes(name))).sort();
+const tests = platformOfflineTests;
 for (const name of tests) {
   if (!run(`build before ${name}`, ['build.mjs'], platform)) continue;
   const args = [name];
