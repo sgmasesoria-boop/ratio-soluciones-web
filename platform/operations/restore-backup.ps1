@@ -62,12 +62,12 @@ Al finalizar debes revisar el informe y eliminar de forma segura la restauració
 if([Windows.Forms.MessageBox]::Show($warning,'Restauración controlada de Ratio',[Windows.Forms.MessageBoxButtons]::OKCancel,[Windows.Forms.MessageBoxIcon]::Warning) -ne [Windows.Forms.DialogResult]::OK){exit 0}
 
 if([string]::IsNullOrWhiteSpace($BackupRoot)){
-  $BackupRoot = Select-Folder 'Selecciona la carpeta exacta ratio-storage-... que contiene backup.json y manifest.enc.' 'C:\'
+  $BackupRoot = Select-Folder 'Selecciona la carpeta exacta ratio-storage-... que contiene backup.json y manifest.enc.' ([IO.Path]::GetPathRoot([Environment]::GetFolderPath('UserProfile')))
 }else{
   $BackupRoot = [IO.Path]::GetFullPath($BackupRoot)
 }
 if([string]::IsNullOrWhiteSpace($RestoreRoot)){
-  $RestoreRoot = Select-Folder 'Selecciona una carpeta aislada. El asistente creará dentro una carpeta ratio-restore-... nueva.' 'C:\'
+  $RestoreRoot = Select-Folder 'Selecciona una carpeta aislada. El asistente creará dentro una carpeta ratio-restore-... nueva.' ([IO.Path]::GetPathRoot([Environment]::GetFolderPath('UserProfile')))
 }else{
   $RestoreRoot = [IO.Path]::GetFullPath($RestoreRoot)
   if(!(Test-Path -LiteralPath $RestoreRoot)){

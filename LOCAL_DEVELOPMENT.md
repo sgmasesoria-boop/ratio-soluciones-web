@@ -1,61 +1,109 @@
-# Desarrollo local y migración — 2026-09-16
+# Desarrollo local seguro de Ratio
 
-Base comprobada: `migrated/ratio-consolidation-20260916`, commit `7242425`.
-Node 24.19.0, npm 11.17.0 y pnpm 10.34.5 disponibles. Las dependencias instaladas
-Playwright 1.62.1 y docx 9.7.1 coinciden con `pnpm-lock.yaml`; no fue necesaria
-una reinstalación. Para una instalación nueva, desde la raíz:
+## Windows
+
+Entorno comprobado: Node 24.19.0, npm 11.17.0 y pnpm 10.34.5. Las dependencias
+están fijadas en pnpm-lock.yaml. Desde la raíz del repositorio:
 
 ```powershell
-pnpm install --frozen-lockfile
-npm run build
-npm run test:offline
+pnpm.cmd install --frozen-lockfile --ignore-scripts
+pnpm.cmd run build
+pnpm.cmd --dir platform run build
+pnpm.cmd --dir platform run build:crm
+pnpm.cmd --dir platform run build:portal
+pnpm.cmd run test:offline
 ```
 
-`test:offline` construye web, CRM y portal y ejecuta todas las QA locales,
-incluidas las que no tenían entrada en package.json. Excluye archivos live.
-Los navegadores bloquean peticiones externas no simuladas y service workers;
-las pruebas de API y backups usan fixtures/mocks. Los builds son artefactos
-locales y no despliegan. Los directorios dist son regenerables.
+Si la caché ya está disponible, añadir `--offline` a la instalación evita el
+registro de paquetes. No actualizar dependencias para resolver diferencias de
+máquina. Usar `pnpm.cmd` evita depender de la política de scripts de PowerShell.
+Las compilaciones regeneran únicamente los directorios dist y no despliegan.
+La plataforma compila por defecto con configuración pública de producción:
+no abrir ese resultado para trabajo offline. Para explorar la interfaz local,
+construir explícitamente demo desde platform; desde PowerShell:
 
-El navegador de QA usa Edge instalado en Windows y Chromium de Playwright en
-otros sistemas. `CHROME_PATH` permite seleccionar un ejecutable instalado.
-En otro equipo puede requerirse instalar el navegador de Playwright antes de QA.
-No hay rutas personales ni rutas fijas de Program Files en las pruebas.
-La prueba `qa-browser.test.mjs` comprueba bloqueo externo, mocks y loopback.
+```powershell
+Push-Location platform
+node build.mjs combined '' demo
+Pop-Location
+```
 
-## Configuración
+## Pruebas offline
 
-`platform/.env.example` contiene únicamente nombres con valores vacíos. Es un
-inventario, no un archivo cargado automáticamente. La QA no necesita credenciales.
-No copiar archivos .env del ordenador antiguo; .env y sus variantes locales se
-excluyen de Git. Las configuraciones públicas de producción existentes no son
-credenciales de servidor y no se usan para conectar servicios en esta verificación.
-Los nombres del ejemplo cubren las funciones y los scripts operativos; que una
-variable figure allí no significa que sea necesaria para todos los componentes.
+`qa-offline-tests.mjs` mantiene una lista explícita de suites revisadas. No se
+seleccionan archivos nuevos automáticamente. Quedan excluidas invitaciones,
+pruebas live y scripts operativos. La suite comprueba la selección y el bloqueo
+de navegador antes de continuar. Si fallan, se detiene.
+
+La QA usa Edge instalado en Windows y Chromium de Playwright en otros sistemas.
+CHROME_PATH permite seleccionar otro ejecutable local. Se requiere un navegador
+instalado; instalarlo es una preparación separada, no parte de la QA offline.
+Los contextos bloquean solicitudes externas no simuladas y service workers;
+las API se sustituyen por mocks. Algunas suites comprueban código y migraciones
+estáticamente: no prueban RLS, rendimiento SQL ni rate limiting en una base real.
+No se consideran una certificación de seguridad de producción.
+
+La exportación crea una carpeta nueva dentro de platform/.qa-document-export;
+rechaza destinos existentes o externos y nunca elimina el destino recibido.
+Las QA de backup usan datos ficticios y carpetas temporales; no invocan asistentes
+PowerShell ni acceden a archivos archivados. No requieren credenciales.
+
+## Variables y servicios externos
+
+`platform/.env.example` es un inventario comentado con valores vacíos. Los scripts
+Node no lo cargan automáticamente. No crear ni copiar un .env real para la QA.
+Para Supabase, la configuración de servidor se gestiona por su mecanismo de
+variables de entorno; no se ha configurado ni conectado en esta finalización.
+Referencia: https://supabase.com/docs/guides/functions/secrets
+
+La generación contractual exige RATIO_CONTRACT_ISSUER_NAME,
+RATIO_CONTRACT_ISSUER_IDENTIFIER y RATIO_CONTRACT_ISSUER_ADDRESS. El envío exige
+además RATIO_CONTRACT_REPLY_TO y la configuración de Signaturit. Sin identidad
+explícita, incluso el PDF de borrador falla con CONTRACT_ISSUER_NOT_CONFIGURED.
+No se usan identidades personales ni correos incrustados como alternativa.
+CONTRACT_TEMPLATE_VALIDATED requiere validación jurídica independiente; no
+activarlo como solución a un error técnico. Los contratos y PDFs ya persistidos
+no se han modificado ni se migran automáticamente.
+
+Las configuraciones públicas ya existentes contienen URL y clave publicable de
+Supabase. No son credenciales de servidor, pero abrir la aplicación en modo
+producción puede conectar el servicio. No ejecutar test:invite, scripts live,
+asistentes de backup, envíos, webhooks ni despliegues durante desarrollo offline.
+
+## Privacidad y límites pendientes
+
+La identidad incrustada en la función contractual y su plantilla se sustituye
+por configuración. Se conserva pendiente de decisión del titular el aviso legal
+público legal.html y los textos de privacidad de index.html y platform/index.html.
+Contienen identificación del responsable; legal.html incluye también identidad
+fiscal y domicilio. Cambiarlos por una identidad ficticia alteraría el contenido
+informativo publicado. El correo
+corporativo público continúa en las páginas y funciones de comunicación donde
+actúa como contacto comercial. No se certifica su autorización de publicación.
+
+Los valores anteriores siguen en el historial Git; este trabajo no reescribe
+historial. Revisar acceso al repositorio y una posible política de saneamiento
+histórico es una decisión separada. No se han añadido documentos de clientes.
+Los fixtures nuevos usan datos expresamente ficticios.
+
+Nunca subir .env, claves, bases exportadas, backups, restauraciones, evidencias
+privadas, documentos de clientes, biblioteca jurídica, OCR privado, material
+DPAPI ni manifiestos del archivo privado. Las copias históricas y el USB quedan
+fuera del proyecto y no se abren ni modifican durante QA.
 
 ## Backup y restauración
 
-Las QA cifran y restauran datos ficticios en carpetas temporales, sin conectar
-Supabase. Database backup supera 11 controles; Storage verifica el ciclo cifrado,
-integridad, aislamiento y rechazo de fallos. Los destinos reales se seleccionan
-explícitamente, fuera del repositorio, y la restauración evita sobrescribir.
-No se han ejecutado asistentes de backup real, restauraciones reales ni DPAPI.
+Ver los runbooks de platform/operations. Los clientes PostgreSQL se resuelven
+mediante RATIO_POSTGRES_BIN, PATH o ProgramFiles/PostgreSQL/17/bin. Las carpetas
+se seleccionan explícitamente; no dependen de un usuario ni de una unidad externa
+fija. El identificador de proyecto esperado se conserva como barrera de seguridad,
+no como secreto. Las herramientas de backup real requieren credenciales y una
+operación explícita; no forman parte del arranque local.
 
-El asistente de backup de base de datos resuelve `psql.exe` y `pg_dump.exe` desde
-`RATIO_POSTGRES_BIN`, PATH o ProgramFiles/PostgreSQL/17/bin. Ambos deben pertenecer
-a la misma instalación compatible con el servidor. En este PC no se han encontrado
-clientes PostgreSQL en PATH ni en Program Files: el backup de producción queda
-pendiente de provisionar esos clientes y autorizar conexión/credenciales.
-No son necesarios para compilar ni para las QA con datos ficticios.
-La sintaxis del asistente se ha comprobado sin ejecutarlo.
+Las restauraciones verifican la copia antes de crear salida, usan carpetas nuevas,
+rechazan solapamiento con el origen y escriben sin sobrescribir. Una extracción
+fallida elimina solo su carpeta recién creada. Restaurar aquí significa extraer
+archivos localmente, no importar SQL ni reponer objetos en Supabase.
 
-Los 97 archivos privados archivados siguen fuera del repositorio. No copiar ni
-publicar biblioteca jurídica, OCR, backups, documentos privados o material DPAPI.
-Las carpetas antiguas y el USB son fuentes de conservación de solo lectura.
-
-## Correcciones de esta rama
-
-Selección portable y aislamiento de navegador en 17 entradas de QA; expectativa
-de prompt de ai-context actualizada de v9 a v10, preservando todas las aserciones
-semánticas; plantilla sin valores reales; exclusión de .env; resolución portable
-de herramientas PostgreSQL. No se cambió el código de las funciones de producción.
+No se ha comprobado la existencia actual de backups reales ni su recuperabilidad.
+No ejecutar una restauración real hasta autorizar destino, credenciales y alcance.

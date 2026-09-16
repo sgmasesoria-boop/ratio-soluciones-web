@@ -1,6 +1,6 @@
 # Copia cifrada de los documentos de Ratio
 
-Estado comprobado el 21 de agosto de 2026: existe una copia real creada el 15 de agosto de 2026, cifrada y verificada en dos destinos (OneDrive y Google Drive), con 2 objetos y 2.166.659 bytes. La evidencia de verificación confirma ambos destinos en aquella fecha. Sigue pendiente una restauración controlada en entorno aislado y volver a comprobar la disponibilidad actual de Google Drive, cuya unidad virtual no resulta accesible desde la sesión técnica de Codex.
+Revisión local del 16 de septiembre de 2026: únicamente QA con fixtures ficticios. No se han consultado copias reales, cuentas de nube ni evidencias privadas. Las comprobaciones históricas no acreditan disponibilidad o integridad actual.
 
 ## Qué protege
 
@@ -30,13 +30,17 @@ Para una recuperación ante desastre, uno de los destinos debe estar fuera del i
 
 ### Ejecución manual
 
+Los siguientes comandos son referencias para operaciones reales autorizadas, no QA.
+Definir `$backupDestination`, `$backupSource` y `$restoreDestination` explícitamente
+con carpetas externas al proyecto y separadas. No se presupone ninguna unidad.
+
 Abrir PowerShell solo durante la operación y definir las tres variables sin guardarlas en `.env`, scripts, historial compartido ni Git:
 
 ```powershell
 $env:RATIO_SUPABASE_URL='https://bvpeztdfwdbiielaione.supabase.co'
 $env:RATIO_SUPABASE_SERVICE_ROLE_KEY='CLAVE_DE_SERVICIO'
 $env:RATIO_BACKUP_PASSPHRASE='CONTRASEÑA_LARGA_Y_EXCLUSIVA'
-node operations/storage-backup.mjs create --output 'D:\Ratio-Backups'
+node operations/storage-backup.mjs create --output $backupDestination
 ```
 
 Al terminar, eliminar las variables de la sesión:
@@ -53,7 +57,7 @@ La verificación descifra en memoria, comprueba la autenticidad GCM, el tamaño 
 
 ```powershell
 $env:RATIO_BACKUP_PASSPHRASE='CONTRASEÑA_LARGA_Y_EXCLUSIVA'
-node operations/storage-backup.mjs verify --target 'D:\Ratio-Backups\ratio-storage-AAAA-MM-DD...'
+node operations/storage-backup.mjs verify --target $backupSource
 Remove-Item Env:RATIO_BACKUP_PASSPHRASE
 ```
 
@@ -84,6 +88,14 @@ La restauración también puede ejecutarse manualmente:
 
 ```powershell
 $env:RATIO_BACKUP_PASSPHRASE='CONTRASEÑA_LARGA_Y_EXCLUSIVA'
-node operations/storage-backup.mjs restore --target 'D:\Ratio-Backups\ratio-storage-...' --output 'E:\Ratio-Restore-Prueba'
+node operations/storage-backup.mjs restore --target $backupSource --output $restoreDestination
 Remove-Item Env:RATIO_BACKUP_PASSPHRASE
 ```
+
+
+## QA offline
+
+Desde platform: `node storage-backup-qa.mjs`. Todas las peticiones se sustituyen
+por mocks y los archivos son ficticios en carpetas temporales. La restauración
+verifica antes de crear salida; una extracción fallida limpia solo su carpeta nueva.
+Esta QA no prueba credenciales, retención del proveedor ni disponibilidad de copias reales.

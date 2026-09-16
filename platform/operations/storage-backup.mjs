@@ -206,13 +206,13 @@ export async function restoreBackup({passphrase,target,output}){
   const relationToBackup=relative(backupRoot,outputRoot);
   const relationToOutput=relative(outputRoot,backupRoot);
   if(!relationToBackup||(!relationToBackup.startsWith('..')&&!isAbsolute(relationToBackup))||(!relationToOutput.startsWith('..')&&!isAbsolute(relationToOutput)))throw new Error('RESTORE_DESTINATION_MUST_BE_SEPARATE');
+  await verifyBackup({target:backupRoot,passphrase});
   const stamp=new Date().toISOString().replace(/[:.]/g,'-');
   const restoreRoot=join(outputRoot,`ratio-restore-${stamp}`);
-  await mkdir(restoreRoot,{recursive:false});
-
   const {root,index,manifest,key}=await openBackup(passphrase,backupRoot);
-  let totalBytes=0;
+  let totalBytes=0,created=false,completed=false;
   try{
+    await mkdir(restoreRoot,{recursive:false});created=true;
     for(const item of manifest.objects){
       if(!/^object-[0-9a-f]{64}\.enc$/.test(item.encryptedFile))throw new Error('INVALID_BACKUP_OBJECT_NAME');
       const encrypted=await readFile(join(root,item.encryptedFile));
@@ -233,9 +233,11 @@ export async function restoreBackup({passphrase,target,output}){
       sourceCreatedAt:manifest.createdAt,objectCount:manifest.objects.length,totalBytes,
       integrityVerified:true,productionModified:false
     },null,2),{encoding:'utf8',flag:'wx'});
+    completed=true;
     return {restored:true,target:restoreRoot,objectCount:manifest.objects.length,totalBytes,createdAt:manifest.createdAt};
   }finally{
     key.fill(0);
+    if(created&&!completed)await rm(restoreRoot,{recursive:true,force:true});
   }
 }
 

@@ -140,12 +140,15 @@ export async function restoreDatabaseBackup({target,output,passphrase}){
   const relA=relative(backupRoot,outputRoot);
   const relB=relative(outputRoot,backupRoot);
   if(!relA||(!relA.startsWith('..')&&!isAbsolute(relA))||(!relB.startsWith('..')&&!isAbsolute(relB)))throw new Error('RESTORE_DESTINATION_MUST_BE_SEPARATE');
+  // Reject wrong passwords, tampering and incomplete manifests before creating output.
+  await verifyDatabaseBackup({target:backupRoot,passphrase});
   const restoreRoot=join(outputRoot,`ratio-database-restore-${new Date().toISOString().replace(/[:.]/g,'-')}`);
-  await mkdir(restoreRoot,{recursive:false});
   const {root,manifest,key}=await openBackup(passphrase,backupRoot);
-  let completed=false;
+  let completed=false,created=false;
   try{
+    await mkdir(restoreRoot,{recursive:false});created=true;
     for(const item of manifest.files){
+      if(!EXPECTED_FILES.includes(item.name)||!/^file-[0-9a-f]{64}\.enc$/.test(item.encryptedFile))throw new Error('INVALID_BACKUP_FILE');
       const encrypted=await readFile(join(root,item.encryptedFile));
       const clear=decrypt(encrypted,key,`ratio-database-v1\0${item.name}`);
       if(clear.length!==item.size||sha256(clear)!==item.sha256)throw new Error('DATABASE_FILE_INTEGRITY_MISMATCH');
@@ -156,7 +159,7 @@ export async function restoreDatabaseBackup({target,output,passphrase}){
     return {restored:true,target:restoreRoot,fileCount:manifest.files.length};
   }finally{
     key.fill(0);
-    if(!completed)await rm(restoreRoot,{recursive:true,force:true});
+    if(created&&!completed)await rm(restoreRoot,{recursive:true,force:true});
   }
 }
 

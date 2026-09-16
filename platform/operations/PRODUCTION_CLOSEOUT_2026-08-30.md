@@ -2,6 +2,12 @@
 
 Última actualización: 24 de agosto de 2026.
 
+Nota de migración (16 de septiembre de 2026): este documento es un registro
+histórico, no una comprobación del estado actual. La finalización del ordenador
+nuevo solo verifica compilaciones y QA offline; no consulta servicios, copias
+reales ni evidencias privadas. Consultar LOCAL_DEVELOPMENT.md en la raíz para los
+límites actuales y los runbooks actualizados antes de cualquier operación real.
+
 ## Completado y comprobado
 
 - Cambios documentales, firma y seguridad fusionados en `main` mediante PR #23.

@@ -72,7 +72,7 @@ Si pierdes la contraseña de copia, los archivos no podrán recuperarse.
 
 if([Windows.Forms.MessageBox]::Show($warning,'Copia de seguridad de emergencia',[Windows.Forms.MessageBoxButtons]::OKCancel,[Windows.Forms.MessageBoxIcon]::Warning) -ne [Windows.Forms.DialogResult]::OK){exit 0}
 
-$defaultCloud = if($env:OneDrive){$env:OneDrive}else{'C:\'}
+$defaultCloud = if($env:OneDrive){$env:OneDrive}else{([IO.Path]::GetPathRoot([Environment]::GetFolderPath('UserProfile')))}
 if([string]::IsNullOrWhiteSpace($PrimaryRoot)){
   $PrimaryRoot = Select-BackupFolder 'DESTINO 1: selecciona una carpeta de nube corporativa protegida con MFA.' $defaultCloud
 }else{
@@ -80,7 +80,7 @@ if([string]::IsNullOrWhiteSpace($PrimaryRoot)){
   if(!(Test-Path -LiteralPath $PrimaryRoot)){New-Item -ItemType Directory -Path $PrimaryRoot -Force | Out-Null}
 }
 if([string]::IsNullOrWhiteSpace($SecondaryRoot)){
-  $SecondaryRoot = Select-BackupFolder 'DESTINO 2: selecciona un disco externo o una segunda nube independiente.' 'E:\'
+  $SecondaryRoot = Select-BackupFolder 'DESTINO 2: selecciona un disco externo o una segunda nube independiente.' ([IO.Path]::GetPathRoot([Environment]::GetFolderPath('UserProfile')))
 }else{
   $SecondaryRoot = [IO.Path]::GetFullPath($SecondaryRoot)
   if(!(Test-Path -LiteralPath $SecondaryRoot)){New-Item -ItemType Directory -Path $SecondaryRoot -Force | Out-Null}

@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { packDatabaseBackup, verifyDatabaseBackup, restoreDatabaseBackup } from './operations/database-backup.mjs';
@@ -39,12 +39,26 @@ try{
   try{await verifyDatabaseBackup({target:packed.target,passphrase:'otra-contrasena-muy-larga-y-distinta'});}catch{wrongPasswordBlocked=true;}
   ok(wrongPasswordBlocked,'WRONG_PASSWORD_NOT_BLOCKED');
 
+  const beforeFailure=await readdir(restore);
+  let failedRestoreBlocked=false;
+  try{await restoreDatabaseBackup({target:packed.target,output:restore,passphrase:'otra-contrasena-muy-larga-y-distinta'});}catch{failedRestoreBlocked=true;}
+  ok(failedRestoreBlocked,'WRONG_PASSWORD_RESTORE_NOT_BLOCKED');
+  ok(JSON.stringify(await readdir(restore))===JSON.stringify(beforeFailure),'FAILED_RESTORE_LEFT_OUTPUT');
+
+  let nestedRestoreBlocked=false;
+  try{await restoreDatabaseBackup({target:packed.target,output:packed.target,passphrase});}catch{nestedRestoreBlocked=true;}
+  ok(nestedRestoreBlocked,'RESTORE_OVER_BACKUP_NOT_BLOCKED');
+
   const index=JSON.parse(await readFile(join(packed.target,'backup.json'),'utf8'));
   index.manifestSha256='0'.repeat(64);
   await writeFile(join(packed.target,'backup.json'),JSON.stringify(index));
   let tamperBlocked=false;
   try{await verifyDatabaseBackup({target:packed.target,passphrase});}catch{tamperBlocked=true;}
   ok(tamperBlocked,'TAMPER_NOT_BLOCKED');
+  let tamperedRestoreBlocked=false;
+  try{await restoreDatabaseBackup({target:packed.target,output:restore,passphrase});}catch{tamperedRestoreBlocked=true;}
+  ok(tamperedRestoreBlocked,'TAMPERED_RESTORE_NOT_BLOCKED');
+  ok(JSON.stringify(await readdir(restore))===JSON.stringify(beforeFailure),'TAMPERED_RESTORE_LEFT_OUTPUT');
 
   process.stdout.write(`Database backup QA: ${passed}/${passed} controles superados.\n`);
 }finally{await rm(root,{recursive:true,force:true});}

@@ -40,9 +40,9 @@ Esta operación exportará la estructura y los datos de Ratio, los cifrará y co
 La contraseña de la base y la contraseña de copia solo se mantendrán en memoria. Los archivos SQL sin cifrar se crearán en una carpeta temporal y se eliminarán antes de finalizar.
 '@,'Copia lógica cifrada de Ratio',[Windows.Forms.MessageBoxButtons]::OKCancel,[Windows.Forms.MessageBoxIcon]::Warning) -ne [Windows.Forms.DialogResult]::OK){exit 0}
 
-$defaultCloud=if($env:OneDrive){$env:OneDrive}else{'C:\'}
+$defaultCloud=if($env:OneDrive){$env:OneDrive}else{([IO.Path]::GetPathRoot([Environment]::GetFolderPath('UserProfile')))}
 if([string]::IsNullOrWhiteSpace($PrimaryRoot)){$PrimaryRoot=Select-Folder 'DESTINO 1: selecciona Ratio-Backups-Cifrados en OneDrive.' $defaultCloud}else{$PrimaryRoot=[IO.Path]::GetFullPath($PrimaryRoot)}
-if([string]::IsNullOrWhiteSpace($SecondaryRoot)){$SecondaryRoot=Select-Folder 'DESTINO 2: selecciona Ratio-Backups-Cifrados en Google Drive.' 'C:\'}else{$SecondaryRoot=[IO.Path]::GetFullPath($SecondaryRoot)}
+if([string]::IsNullOrWhiteSpace($SecondaryRoot)){$SecondaryRoot=Select-Folder 'DESTINO 2: selecciona Ratio-Backups-Cifrados en Google Drive.' ([IO.Path]::GetPathRoot([Environment]::GetFolderPath('UserProfile')))}else{$SecondaryRoot=[IO.Path]::GetFullPath($SecondaryRoot)}
 if($PrimaryRoot.TrimEnd('\') -ieq $SecondaryRoot.TrimEnd('\')){throw 'LOS_DESTINOS_DEBEN_SER_DIFERENTES'}
 if($SecondaryRoot.StartsWith($PrimaryRoot.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase) -or $PrimaryRoot.StartsWith($SecondaryRoot.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'UN_DESTINO_NO_PUEDE_ESTAR_DENTRO_DEL_OTRO'}
 

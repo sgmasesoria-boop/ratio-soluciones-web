@@ -35,6 +35,13 @@ try{
   const recovered=await readFile(join(restored.target,'case-documents','pruebas','documento.txt'));
   const report=JSON.parse(await readFile(join(restored.target,'restore-report.json'),'utf8'));
   if(!recovered.equals(fixture)||!report.integrityVerified||report.productionModified!==false||restored.objectCount!==1)failures.push('La prueba completa de copia y restauración aislada no conserva contenido e integridad.');
+  const beforeFailure=await readdir(restoreRoot);
+  let wrongPasswordBlocked=false;
+  try{await restoreBackup({passphrase:'otra-clave-ficticia-1234567890',target:created.target,output:restoreRoot});}catch{wrongPasswordBlocked=true;}
+  if(!wrongPasswordBlocked||JSON.stringify(await readdir(restoreRoot))!==JSON.stringify(beforeFailure))failures.push('Una contraseña incorrecta no debe crear salida de restauración.');
+  let overlappingRestoreBlocked=false;
+  try{await restoreBackup({passphrase:'prueba-segura-no-usar-123456',target:created.target,output:created.target});}catch{overlappingRestoreBlocked=true;}
+  if(!overlappingRestoreBlocked)failures.push('La restauración no debe escribir sobre su copia de origen.');
 
   const failedRoot=join(temporaryRoot,'failed');
   await mkdir(failedRoot);
