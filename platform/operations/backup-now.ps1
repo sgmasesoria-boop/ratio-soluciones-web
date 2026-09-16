@@ -1,4 +1,7 @@
-param()
+﻿param(
+  [string]$PrimaryRoot,
+  [string]$SecondaryRoot
+)
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
@@ -60,7 +63,7 @@ $warning = @'
 Esta operación copiará todos los documentos privados de Ratio ya cifrados.
 
 Necesitas:
-1. La clave service_role del proyecto Supabase.
+1. Una Secret key del proyecto Supabase (`sb_secret_...`) o, si aún está activa, la antigua `service_role`.
 2. Una contraseña de copia de al menos 20 caracteres, distinta a la del CRM.
 3. Dos destinos diferentes. Recomendado: nube corporativa con MFA + disco externo.
 
@@ -70,23 +73,33 @@ Si pierdes la contraseña de copia, los archivos no podrán recuperarse.
 if([Windows.Forms.MessageBox]::Show($warning,'Copia de seguridad de emergencia',[Windows.Forms.MessageBoxButtons]::OKCancel,[Windows.Forms.MessageBoxIcon]::Warning) -ne [Windows.Forms.DialogResult]::OK){exit 0}
 
 $defaultCloud = if($env:OneDrive){$env:OneDrive}else{'C:\'}
-$primaryRoot = Select-BackupFolder 'DESTINO 1: selecciona una carpeta de nube corporativa protegida con MFA.' $defaultCloud
-$secondaryRoot = Select-BackupFolder 'DESTINO 2: selecciona un disco externo o una segunda nube independiente.' 'E:\'
+if([string]::IsNullOrWhiteSpace($PrimaryRoot)){
+  $PrimaryRoot = Select-BackupFolder 'DESTINO 1: selecciona una carpeta de nube corporativa protegida con MFA.' $defaultCloud
+}else{
+  $PrimaryRoot = [IO.Path]::GetFullPath($PrimaryRoot)
+  if(!(Test-Path -LiteralPath $PrimaryRoot)){New-Item -ItemType Directory -Path $PrimaryRoot -Force | Out-Null}
+}
+if([string]::IsNullOrWhiteSpace($SecondaryRoot)){
+  $SecondaryRoot = Select-BackupFolder 'DESTINO 2: selecciona un disco externo o una segunda nube independiente.' 'E:\'
+}else{
+  $SecondaryRoot = [IO.Path]::GetFullPath($SecondaryRoot)
+  if(!(Test-Path -LiteralPath $SecondaryRoot)){New-Item -ItemType Directory -Path $SecondaryRoot -Force | Out-Null}
+}
 
 if($primaryRoot.TrimEnd('\') -ieq $secondaryRoot.TrimEnd('\')){throw 'LOS_DESTINOS_DEBEN_SER_DIFERENTES'}
 if($secondaryRoot.StartsWith($primaryRoot.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase) -or $primaryRoot.StartsWith($secondaryRoot.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'UN_DESTINO_NO_PUEDE_ESTAR_DENTRO_DEL_OTRO'}
 
-$serviceKey = Show-SecretPrompt 'Clave técnica de Supabase' 'Pega la clave service_role. Se usará solo en memoria y no se guardará en ningún archivo.'
+$serviceKey = Show-SecretPrompt 'Clave secreta de Supabase' 'Pega una Secret key con formato sb_secret_... o la antigua service_role. Se usará solo en memoria y no se guardará.'
 $passphrase = Show-SecretPrompt 'Contraseña de la copia' 'Introduce una contraseña exclusiva de 20 caracteres o más. Guárdala fuera del ordenador.'
 $confirmation = Show-SecretPrompt 'Confirmar contraseña' 'Vuelve a introducir la contraseña de la copia.'
 
 if($passphrase.Length -lt 20){throw 'LA_CONTRASENA_DE_COPIA_ES_DEMASIADO_CORTA'}
 if($passphrase -cne $confirmation){throw 'LAS_CONTRASENAS_NO_COINCIDEN'}
-if($serviceKey.Length -lt 40){throw 'LA_CLAVE_SERVICE_ROLE_NO_PARECE_VALIDA'}
+if($serviceKey.Length -lt 40){throw 'LA_CLAVE_SECRETA_DE_SUPABASE_NO_PARECE_VALIDA'}
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $backupScript = Join-Path $scriptRoot 'storage-backup.mjs'
-$node = 'C:\Users\PC\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe'
+$node = (Get-Command node.exe -ErrorAction Stop).Source
 if(!(Test-Path -LiteralPath $node)){
   $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
   if(!$nodeCommand){throw 'NODE_NO_DISPONIBLE'}
