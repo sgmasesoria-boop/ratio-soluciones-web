@@ -115,10 +115,11 @@
     }
 
     async requestPasswordReset(email, redirectTo) {
-      return this.#request('/auth/v1/recover', {
+      const query = new URLSearchParams({ redirect_to: redirectTo });
+      return this.#request(`/auth/v1/recover?${query}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email, gotrue_meta_security: {}, redirect_to: redirectTo })
+        body: JSON.stringify({ email, gotrue_meta_security: {} })
       }, false);
     }
 

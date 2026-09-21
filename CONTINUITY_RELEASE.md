@@ -97,6 +97,35 @@ corporativos asociados. No afirmar que el lanzamiento final está completado.
 
 ## Repetición y reversión
 
+### Recuperación de contraseña y bloqueo de dominios
+
+La prueba del 21 de septiembre detectó que el cliente enviaba `redirect_to`
+en el cuerpo JSON de `/auth/v1/recover`. Supabase Auth utiliza ese parámetro
+en la URL, según su implementación oficial:
+https://github.com/supabase/auth-js/blob/master/src/lib/fetch.ts
+Se corrigió el cliente y se añadió una comprobación de regresión del destino.
+Las 75 comprobaciones offline pasaron después del cambio.
+
+Una única solicitud de recuperación a la cuenta del titular fue aceptada por
+Supabase y registrada a las 20:11:18 UTC. Se comprobó la llegada a INBOX del
+correo «Ratio Soluciones | Recupera el acceso a tu expediente», enviado por
+el remitente corporativo. El enlace contiene el destino exacto `/restablecer`
+del CRM alternativo. No se abrió el enlace ni se cambió la contraseña; no se
+guardó el token del correo en archivos ni en Git. Esta prueba confirma correo
+de autenticación, no todos los avisos transaccionales ni el circuito de cliente.
+
+La corrección se publicó como versión 2 en los Sites alternativos de CRM y
+portal, manteniendo su audiencia privada. Los dominios corporativos siguen
+sirviendo sus publicaciones anteriores y todavía no contienen esta corrección.
+
+Intentar asociar `www.ratiosoluciones.es` al nuevo Site devuelve conflicto:
+el dominio ya está en uso. La revisión automática rechazó la asociación de
+`crm.ratiosoluciones.es` y `clientes.ratiosoluciones.es` por el riesgo de
+interrumpir los destinos activos sin autorización específica de sustitución.
+No se modificaron DNS ni se desligaron los Sites originales. El traslado
+requiere resolver la asociación anterior y la autorización específica; no
+sortear el rechazo mediante otra herramienta ni presentar el traslado como hecho.
+
 La suite CORS offline usa Node 24, peticiones en memoria y un cliente de base de
 datos que falla si se intenta usarlo. No necesita credenciales ni rutas de otro
 ordenador. La sonda de producción se ejecuta explícitamente y no está incluida

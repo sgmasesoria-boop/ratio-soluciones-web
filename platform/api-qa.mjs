@@ -11,7 +11,7 @@ const mockFetch=async(url,options={})=>{
   if(url.endsWith('/auth/v1/token?grant_type=password'))return json({access_token:'client-token',refresh_token:'refresh-token',expires_in:3600,user:{id:'user-1',email:'cliente@example.es'}});
   if(url.endsWith('/auth/v1/token?grant_type=refresh_token'))return json({access_token:'refreshed-token',refresh_token:'next-refresh-token',expires_in:3600,user:{id:'user-1',email:'cliente@example.es'}});
   if(url.endsWith('/auth/v1/user'))return json({id:'user-1',email:'cliente@example.es'});
-  if(url.endsWith('/auth/v1/recover'))return json({});
+  if(new URL(url).pathname==='/auth/v1/recover')return json({});
   if(url.endsWith('/auth/v1/factors')&&options.method==='POST')return json({id:factorId,type:'totp',totp:{qr_code:'data:image/svg+xml,test',secret:'TESTSECRET'}});
   if(url.endsWith(`/auth/v1/factors/${factorId}/challenge`))return json({id:challengeId});
   if(url.endsWith(`/auth/v1/factors/${factorId}/verify`))return json({access_token:jwt({aal:'aal2'}),refresh_token:'mfa-refresh',expires_in:3600});
@@ -47,6 +47,9 @@ const inviteRequiresPassword=refreshedApi.requiresPasswordSetup(callbackType);
 await refreshedApi.updatePassword('Contraseña-Segura-2026!');
 const setupCompleted=!refreshedApi.requiresPasswordSetup();
 const failures=[];
+const recoveryCall=calls.find(call=>new URL(call.url).pathname==='/auth/v1/recover');
+if(!recoveryCall||new URL(recoveryCall.url).searchParams.get('redirect_to')!=='https://clientes.ratiosoluciones.es/restablecer')failures.push('La recuperación no envía el destino como parámetro de URL de Supabase Auth');
+if(recoveryCall&&'redirect_to' in JSON.parse(recoveryCall.options.body))failures.push('La recuperación conserva el destino en el cuerpo, que Supabase no utiliza');
 if(workspace.profile?.id!=='user-1'||workspace.cases.length!==1)failures.push('No cargó el expediente limitado por RLS');
 if(workspace.tasks.length!==1)failures.push('No cargó las tareas del expediente');
 if(workspace.cases[0]?.professional_name!=='Ana Pérez')failures.push('No cargó el profesional asignado');
