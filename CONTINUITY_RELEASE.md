@@ -66,10 +66,34 @@ ChatGPT permitió entrar al proyecto correcto sin crear otra organización.
 - Las pruebas anteriores no enviaron correos ni crearon expedientes, usuarios,
   documentos o solicitudes de firma.
 
-Estas verificaciones no sustituyen la prueba con una sesión administrativa MFA,
-la entrega real de correo, el circuito contractual ni una restauración de backup.
-La validación contractual y la prueba autenticada siguen pendientes; no afirmar
-que el proyecto está completamente terminado hasta cerrarlas.
+### Prueba autenticada posterior
+
+El titular inició sesión en el CRM corporativo. Se ejecutaron desde la interfaz
+las siguientes operaciones sobre un único expediente identificado como ficticio:
+
+- Alta del expediente `C-2026-5CD578`, sin habilitar portal.
+- Cambio de situación y nota interna, conservados en la cronología.
+- Creación de un documento de trabajo y dos versiones con texto ficticio.
+- Apertura de la primera versión y exportación a Word: la interfaz confirmó
+  generación y la base registró una exportación auditada.
+- Preparación de ficha contractual ficticia a importe cero y generación de PDF.
+  La base confirmó PDF almacenado, sin firma y sin petición al proveedor.
+- Archivo reversible del expediente de QA con sus versiones y trazabilidad.
+
+Se verificó la persistencia mediante consultas restringidas a esa referencia
+y su correo ficticio. No se modificaron los cuatro expedientes preexistentes.
+No se enviaron correos, solicitudes de firma ni invitaciones de portal.
+Los archivos de prueba permanecen en el almacenamiento privado, fuera de Git.
+
+Esta prueba corresponde al dominio corporativo existente y al servidor
+corregido; no acredita por sí sola una sesión autenticada en el nuevo Site.
+Siguen pendientes la entrega real de correo, el circuito completo con cliente,
+la revisión jurídica contractual y una restauración de backup. No se certificó
+el contenido jurídico ni la maquetación del PDF generado.
+
+El acceso de administración al Site original del CRM continúa devolviendo
+`project_not_found`. Los Sites alternativos permanecen privados y sin dominios
+corporativos asociados. No afirmar que el lanzamiento final está completado.
 
 ## Repetición y reversión
 
