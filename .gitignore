@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.ratio-releases/
 preview-*.png
 platform/.tools/
 platform/.qa-document-export/

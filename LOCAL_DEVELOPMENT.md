@@ -1,5 +1,21 @@
 # Desarrollo local seguro de Ratio
 
+## Preparar las tres aplicaciones juntas
+
+`pnpm.cmd run release:prepare` compila web, CRM y portal desde el mismo checkout
+y conserva cada salida en una carpeta nueva dentro de `.ratio-releases/`, ignorada
+por Git. El manifiesto registra revisión, cambios locales y resultado. Un fallo
+marca el paquete como no desplegable y conserva la salida para diagnóstico.
+No publica ni conecta servicios. Las salidas son de producción: abrirlas puede
+contactar servicios configurados. No deben usarse como demostraciones offline.
+
+Las identidades históricas de Sites se conservan. Estas salidas no recuperan datos
+remotos ni crean nuevos Sites. CRM y portal heredan la configuración histórica de
+la plataforma; antes de cualquier publicación hay que resolver sus destinos por
+separado. Nunca publicar ambos sobre el mismo destino por defecto. Un traslado a
+nuevos Sites requiere configuraciones de destino separadas y verificadas, sin
+sobrescribir las referencias históricas.
+
 ## Windows
 
 Entorno comprobado: Node 24.19.0, npm 11.17.0 y pnpm 10.34.5. Las dependencias
