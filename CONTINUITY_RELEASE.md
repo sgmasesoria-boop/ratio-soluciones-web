@@ -97,6 +97,28 @@ corporativos asociados. No afirmar que el lanzamiento final está completado.
 
 ## Repetición y reversión
 
+### Autorización de traslado y acceso público del 21 de septiembre
+
+El titular autorizó expresamente sustituir los destinos de los dominios y
+solicitar a soporte la liberación de las asociaciones antiguas. Los intentos
+autorizados para CRM y portal devolvieron `custom_domain_conflict` (409): los
+dominios siguen ocupados, igual que el dominio web. No se cambió DNS.
+
+Se envió respuesta al caso 15260444 con el mapa exacto dominio/Site de destino,
+solicitando reasignación coordinada, conservación de los originales y continuidad
+de la investigación de propiedad. El correo no incluye documentos ni credenciales.
+
+Los tres Sites alternativos quedaron accesibles por sus URL de continuidad.
+La web es pública; CRM y portal muestran su inicio de sesión de Ratio. Se mantienen
+la autenticación de Supabase, MFA administrativo y las políticas de datos.
+La apertura de la página de acceso del CRM fue rechazada inicialmente por revisión
+automática; después de aportar la evidencia de las 67 comprobaciones de denegación
+y la configuración de producción sin modo demo, la misma operación fue aprobada
+para CRM y portal. No se usó una vía alternativa para eludir la revisión.
+
+Este resultado permite usar las URL alternativas. No equivale a haber trasladado
+los dominios corporativos: la reasignación sigue pendiente del desbloqueo de Sites.
+
 ### Recuperación de contraseña y bloqueo de dominios
 
 La prueba del 21 de septiembre detectó que el cliente enviaba `redirect_to`
