@@ -5,7 +5,9 @@ site_url = "https://clientes.ratiosoluciones.es"
 enable_signup = false
 additional_redirect_urls = [
   "https://crm.ratiosoluciones.es/**",
-  "https://clientes.ratiosoluciones.es/**"
+  "https://clientes.ratiosoluciones.es/**",
+  "https://ratio-crm-continuidad.ratio-soluci-5702.chatgpt.site/restablecer",
+  "https://ratio-clientes-continuidad.ratio-soluci-5702.chatgpt.site/restablecer"
 ]
 
 [auth.mfa.totp]

@@ -1,7 +1,7 @@
 // Reviewed offline suites only. New files never execute through discovery.
 export const platformOfflineTests = Object.freeze([
   'ai-context-qa.mjs', 'ai-qa.mjs', 'api-qa.mjs', 'case-list-qa.mjs',
-  'communication-workflow-qa.mjs', 'contract-issuer-qa.mjs', 'contract-signature-qa.mjs',
+  'communication-workflow-qa.mjs', 'continuity-cors-qa.mjs', 'contract-issuer-qa.mjs', 'contract-signature-qa.mjs',
   'crm-history-qa.mjs', 'crm-priority-layout-qa.mjs', 'crm-qa.mjs',
   'database-backup-qa.mjs', 'database-performance-qa.mjs', 'document-export-qa.mjs',
   'document-export-safety-qa.mjs',

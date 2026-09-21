@@ -1,6 +1,10 @@
 const configuredOrigins=(Deno.env.get('ALLOWED_WEB_ORIGINS')||'https://clientes.ratiosoluciones.es,https://crm.ratiosoluciones.es')
   .split(',').map(value=>value.trim()).filter(Boolean);
-const allowedOrigins=new Set(configuredOrigins);
+// Exact replacement Sites owned by Ratio; never accept arbitrary chatgpt.site origins.
+const allowedOrigins=new Set([...configuredOrigins,
+  'https://ratio-crm-continuidad.ratio-soluci-5702.chatgpt.site',
+  'https://ratio-clientes-continuidad.ratio-soluci-5702.chatgpt.site'
+]);
 
 function corsHeaders(request:Request){
   const origin=request.headers.get('origin')||'';

@@ -3,7 +3,8 @@ import nodemailer from 'npm:nodemailer@6.10.1';
 
 const allowedOrigins=new Set([
   'https://www.ratiosoluciones.es',
-  'https://ratiosoluciones.es'
+  'https://ratiosoluciones.es',
+  'https://ratio-web-continuidad.ratio-soluci-5702.chatgpt.site'
 ]);
 
 const categoryMap:Record<string,string>={
