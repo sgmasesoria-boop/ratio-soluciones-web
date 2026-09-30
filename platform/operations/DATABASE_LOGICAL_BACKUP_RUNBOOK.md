@@ -56,8 +56,21 @@ Remove-Item Env:RATIO_BACKUP_PASSPHRASE
 
 La herramienta rechaza explícitamente cualquier intento de restaurar contra el proyecto de producción: si la cadena de conexión de destino contiene la referencia del proyecto real, el comando falla antes de ejecutar nada.
 
-1. Descifrar el volcado a un archivo temporal solo para la duración de la prueba (el comando `verify` ya lo hace internamente y lo borra al terminar; para restaurar, usar `create` o `verify` seguido de la extracción manual del `dump.enc` descifrado si se necesita conservarlo brevemente).
-2. Apuntar a la instancia aislada de pruebas:
+### Forma recomendada: `restore` (descifra y restaura en un solo paso)
+
+El comando `restore` descifra el volcado solo en un archivo temporal dentro de la propia carpeta de la copia, ejecuta `pg_restore` contra la instancia de pruebas y borra ese archivo temporal al terminar, tanto si la restauración funciona como si falla. No hay que manejar el volcado descifrado a mano en ningún momento.
+
+```powershell
+$env:RATIO_BACKUP_PASSPHRASE='CONTRASEÑA_LARGA_Y_EXCLUSIVA'
+$env:RATIO_RESTORE_TEST_DB_URL='postgresql://USUARIO:CONTRASEÑA@HOST_DE_PRUEBAS:5432/nombre_bd_prueba'
+node platform/operations/db-backup.mjs restore --target 'D:\Ratio-Backups-DB\ratio-db-AAAA-MM-DD...'
+Remove-Item Env:RATIO_BACKUP_PASSPHRASE
+Remove-Item Env:RATIO_RESTORE_TEST_DB_URL
+```
+
+### Forma alternativa: `restore-isolated` (cuando ya se tiene un volcado descifrado en disco)
+
+Si el volcado descifrado ya existe como archivo (por ejemplo, extraído para inspección manual), `restore-isolated` lo restaura directamente sin descifrar nada:
 
 ```powershell
 $env:RATIO_RESTORE_TEST_DB_URL='postgresql://USUARIO:CONTRASEÑA@HOST_DE_PRUEBAS:5432/nombre_bd_prueba'
@@ -65,8 +78,10 @@ node platform/operations/db-backup.mjs restore-isolated --dump 'RUTA_AL_DUMP_DES
 Remove-Item Env:RATIO_RESTORE_TEST_DB_URL
 ```
 
-3. Comprobar en la instancia de pruebas que las tablas de `public` existen, que RLS sigue activo y que el conteo de filas del expediente ficticio coincide con el de origen.
-4. Destruir la instancia de pruebas o vaciarla al terminar. No dejar datos, aunque sean ficticios, en una instancia de pruebas abierta indefinidamente.
+### Tras la restauración
+
+1. Comprobar en la instancia de pruebas que las tablas de `public` existen, que RLS sigue activo y que el conteo de filas del expediente ficticio coincide con el de origen.
+2. Destruir la instancia de pruebas o vaciarla al terminar. No dejar datos, aunque sean ficticios, en una instancia de pruebas abierta indefinidamente.
 
 ## Verificación técnica realizada hasta ahora
 
