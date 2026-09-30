@@ -138,12 +138,17 @@ export async function verifyDatabaseBackup({ passphrase, target, pgRestorePath =
   }
 }
 
-export async function restoreToIsolatedInstance({ dumpPath, targetConnectionString, pgRestorePath = 'pg_restore' }) {
+function assertNotProductionTarget(targetConnectionString) {
   // Salvaguarda dura: nunca acepta el proyecto de producción como destino de restauración.
   const parsedTarget = new URL(targetConnectionString);
   if (parsedTarget.hostname.includes(EXPECTED_PROJECT_REF)) {
     throw new Error('REFUSED_RESTORE_TARGET_IS_PRODUCTION_PROJECT');
   }
+  return parsedTarget;
+}
+
+export async function restoreToIsolatedInstance({ dumpPath, targetConnectionString, pgRestorePath = 'pg_restore' }) {
+  const parsedTarget = assertNotProductionTarget(targetConnectionString);
   await runCommand(pgRestorePath, [
     `--dbname=${targetConnectionString}`,
     '--no-owner',
@@ -153,6 +158,41 @@ export async function restoreToIsolatedInstance({ dumpPath, targetConnectionStri
     dumpPath,
   ]);
   return { restored: true, target: parsedTarget.hostname };
+}
+
+export async function decryptAndRestoreToIsolatedInstance({ passphrase, target, targetConnectionString, pgRestorePath = 'pg_restore' }) {
+  // Combina verify + restore en un solo paso: el volcado descifrado vive solo el tiempo
+  // mínimo en un archivo temporal dentro de la propia carpeta de la copia, y se borra
+  // siempre al terminar, tanto si la restauración tiene éxito como si falla.
+  const parsedTarget = assertNotProductionTarget(targetConnectionString);
+  const root = resolve(target);
+  const index = JSON.parse(await readFile(join(root, 'backup.json'), 'utf8'));
+  if (index.version !== 1 || index.projectRef !== EXPECTED_PROJECT_REF) throw new Error('INVALID_BACKUP_INDEX');
+  const encrypted = await readFile(join(root, 'dump.enc'));
+  if (sha256(encrypted) !== index.encryptedSha256) throw new Error('ENCRYPTED_FILE_HASH_MISMATCH');
+  const key = deriveKey(passphrase, Buffer.from(index.salt, 'base64'));
+  let dump;
+  const tmpDir = join(root, '.restore-tmp');
+  try {
+    dump = decryptBuffer(encrypted, key, 'ratio-db-dump-v1');
+    if (dump.length !== index.dumpBytesClear || sha256(dump) !== index.dumpSha256) throw new Error('DUMP_INTEGRITY_MISMATCH');
+    await mkdir(tmpDir, { recursive: true });
+    const tmpDumpPath = join(tmpDir, 'dump.custom');
+    await writeFile(tmpDumpPath, dump, { flag: 'wx' });
+    await runCommand(pgRestorePath, [
+      `--dbname=${targetConnectionString}`,
+      '--no-owner',
+      '--no-privileges',
+      '--clean',
+      '--if-exists',
+      tmpDumpPath,
+    ]);
+    return { restored: true, target: parsedTarget.hostname, createdAt: index.createdAt, bytes: dump.length };
+  } finally {
+    await rm(tmpDir, { recursive: true, force: true });
+    if (dump) dump.fill(0);
+    key.fill(0);
+  }
 }
 
 export function cryptoSelfTest() {
@@ -212,8 +252,17 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
     return;
   }
+  if (command === 'restore') {
+    const result = await decryptAndRestoreToIsolatedInstance({
+      passphrase: process.env.RATIO_BACKUP_PASSPHRASE || '',
+      target: option('--target'),
+      targetConnectionString: process.env.RATIO_RESTORE_TEST_DB_URL || '',
+    });
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
   throw new Error(
-    'USAGE: db-backup.mjs create --output <external-folder> | verify --target <backup-folder> | restore-isolated --dump <path-to-decrypted-dump> | self-test'
+    'USAGE: db-backup.mjs create --output <external-folder> | verify --target <backup-folder> | restore --target <backup-folder> | restore-isolated --dump <path-to-decrypted-dump> | self-test'
   );
 }
 
