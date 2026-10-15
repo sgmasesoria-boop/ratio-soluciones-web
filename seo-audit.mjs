@@ -4,8 +4,8 @@ import { join } from 'node:path';
 const root = process.cwd();
 const publicPages = [
   'index.html', 'deudas.html', 'bancos.html', 'vivienda.html',
-  'seguros.html', 'familia.html', 'consumo.html', 'no-puedo-pagar-mis-deudas.html',
-  'tarjeta-deuda-no-baja.html', 'liquidacion-complementaria-hacienda.html', 'legal.html'
+  'seguros.html', 'familia.html', 'no-puedo-pagar-mis-deudas.html',
+  'tarjeta-deuda-no-baja.html', 'legal.html'
 ];
 const findings = [];
 const canonicals = new Set();

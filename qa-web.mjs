@@ -67,12 +67,12 @@ async function audit(viewport) {
     phoneRequired: document.querySelector('input[name="telefono"]').required,
     phoneDisabled: document.querySelector('input[name="telefono"]').disabled,
     preferredChannelPresent: Boolean(document.querySelector('[name="contacto_preferido"]')),
-    taxCategoryPresent: Boolean(document.querySelector('input[name="area"][value="Hacienda e impuestos"]')),
+    removedCategoriesPresent: Boolean(document.querySelector('input[name="area"][value="Hacienda e impuestos"], input[name="area"][value="Consumo o servicios"]')),
     situationFieldPresent: Boolean(document.querySelector('[name="situacion"]')),
     consultationRequired: document.querySelector('textarea[name="consulta"]')?.required === true,
     stepCount: document.querySelectorAll('.form-step').length
   }));
-  if (!contactState.taxCategoryPresent) findings.push('El formulario no incluye Hacienda e impuestos.');
+  if (contactState.removedCategoriesPresent) findings.push('El formulario todavía incluye Hacienda o Consumo, áreas retiradas del alcance.');
   if (!contactState.emailRequired || contactState.emailDisabled || !contactState.phoneRequired || contactState.phoneDisabled || contactState.preferredChannelPresent) findings.push('El formulario no exige correctamente email y teléfono.');
   if (contactState.situationFieldPresent || !contactState.consultationRequired || contactState.stepCount !== 2) findings.push('El formulario no está simplificado correctamente a dos pasos.');
   await page.close();
@@ -82,7 +82,7 @@ async function audit(viewport) {
 const desktop = await audit({ width: 1440, height: 900 });
 const mobile = await audit({ width: 390, height: 844 });
 
-const htmlFiles = ['index.html','bancos.html','deudas.html','vivienda.html','seguros.html','familia.html','consumo.html','no-puedo-pagar-mis-deudas.html','tarjeta-deuda-no-baja.html','liquidacion-complementaria-hacienda.html','legal.html','gracias.html'];
+const htmlFiles = ['index.html','bancos.html','deudas.html','vivienda.html','seguros.html','familia.html','no-puedo-pagar-mis-deudas.html','tarjeta-deuda-no-baja.html','legal.html','gracias.html'];
 for (const file of htmlFiles) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const errors = [];

@@ -46,8 +46,7 @@ let currentStep = 1;
 const requestedArea = new URLSearchParams(window.location.search).get('area');
 const campaignAreas = {
   deudas: 'Deudas y segunda oportunidad',
-  bancos: 'Bancos, tarjetas e hipotecas',
-  hacienda: 'Hacienda e impuestos'
+  bancos: 'Bancos, tarjetas e hipotecas'
 };
 if (form && requestedArea && campaignAreas[requestedArea]) {
   const areaInput = [...form.querySelectorAll('input[name="area"]')]

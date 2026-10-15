@@ -2,8 +2,8 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 
 const textFiles = [
   'index.html', 'bancos.html', 'deudas.html', 'vivienda.html', 'seguros.html',
-  'familia.html', 'consumo.html', 'no-puedo-pagar-mis-deudas.html', 'tarjeta-deuda-no-baja.html',
-  'liquidacion-complementaria-hacienda.html', 'legal.html', 'aviso-legal.html', 'gracias.html', 'styles.css', 'script.js',
+  'familia.html', 'no-puedo-pagar-mis-deudas.html', 'tarjeta-deuda-no-baja.html',
+  'legal.html', 'aviso-legal.html', 'gracias.html', 'styles.css', 'script.js',
   'robots.txt', 'sitemap.xml', 'favicon.svg', 'og-ratio-soluciones.svg', 'CNAME'
 ];
 const binaryFiles = ['og-ratio-soluciones.png'];
@@ -30,7 +30,7 @@ for (const file of binaryFiles) {
   routes[`/${file}`] = { bodyBase64: (await readFile(file)).toString('base64'), contentType: 'image/png' };
 }
 routes['/'] = routes['/index.html'];
-for (const page of ['bancos','deudas','vivienda','seguros','familia','consumo','no-puedo-pagar-mis-deudas','tarjeta-deuda-no-baja','liquidacion-complementaria-hacienda','legal','aviso-legal','gracias']) {
+for (const page of ['bancos','deudas','vivienda','seguros','familia','no-puedo-pagar-mis-deudas','tarjeta-deuda-no-baja','legal','aviso-legal','gracias']) {
   routes[`/${page}`] = routes[`/${page}.html`];
 }
 
