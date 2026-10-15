@@ -10,10 +10,8 @@ const categoryMap:Record<string,string>={
   'Deudas y segunda oportunidad':'Deudas y negociación',
   'Bancos, tarjetas e hipotecas':'Banca y financiación',
   'Vivienda, alquiler u ocupación':'Vivienda',
-  'Hacienda e impuestos':'Hacienda e impuestos',
   'Seguros e indemnizaciones':'Seguros e indemnizaciones',
   'Separación o familia':'Familia',
-  'Consumo o servicios':'Consumo',
   'Otro problema':'Otro asunto'
 };
 
