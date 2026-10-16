@@ -4,7 +4,7 @@ const textFiles = [
   'index.html', 'bancos.html', 'deudas.html', 'vivienda.html', 'seguros.html',
   'familia.html', 'no-puedo-pagar-mis-deudas.html', 'tarjeta-deuda-no-baja.html',
   'legal.html', 'aviso-legal.html', 'gracias.html', 'styles.css', 'script.js',
-  'robots.txt', 'sitemap.xml', 'favicon.svg', 'og-ratio-soluciones.svg', 'CNAME'
+  'robots.txt', 'sitemap.xml', 'favicon.svg', 'logo-ratio-mark.svg', 'logo-ratio.svg', 'logo-ratio-claro.svg', 'og-ratio-soluciones.svg', 'CNAME'
 ];
 const binaryFiles = ['og-ratio-soluciones.png'];
 
