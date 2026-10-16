@@ -20,6 +20,7 @@ on:
       - 'robots.txt'
       - 'sitemap.xml'
       - 'favicon.svg'
+      - 'logo-ratio*.svg'
       - 'og-ratio-soluciones.svg'
       - 'og-ratio-soluciones.png'
       - 'CNAME'
