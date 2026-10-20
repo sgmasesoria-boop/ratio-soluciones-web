@@ -1,4 +1,4 @@
-import {chromium} from 'file:///C:/Users/PC/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
+import {chromium} from 'playwright';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 import {readFile} from 'node:fs/promises';
@@ -7,11 +7,12 @@ import {humanizeInternalStatus,sanitizeClientDraft} from './supabase/functions/_
 const edge=await readFile('supabase/functions/ai-assist/index.ts','utf8');
 const app=await readFile('app.js','utf8');
 const http=await readFile('supabase/functions/_shared/http.ts','utf8');
+const claude=await readFile('supabase/functions/_shared/claude.ts','utf8');
 const migration=await readFile('supabase/migrations/20260812003000_case_ai_audit.sql','utf8');
 const hostileDraft='Estado «won» y open. [case:record] [event:c13c7744-a2c8-4fb2-9b08-ea12e4d7189cc] Los metadatos indican que el documento no está analizado.';
 const safeDraft=sanitizeClientDraft(hostileDraft);
 
-const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
+const browser=await chromium.launch({headless:true,executablePath:process.env.RATIO_BROWSER_PATH||undefined,args:['--allow-file-access-from-files']});
 const page=await browser.newPage({viewport:{width:1280,height:900}});
 page.setDefaultTimeout(10000);
 const errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -31,12 +32,12 @@ const result={
   noAutomaticWrite:edge.includes('automatic_write:false')&&edge.includes("action:'ai_case_analyzed'")&&!edge.includes("from('cases').update"),
   minimisesPersonalData:!edge.includes("select('id,client_name")&&!edge.includes('contact_phone,contact_email'),
   aal2Required:edge.includes('requireAdmin(request)'),
-  budgetCap:edge.includes('OPENAI_MONTHLY_HARD_LIMIT_USD')&&edge.includes('AI_BUDGET_EXCEEDED'),
+  budgetCap:claude.includes('ANTHROPIC_MONTHLY_HARD_LIMIT_USD')&&edge.includes('aiConfig.hardLimitUsd')&&edge.includes('AI_BUDGET_EXCEEDED'),
   contextCap:edge.includes('MAX_WORKING_DOCUMENTS=12')&&edge.includes('MAX_WORKING_DRAFT_TOTAL_CHARS=60000')&&edge.includes('draft_content_truncated'),
-  noStorage:edge.includes('store:false'),
+  claudeProviderOnly:claude.includes('api.anthropic.com')&&edge.includes('anthropicKey()')&&!edge.includes('api.openai.com'),
   documentContentControlled:edge.includes("from('case_ai_document_index')")&&edge.includes('indexed_content')&&edge.includes('document_index_complete')&&!edge.includes('prepareDocumentInputs'),
   diagnosticTraceWithoutDocumentContent:edge.includes("console.error('AI case analysis failed'")&&edge.includes('diagnostic_stage:diagnostic.stage')&&!edge.includes("console.error('AI case analysis failed',{jobId,caseId,userRequest"),
-  incompleteResponseIsExplicit:edge.includes("response?.status==='incomplete'")&&edge.includes("throw new Error('AI_RESPONSE_INCOMPLETE')")&&app.includes('No se ha guardado un resultado parcial'),
+  incompleteResponseIsExplicit:claude.includes("stop_reason==='max_tokens'")&&edge.includes('callClaudeJson')&&claude.includes("throw new Error('AI_RESPONSE_INCOMPLETE')")&&app.includes('No se ha guardado un resultado parcial'),
   partialCoverageIsProminent:app.includes('ANÁLISIS DOCUMENTAL PARCIAL')&&app.includes('No debe considerarse una revisión completa del expediente'),
   incompleteDocumentIndexIsBlocked:edge.includes("throw new Error('DOCUMENT_REVIEW_PENDING')")&&edge.includes("throw new Error('DOCUMENT_INDEX_INCOMPLETE')")&&app.includes('Preparar documentación'),
   workingDocumentsIncluded:edge.includes("from('case_working_documents')")&&edge.includes("from('case_document_versions')"),
@@ -46,7 +47,7 @@ const result={
   internalDocumentsRequireSecurityReview:edge.includes("analysis_eligible:document.security_status==='accepted'")&&edge.includes('security_reviewed_at'),
   manualContextIncluded:edge.includes('event_type ai_context')&&edge.includes('corrección explícita'),
   unifiedProfessionalAssistant:app.includes('¿Qué necesitas hacer?')&&app.includes("request=$('#case-ai-request')")&&edge.includes('ratio_professional_case_work')&&edge.includes('requested_work'),
-  officialResearchIsSeparated:edge.includes('researchOfficialSources')&&edge.includes('allowed_domains:OFFICIAL_DOMAINS')&&edge.includes('safeResearchQueries')&&edge.includes('official_source_urls'),
+  officialResearchIsSeparated:edge.includes('researchOfficialSources')&&edge.includes('allowedDomains:OFFICIAL_DOMAINS')&&edge.includes('safeResearchQueries')&&edge.includes('official_source_urls'),
   professionalDraftIsVersioned:app.includes('saveAiDeliverable(result)')&&app.includes("action:'create_working_document'")&&app.includes("action:'add_working_document_version'")&&app.includes('sourceAiRunId:result.run_id'),
   clientDraftSanitized:edge.includes('sanitizeClientDraft(result.draft_client_update)')&&!safeDraft.includes('[case:')&&!safeDraft.includes('[event:')&&!/\b(?:won|open|metadatos?)\b/i.test(safeDraft),
   internalStatusesHumanized:humanizeInternalStatus('open','case')==='expediente abierto'&&humanizeInternalStatus('pending_review','document')==='pendiente de comprobación de seguridad'&&edge.includes("lifecycle:humanizeInternalStatus(c.status,'case')"),

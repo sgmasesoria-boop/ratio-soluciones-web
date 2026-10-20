@@ -1,8 +1,8 @@
-import {chromium} from 'file:///C:/Users/PC/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
+import {chromium} from 'playwright';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
-const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
+const browser=await chromium.launch({headless:true,executablePath:process.env.RATIO_BROWSER_PATH||undefined,args:['--allow-file-access-from-files']});
 const page=await browser.newPage({viewport:{width:1280,height:900}});const errors=[],calls=[];page.on('pageerror',error=>errors.push(error.message));
 await page.route('**/config.js',route=>route.fulfill({contentType:'text/javascript',body:"window.RATIO_CONFIG={mode:'production',supabaseUrl:'https://ratio-test.supabase.co',supabaseAnonKey:'public-anon-key',allowDemoAccess:false,appMode:'portal'};"}));
 await page.route('https://ratio-test.supabase.co/**',async route=>{
