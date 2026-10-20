@@ -6,7 +6,7 @@ Esta publicación agrupa tres cambios que deben desplegarse y comprobarse juntos
 
 1. los avisos de Signaturit dejan de depender de un secreto visible en la URL;
 2. cada documento interno queda en revisión antes de que la IA pueda leerlo;
-3. la licencia de OpenAI API se trata como un coste separado de Codex y ChatGPT.
+3. la licencia de la API de IA (hoy Claude/Anthropic) se trata como un coste separado de las suscripciones de uso personal.
 
 No se considerará terminada por el mero hecho de fusionar el código. La prueba
 autenticada, el registro de auditoría y la comprobación pública forman parte de

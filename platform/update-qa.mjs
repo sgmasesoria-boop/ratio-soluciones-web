@@ -1,8 +1,8 @@
-import {chromium} from 'file:///C:/Users/PC/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
+import {chromium} from 'playwright';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
-const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',args:['--allow-file-access-from-files']});
+const browser=await chromium.launch({headless:true,executablePath:process.env.RATIO_BROWSER_PATH||undefined,args:['--allow-file-access-from-files']});
 const page=await browser.newPage({viewport:{width:1280,height:900}});
 const errors=[];const calls=[];let updated=false;let rejectedUpdateOnce=false;let latestUpdate=null;
 const jwt=payload=>`header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;

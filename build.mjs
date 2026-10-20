@@ -10,11 +10,9 @@ const binaryFiles = ['og-ratio-soluciones.png'];
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist/server', { recursive: true });
-await mkdir('dist/.openai', { recursive: true });
 
 for (const file of textFiles) await cp(file, `dist/${file}`);
 for (const file of binaryFiles) await cp(file, `dist/${file}`);
-await cp('.openai/hosting.json', 'dist/.openai/hosting.json');
 
 const contentTypes = {
   html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8',
