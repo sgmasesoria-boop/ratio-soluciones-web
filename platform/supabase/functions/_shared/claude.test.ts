@@ -23,7 +23,7 @@ Deno.test('salida estructurada por herramienta',async()=>{
   assert(out.usage.input_tokens===10&&out.usage.output_tokens===5,'uso');
   assert(seen[0].url==='https://api.anthropic.com/v1/messages','url');
   assert(seen[0].headers['x-api-key']==='sk-ant-test'&&seen[0].headers['anthropic-version'],'cabeceras');
-  assert(seen[0].body.tool_choice.name==='ratio_x'&&seen[0].body.tools[0].input_schema.type==='object','herramienta forzada');
+  assert(seen[0].body.tool_choice.type==='auto'&&seen[0].body.tools[0].name==='ratio_x'&&seen[0].body.tools[0].input_schema.type==='object','herramienta forzada');
 });
 Deno.test('errores se traducen a códigos seguros',async()=>{
   mock([{status:400,body:{error:{type:'invalid_request_error',message:'Your credit balance is too low to access the Anthropic API.'}}}]);

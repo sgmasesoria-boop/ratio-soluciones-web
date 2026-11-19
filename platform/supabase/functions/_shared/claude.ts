@@ -68,10 +68,10 @@ export async function callClaudeJson(options:{
 }){
   const {apiKey,system,content,toolName,schema,model,maxTokens,label='Claude'}=options;
   const {response,requestId}=await post(label,apiKey,{
-    model,max_tokens:maxTokens,system,
+    model,max_tokens:maxTokens,system:`${system}\n\nResponde únicamente llamando a la herramienta ${toolName} con el resultado completo.`,
     messages:[{role:'user',content}],
     tools:[{name:toolName,description:'Devuelve el resultado final con exactamente esta estructura.',input_schema:schema}],
-    tool_choice:{type:'tool',name:toolName}
+    tool_choice:{type:'auto'}
   });
   if(response?.stop_reason==='max_tokens'){
     console.error(`${label} response incomplete`,{requestId,responseId:clean(response?.id,100),model,outputLimit:maxTokens});
