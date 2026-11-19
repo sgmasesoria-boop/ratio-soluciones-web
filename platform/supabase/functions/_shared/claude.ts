@@ -43,7 +43,7 @@ async function failFromUpstream(label:string,upstream:Response,notFoundCode='AI_
   const requestId=upstream.headers.get('request-id')||upstream.headers.get('x-request-id');
   let errorType='',message='';
   try{const body=await upstream.json();errorType=clean(body?.error?.type,80);message=clean(body?.error?.message,300);}catch{/* No se registra el cuerpo. */}
-  console.error(`${label} upstream error`,{status:upstream.status,requestId,type:errorType||'unknown'});
+  console.error(`${label} upstream error`,{status:upstream.status,requestId,type:errorType||'unknown',message});
   if(upstream.status===401||upstream.status===403)throw new Error('AI_KEY_INVALID');
   // Anthropic informa de saldo agotado con 400 y mensaje "credit balance is too low".
   if(upstream.status===402||upstream.status===429||/credit balance|billing|usage limit|rate limit/i.test(message))throw new Error('AI_QUOTA_EXCEEDED');
