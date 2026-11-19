@@ -55,7 +55,7 @@ El sistema debe permitir que una consulta llegue a un expediente único, se valo
 ### Servicios técnicos
 
 - GitHub: código, versiones y respaldo técnico.
-- Sites: publicación independiente de web, CRM y portal.
+- GitHub Pages: publicación de web, CRM y portal (Sites de OpenAI abandonado).
 - Supabase europeo: base de datos, autenticación, funciones y almacenamiento privado.
 - Signaturit: piloto de firma electrónica; producción pendiente de cierre contractual y técnico.
 - SMTP corporativo: correos transaccionales.
@@ -78,8 +78,7 @@ El sistema debe permitir que una consulta llegue a un expediente único, se valo
 
 ### Bloqueos actuales
 
-- La cuenta actual de Codex no tiene acceso como propietaria o editora a los proyectos históricos de Sites del CRM y del portal.
-- Deben compartirse esos proyectos desde la cuenta propietaria antes de publicar la interfaz consolidada.
+- Superado: CRM y portal ya no dependen de Sites de OpenAI; se publican desde GitHub Pages.
 - Falta completar una prueba real de copia y restauración lógica de la base de datos.
 - Falta una prueba integral y controlada del recorrido completo de un expediente.
 - Falta la validación jurídica final de textos, contratos y encargados del tratamiento.
@@ -92,7 +91,7 @@ El sistema debe permitir que una consulta llegue a un expediente único, se valo
 3. **CRM y portal**: operativa diaria, experiencia de usuario, documentos y comunicaciones.
 4. **Seguridad y cumplimiento**: accesos, RLS, copias, restauración, privacidad y auditoría.
 5. **Biblioteca jurídica e IA**: OCR local, anonimización, búsqueda, recuperación de contexto y borradores revisables.
-6. **Infraestructura**: GitHub, Sites, Supabase, correo, dominios, firma y equipos.
+6. **Infraestructura**: GitHub, GitHub Pages, Supabase, correo, dominios, firma y equipos.
 
 ## 6. Documentos técnicos canónicos
 
@@ -111,7 +110,7 @@ El sistema debe permitir que una consulta llegue a un expediente único, se valo
 
 1. Instalar y asegurar Windows 11 Pro en el ordenador nuevo.
 2. Migrar el proyecto y comprobar las copias sin retirar el ordenador antiguo.
-3. Recuperar el acceso de edición a Sites para CRM y portal.
+3. (Hecho) Salir de Sites; la IA del CRM funciona con Claude (ver `platform/operations/MIGRACION_CLAUDE_RUNBOOK.md`).
 4. Publicar las versiones consolidadas y verificar los dominios corporativos.
 5. Ejecutar una prueba integral ficticia con evidencias.
 6. Completar copia lógica y restauración aislada de la base de datos.

@@ -13,7 +13,7 @@ const checks={
   optionalFreeInstruction:app.includes('id="case-ai-request"')&&app.includes('Déjalo vacío para una revisión completa')&&app.includes('redacta una reclamación'),
   wholeCaseContext:['case_events','document_requests','case_documents','case_internal_documents','case_working_documents','case_document_versions','case_ai_runs'].every(name=>assistant.includes(`from('${name}')`)),
   twoPhasePrivacy:assistant.includes('ratio_private_case_brief')&&assistant.includes('researchOfficialSources')&&assistant.includes('ratio_professional_case_work'),
-  officialDomainsOnly:assistant.includes("allowed_domains:OFFICIAL_DOMAINS")&&assistant.includes('officialUrl')&&assistant.includes('verifiedUrls.has(url)'),
+  officialDomainsOnly:assistant.includes("allowedDomains:OFFICIAL_DOMAINS")&&assistant.includes('officialUrl')&&assistant.includes('verifiedUrls.has(url)'),
   piiGuard:assistant.includes('safeResearchQueries')&&['DNI/NIE','teléfonos','emails','IBAN','direcciones','números de expediente'].every(value=>assistant.includes(value)),
   decisiveOutput:['conclusion','legal_analysis','calculations','deliverable'].every(field=>assistant.includes(field)),
   draftingSupported:['demanda','recurso','reclamacion','alegaciones','escrito'].every(kind=>assistant.includes(`'${kind}'`)),

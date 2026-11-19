@@ -86,12 +86,9 @@ if($serviceKey.Length -lt 40){throw 'LA_CLAVE_SERVICE_ROLE_NO_PARECE_VALIDA'}
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $backupScript = Join-Path $scriptRoot 'storage-backup.mjs'
-$node = 'C:\Users\PC\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe'
-if(!(Test-Path -LiteralPath $node)){
-  $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
-  if(!$nodeCommand){throw 'NODE_NO_DISPONIBLE'}
-  $node = $nodeCommand.Source
-}
+$nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+if(!$nodeCommand){throw 'NODE_NO_DISPONIBLE'}
+$node = $nodeCommand.Source
 
 try{
   $env:RATIO_SUPABASE_URL = 'https://bvpeztdfwdbiielaione.supabase.co'

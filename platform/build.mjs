@@ -1,13 +1,11 @@
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 const buildMode=process.argv[2]||'combined';
-const targetProjectId=process.argv[3]||'';
 const runtimeMode=process.argv[4]||'production';
 if(!['combined','crm','portal'].includes(buildMode))throw new Error('Build mode must be combined, crm or portal.');
 if(!['demo','production'].includes(runtimeMode))throw new Error('Runtime mode must be demo or production.');
 const publicFiles=['index.html','styles.css','config.js','platform-api.js','crm-api.js','app.js'];
 await rm('dist',{recursive:true,force:true});
 await mkdir('dist/server',{recursive:true});
-await mkdir('dist/.openai',{recursive:true});
 for(const file of publicFiles.filter(name=>!['config.js','index.html'].includes(name))){
   const sourceFile=file==='crm-api.js'?'platform-api.js':file;
   await cp(sourceFile,`dist/${file}`);
@@ -26,8 +24,6 @@ const resolvedConfig=sourceConfig
   .replace(/mode:\s*'[^']+'/,`mode: '${runtimeMode}'`)
   .replace(/allowDemoAccess:\s*(true|false)/,`allowDemoAccess: ${runtimeMode==='demo'}`);
 await writeFile('dist/config.js',resolvedConfig,'utf8');
-if(targetProjectId)await writeFile('dist/.openai/hosting.json',JSON.stringify({project_id:targetProjectId})+'\n','utf8');
-else await cp('.openai/hosting.json','dist/.openai/hosting.json');
 const types={html:'text/html; charset=utf-8',css:'text/css; charset=utf-8',js:'text/javascript; charset=utf-8'};
 const routes={};
 for(const file of publicFiles){const ext=file.split('.').pop();routes[`/${file}`]={body:await readFile(`dist/${file}`,'utf8'),contentType:types[ext]};}

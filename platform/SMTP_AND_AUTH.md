@@ -28,4 +28,4 @@
 6. Solicitar recuperación de contraseña y completar el recorrido.
 7. Confirmar que el acceso interno vuelve a exigir el código TOTP.
 
-Nunca se almacenan en Git la contraseña SMTP, una clave de OpenAI ni un token personal de Supabase.
+Nunca se almacenan en Git la contraseña SMTP, una clave de Anthropic ni un token personal de Supabase.
